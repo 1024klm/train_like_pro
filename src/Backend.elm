@@ -1,68 +1,76 @@
 module Backend exposing (..)
 
-import Effect.Command as Command exposing (BackendOnly, Command)
-import Effect.Lamdera exposing (ClientId, SessionId, broadcast, sendToFrontend)
-import Effect.Subscription as Subscription exposing (Subscription)
-import Lamdera
+import Dict exposing (Dict)
+import Lamdera exposing (ClientId, SessionId)
 import Types exposing (..)
 
 
+type alias Model =
+    BackendModel
+
+
 app =
-    Effect.Lamdera.backend
-        Lamdera.broadcast
-        Lamdera.sendToFrontend
-        app_
+    Lamdera.backend
+        { init = init
+        , update = update
+        , updateFromFrontend = updateFromFrontend
+        , subscriptions = \m -> Sub.none
+        }
 
 
-app_ =
-    { init = init
-    , update = update
-    , updateFromFrontend = updateFromFrontend
-    , subscriptions = subscriptions
-    }
-
-
-init : ( BackendModel, Command BackendOnly ToFrontend BackendMsg )
+init : ( Model, Cmd BackendMsg )
 init =
-    ( { counter = 0 }
-    , Command.none
+    ( { userSessions = Dict.empty }
+    , Cmd.none
     )
 
 
-update : BackendMsg -> BackendModel -> ( BackendModel, Command BackendOnly ToFrontend BackendMsg )
+update : BackendMsg -> Model -> ( Model, Cmd BackendMsg )
 update msg model =
     case msg of
         NoOpBackendMsg ->
-            ( model, Command.none )
+            ( model, Cmd.none )
 
 
-updateFromFrontend : SessionId -> ClientId -> ToBackend -> BackendModel -> ( BackendModel, Command BackendOnly ToFrontend BackendMsg )
+updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
     case msg of
-        UserIncrement ->
+        TrackHeroSelection maybeHeroId ->
             let
-                newModel =
-                    { model | counter = model.counter + 1 }
+                updatedSession =
+                    case Dict.get sessionId model.userSessions of
+                        Just session ->
+                            { session | selectedHero = maybeHeroId }
+
+                        Nothing ->
+                            { clientId = sessionId
+                            , selectedHero = maybeHeroId
+                            , visitCount = 1
+                            }
+
+                updatedModel =
+                    { model | userSessions = Dict.insert sessionId updatedSession model.userSessions }
             in
-            ( newModel
-            , broadcast (CounterNewValue newModel.counter (Effect.Lamdera.clientIdToString clientId))
+            ( updatedModel
+            , Lamdera.sendToFrontend clientId (SessionData updatedSession)
             )
 
-        UserDecrement ->
+        GetUserSession ->
             let
-                newModel =
-                    { model | counter = model.counter - 1 }
+                session =
+                    case Dict.get sessionId model.userSessions of
+                        Just existingSession ->
+                            { existingSession | visitCount = existingSession.visitCount + 1 }
+
+                        Nothing ->
+                            { clientId = sessionId
+                            , selectedHero = Nothing
+                            , visitCount = 1
+                            }
+
+                updatedModel =
+                    { model | userSessions = Dict.insert sessionId session model.userSessions }
             in
-            ( newModel
-            , broadcast (CounterNewValue newModel.counter (Effect.Lamdera.clientIdToString clientId))
+            ( updatedModel
+            , Lamdera.sendToFrontend clientId (SessionData session)
             )
-        
-        GetCounter ->
-            ( model
-            , sendToFrontend clientId (CounterNewValue model.counter "")
-            )
-
-
-subscriptions : BackendModel -> Subscription BackendOnly BackendMsg
-subscriptions model =
-    Subscription.none
