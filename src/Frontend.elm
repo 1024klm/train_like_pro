@@ -19,6 +19,7 @@ import I18n
 import LocalStorage
 import Theme
 import Types exposing (..)
+import Progress
 import Url
 
 
@@ -51,12 +52,28 @@ init url key =
       , activeTab = Overview
       , heroes = initHeroes
       , learningPhases = initLearningPhases
+      , trainingSessions = []
+      , techniqueProgress = []
+      , achievements = Progress.getAchievements
+      , showAddSessionModal = False
+      , newSessionForm = emptySessionForm
       }
     , Cmd.batch
         [ Task.perform (\_ -> NoOpFrontendMsg) (Task.succeed ())
         , Lamdera.sendToBackend GetUserSession
         ]
     )
+
+
+emptySessionForm : NewSessionForm
+emptySessionForm =
+    { heroId = Nothing
+    , duration = ""
+    , sessionType = Technique
+    , techniques = ""
+    , notes = ""
+    , date = ""
+    }
 
 
 initHeroes : Dict String Hero
@@ -277,15 +294,106 @@ update msg model =
         SetActiveTab tab ->
             ( { model | activeTab = tab }, Cmd.none )
 
+        ToggleAddSessionModal ->
+            ( { model | showAddSessionModal = not model.showAddSessionModal }, Cmd.none )
+
+        UpdateNewSessionForm newForm ->
+            ( { model | newSessionForm = newForm }, Cmd.none )
+
+        SaveTrainingSession ->
+            case (model.newSessionForm.heroId, String.toInt model.newSessionForm.duration) of
+                (Just heroId, Just duration) ->
+                    let
+                        newSession =
+                            { id = String.fromInt (List.length model.trainingSessions + 1)
+                            , date = model.newSessionForm.date
+                            , heroId = heroId
+                            , duration = duration
+                            , techniques = String.split "," model.newSessionForm.techniques |> List.map String.trim
+                            , notes = model.newSessionForm.notes
+                            , sessionType = model.newSessionForm.sessionType
+                            }
+                    in
+                    ( { model 
+                        | showAddSessionModal = False
+                        , newSessionForm = emptySessionForm 
+                      }
+                    , Lamdera.sendToBackend (SaveSession newSession)
+                    )
+                
+                _ ->
+                    ( model, Cmd.none )
+
+        DeleteTrainingSession sessionId ->
+            ( model, Lamdera.sendToBackend (DeleteSession sessionId) )
+
+        UpdateTechniqueStatus techniqueId status ->
+            ( model, Lamdera.sendToBackend (UpdateTechnique techniqueId status) )
+
+        AddTechniqueNote techniqueId note ->
+            ( model, Lamdera.sendToBackend (SaveTechniqueNote techniqueId note) )
+
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
     case msg of
         SessionData session ->
+            let
+                techniques = 
+                    case session.selectedHero of
+                        Just heroId ->
+                            if List.isEmpty session.techniqueProgress then
+                                Progress.getTechniquesForHero heroId
+                            else
+                                session.techniqueProgress
+                        Nothing ->
+                            session.techniqueProgress
+            in
             ( { model
                 | clientId = session.clientId
                 , selectedHero = session.selectedHero
+                , trainingSessions = session.trainingSessions
+                , techniqueProgress = techniques
+                , achievements = 
+                    if List.isEmpty session.achievements then
+                        model.achievements
+                    else
+                        session.achievements
               }
+            , Cmd.none
+            )
+
+        SessionSaved newSession ->
+            ( { model | trainingSessions = newSession :: model.trainingSessions }
+            , Cmd.none
+            )
+
+        SessionDeleted sessionId ->
+            ( { model | trainingSessions = List.filter (\s -> s.id /= sessionId) model.trainingSessions }
+            , Cmd.none
+            )
+
+        TechniqueUpdated techniqueId newStatus ->
+            let
+                updateTechnique tech =
+                    if tech.techniqueId == techniqueId then
+                        { tech | status = newStatus, lastPracticed = Just "today" }
+                    else
+                        tech
+            in
+            ( { model | techniqueProgress = List.map updateTechnique model.techniqueProgress }
+            , Cmd.none
+            )
+
+        AchievementUnlocked achievement ->
+            let
+                updateAchievement ach =
+                    if ach.id == achievement.id then
+                        achievement
+                    else
+                        ach
+            in
+            ( { model | achievements = List.map updateAchievement model.achievements }
             , Cmd.none
             )
 
@@ -317,6 +425,9 @@ view model =
 
                 Plan ->
                     viewPlan model
+
+                Progress ->
+                    viewProgress model
             ]
         ]
     }
@@ -339,6 +450,7 @@ viewNavigation activeTab =
             [ viewTabButton Overview "Vue d'ensemble" activeTab
             , viewTabButton Heroes "Tes Héros" activeTab
             , viewTabButton Plan "Plan d'Action" activeTab
+            , viewTabButton Progress "Progression" activeTab
             ]
         ]
 
@@ -629,3 +741,377 @@ viewChampionMindset =
                 ]
             ]
         ]
+
+
+viewProgress : Model -> Html FrontendMsg
+viewProgress model =
+    div [ class "space-y-8" ]
+        [ viewProgressHeader model
+        , viewTrainingStats model
+        , viewRecentSessions model
+        , viewTechniqueChecklist model
+        , viewAchievements model
+        , if model.showAddSessionModal then
+            viewAddSessionModal model
+          else
+            text ""
+        ]
+
+
+viewProgressHeader : Model -> Html FrontendMsg
+viewProgressHeader model =
+    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
+        [ div [ class "flex justify-between items-center mb-4" ]
+            [ h2 [ class "text-2xl font-bold dark:text-white" ]
+                [ text "Suivi de Progression" ]
+            , button
+                [ onClick ToggleAddSessionModal
+                , class "bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                ]
+                [ span [ class "mr-2" ] [ text "+" ]
+                , text "Nouvelle Session"
+                ]
+            ]
+        , case model.selectedHero of
+            Just heroId ->
+                div [ class "text-lg text-gray-600 dark:text-gray-300" ]
+                    [ text ("Héros actuel: " ++ heroIdToString heroId) ]
+            
+            Nothing ->
+                div [ class "text-yellow-600 dark:text-yellow-400" ]
+                    [ text "⚠️ Sélectionnez un héros dans l'onglet 'Tes Héros' pour commencer" ]
+        ]
+
+
+viewTrainingStats : Model -> Html FrontendMsg
+viewTrainingStats model =
+    let
+        totalHours = Progress.getTotalTrainingHours model.trainingSessions
+        totalSessions = List.length model.trainingSessions
+        techniqueStats = Progress.calculateProgress model.techniqueProgress
+        completedAchievements = List.filter (\a -> a.unlockedAt /= Nothing) model.achievements |> List.length
+    in
+    div [ class "grid grid-cols-2 md:grid-cols-4 gap-4" ]
+        [ viewStatCard "🏋️" "Sessions Totales" (String.fromInt totalSessions) "bg-blue-50 dark:bg-blue-900"
+        , viewStatCard "⏱️" "Heures d'Entraînement" (String.fromFloat (toFloat (round (totalHours * 10)) / 10)) "bg-green-50 dark:bg-green-900"
+        , viewStatCard "🎯" "Techniques Maîtrisées" (String.fromInt techniqueStats.mastered ++ "/" ++ String.fromInt techniqueStats.total) "bg-purple-50 dark:bg-purple-900"
+        , viewStatCard "🏆" "Achievements" (String.fromInt completedAchievements ++ "/" ++ String.fromInt (List.length model.achievements)) "bg-yellow-50 dark:bg-yellow-900"
+        ]
+
+
+viewStatCard : String -> String -> String -> String -> Html FrontendMsg
+viewStatCard icon label value bgColor =
+    div [ class (bgColor ++ " rounded-lg p-4 text-center") ]
+        [ div [ class "text-3xl mb-2" ] [ text icon ]
+        , div [ class "text-sm text-gray-600 dark:text-gray-300 mb-1" ] [ text label ]
+        , div [ class "text-2xl font-bold dark:text-white" ] [ text value ]
+        ]
+
+
+viewRecentSessions : Model -> Html FrontendMsg
+viewRecentSessions model =
+    let
+        recentSessions = Progress.getRecentSessions 5 model.trainingSessions
+    in
+    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
+        [ h3 [ class "text-xl font-bold mb-4 dark:text-white" ] 
+            [ text "Sessions Récentes" ]
+        , if List.isEmpty recentSessions then
+            div [ class "text-gray-500 dark:text-gray-400 text-center py-8" ]
+                [ text "Aucune session enregistrée. Cliquez sur 'Nouvelle Session' pour commencer!" ]
+          else
+            div [ class "space-y-3" ]
+                (List.map viewSessionCard recentSessions)
+        ]
+
+
+viewSessionCard : TrainingSession -> Html FrontendMsg
+viewSessionCard session =
+    div [ class "border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" ]
+        [ div [ class "flex justify-between items-start" ]
+            [ div []
+                [ div [ class "flex items-center gap-3 mb-2" ]
+                    [ span [ class "font-semibold dark:text-white" ] 
+                        [ text (session.date ++ " - " ++ heroIdToString session.heroId) ]
+                    , span [ class "text-sm bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded" ]
+                        [ text (Progress.sessionTypeToString session.sessionType) ]
+                    ]
+                , div [ class "text-sm text-gray-600 dark:text-gray-300" ]
+                    [ text (String.fromInt session.duration ++ " minutes") ]
+                , if not (String.isEmpty session.notes) then
+                    div [ class "text-sm text-gray-500 dark:text-gray-400 mt-2 italic" ]
+                        [ text session.notes ]
+                  else
+                    text ""
+                ]
+            , button
+                [ onClick (DeleteTrainingSession session.id)
+                , class "text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                ]
+                [ text "🗑️" ]
+            ]
+        ]
+
+
+viewTechniqueChecklist : Model -> Html FrontendMsg
+viewTechniqueChecklist model =
+    case model.selectedHero of
+        Just heroId ->
+            let
+                techniques = List.filter (\t -> t.heroId == heroId) model.techniqueProgress
+            in
+            div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
+                [ h3 [ class "text-xl font-bold mb-4 dark:text-white" ] 
+                    [ text "Checklist des Techniques" ]
+                , if List.isEmpty techniques then
+                    div [ class "text-gray-500 dark:text-gray-400" ]
+                        [ text "Les techniques seront chargées après votre première connexion." ]
+                  else
+                    div [ class "space-y-2" ]
+                        (List.map viewTechniqueItem techniques)
+                ]
+
+        Nothing ->
+            text ""
+
+
+viewTechniqueItem : TechniqueProgress -> Html FrontendMsg
+viewTechniqueItem technique =
+    div [ class "border dark:border-gray-700 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" ]
+        [ div [ class "flex items-center justify-between" ]
+            [ div [ class "flex items-center gap-3" ]
+                [ statusIcon technique.status
+                , div []
+                    [ div [ class "font-medium dark:text-white" ] [ text technique.name ]
+                    , div [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text technique.category ]
+                    ]
+                ]
+            , select
+                [ onInput (\value -> UpdateTechniqueStatus technique.techniqueId (stringToTechniqueStatus value))
+                , class "text-sm border dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-white"
+                , value (techniqueStatusToValue technique.status)
+                ]
+                [ option [ value "notstarted" ] [ text "Non commencé" ]
+                , option [ value "learning" ] [ text "En apprentissage" ]
+                , option [ value "drilling" ] [ text "En drill" ]
+                , option [ value "mastered" ] [ text "Maîtrisé" ]
+                ]
+            ]
+        ]
+
+
+statusIcon : TechniqueStatus -> Html msg
+statusIcon status =
+    case status of
+        NotStarted ->
+            span [ class "text-gray-400 text-xl" ] [ text "○" ]
+        
+        Learning ->
+            span [ class "text-yellow-500 text-xl" ] [ text "◐" ]
+        
+        InDrilling ->
+            span [ class "text-blue-500 text-xl" ] [ text "◕" ]
+        
+        Mastered ->
+            span [ class "text-green-500 text-xl" ] [ text "●" ]
+
+
+techniqueStatusToValue : TechniqueStatus -> String
+techniqueStatusToValue status =
+    case status of
+        NotStarted -> "notstarted"
+        Learning -> "learning"
+        InDrilling -> "drilling"
+        Mastered -> "mastered"
+
+
+stringToTechniqueStatus : String -> TechniqueStatus
+stringToTechniqueStatus str =
+    case str of
+        "learning" -> Learning
+        "drilling" -> InDrilling
+        "mastered" -> Mastered
+        _ -> NotStarted
+
+
+viewAchievements : Model -> Html FrontendMsg
+viewAchievements model =
+    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
+        [ h3 [ class "text-xl font-bold mb-4 dark:text-white" ] 
+            [ text "Achievements" ]
+        , div [ class "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" ]
+            (List.map viewAchievementCard model.achievements)
+        ]
+
+
+viewAchievementCard : Achievement -> Html FrontendMsg
+viewAchievementCard achievement =
+    let
+        isUnlocked = achievement.unlockedAt /= Nothing
+        opacity = if isUnlocked then "" else "opacity-50"
+    in
+    div [ class (opacity ++ " text-center p-4 rounded-lg " ++ 
+                 if isUnlocked then "bg-yellow-50 dark:bg-yellow-900" else "bg-gray-100 dark:bg-gray-700") ]
+        [ div [ class "text-4xl mb-2" ] [ text achievement.icon ]
+        , div [ class "font-medium text-sm dark:text-white" ] [ text achievement.name ]
+        , div [ class "text-xs text-gray-600 dark:text-gray-300 mt-1" ] [ text achievement.description ]
+        ]
+
+
+viewAddSessionModal : Model -> Html FrontendMsg
+viewAddSessionModal model =
+    div [ class "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" ]
+        [ div [ class "bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4" ]
+            [ h3 [ class "text-xl font-bold mb-4 dark:text-white" ] 
+                [ text "Nouvelle Session d'Entraînement" ]
+            , div [ class "space-y-4" ]
+                [ div []
+                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
+                        [ text "Date" ]
+                    , input
+                        [ type_ "date"
+                        , value model.newSessionForm.date
+                        , onInput (\v -> 
+                            let
+                                form = model.newSessionForm
+                            in
+                            UpdateNewSessionForm { form | date = v }
+                          )
+                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
+                        ]
+                        []
+                    ]
+                , div []
+                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
+                        [ text "Héros" ]
+                    , select
+                        [ onInput (\v -> 
+                            let
+                                form = model.newSessionForm
+                            in
+                            UpdateNewSessionForm { form | heroId = stringToHeroId v }
+                          )
+                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
+                        ]
+                        [ option [ value "" ] [ text "Sélectionner un héros" ]
+                        , option [ value "gordon" ] [ text "Gordon Ryan" ]
+                        , option [ value "buchecha" ] [ text "Buchecha" ]
+                        , option [ value "rafael" ] [ text "Rafael Mendes" ]
+                        , option [ value "leandro" ] [ text "Leandro Lo" ]
+                        , option [ value "galvao" ] [ text "André Galvão" ]
+                        ]
+                    ]
+                , div []
+                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
+                        [ text "Type de Session" ]
+                    , select
+                        [ onInput (\v -> 
+                            let
+                                form = model.newSessionForm
+                            in
+                            UpdateNewSessionForm { form | sessionType = stringToSessionType v }
+                          )
+                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
+                        ]
+                        [ option [ value "technique" ] [ text "Technique" ]
+                        , option [ value "drilling" ] [ text "Drilling" ]
+                        , option [ value "sparring" ] [ text "Sparring" ]
+                        , option [ value "competition" ] [ text "Compétition" ]
+                        , option [ value "openmat" ] [ text "Open Mat" ]
+                        ]
+                    ]
+                , div []
+                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
+                        [ text "Durée (minutes)" ]
+                    , input
+                        [ type_ "number"
+                        , value model.newSessionForm.duration
+                        , onInput (\v -> 
+                            let
+                                form = model.newSessionForm
+                            in
+                            UpdateNewSessionForm { form | duration = v }
+                          )
+                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
+                        ]
+                        []
+                    ]
+                , div []
+                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
+                        [ text "Techniques pratiquées" ]
+                    , textarea
+                        [ value model.newSessionForm.techniques
+                        , onInput (\v -> 
+                            let
+                                form = model.newSessionForm
+                            in
+                            UpdateNewSessionForm { form | techniques = v }
+                          )
+                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
+                        , rows 3
+                        , placeholder "Ex: Berimbolo, Triangle, Armbar..."
+                        ]
+                        []
+                    ]
+                , div []
+                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
+                        [ text "Notes" ]
+                    , textarea
+                        [ value model.newSessionForm.notes
+                        , onInput (\v -> 
+                            let
+                                form = model.newSessionForm
+                            in
+                            UpdateNewSessionForm { form | notes = v }
+                          )
+                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
+                        , rows 3
+                        ]
+                        []
+                    ]
+                ]
+            , div [ class "flex justify-end gap-3 mt-6" ]
+                [ button
+                    [ onClick ToggleAddSessionModal
+                    , class "px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                    ]
+                    [ text "Annuler" ]
+                , button
+                    [ onClick SaveTrainingSession
+                    , class "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                    ]
+                    [ text "Enregistrer" ]
+                ]
+            ]
+        ]
+
+
+heroIdToString : HeroId -> String
+heroIdToString heroId =
+    case heroId of
+        Gordon -> "Gordon Ryan"
+        Buchecha -> "Buchecha"
+        Rafael -> "Rafael Mendes"
+        Leandro -> "Leandro Lo"
+        Galvao -> "André Galvão"
+
+
+stringToHeroId : String -> Maybe HeroId
+stringToHeroId str =
+    case str of
+        "gordon" -> Just Gordon
+        "buchecha" -> Just Buchecha
+        "rafael" -> Just Rafael
+        "leandro" -> Just Leandro
+        "galvao" -> Just Galvao
+        _ -> Nothing
+
+
+stringToSessionType : String -> SessionType
+stringToSessionType str =
+    case str of
+        "drilling" -> Drilling
+        "sparring" -> Sparring
+        "competition" -> Competition
+        "openmat" -> OpenMat
+        _ -> Technique

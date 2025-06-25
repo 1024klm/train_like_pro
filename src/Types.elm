@@ -27,6 +27,7 @@ type Tab
     = Overview
     | Heroes
     | Plan
+    | Progress
 
 
 type alias Hero =
@@ -58,6 +59,70 @@ type alias LearningPhase =
     }
 
 
+type alias TrainingSession =
+    { id : String
+    , date : String
+    , heroId : HeroId
+    , duration : Int
+    , techniques : List String
+    , notes : String
+    , sessionType : SessionType
+    }
+
+
+type SessionType
+    = Technique
+    | Drilling
+    | Sparring
+    | Competition
+    | OpenMat
+
+
+type alias TechniqueProgress =
+    { techniqueId : String
+    , name : String
+    , heroId : HeroId
+    , category : String
+    , status : TechniqueStatus
+    , lastPracticed : Maybe String
+    , notes : String
+    }
+
+
+type TechniqueStatus
+    = NotStarted
+    | Learning
+    | InDrilling
+    | Mastered
+
+
+type alias Achievement =
+    { id : String
+    , name : String
+    , description : String
+    , icon : String
+    , unlockedAt : Maybe String
+    , category : AchievementCategory
+    }
+
+
+type AchievementCategory
+    = Consistency
+    | TechniqueCategory
+    | Milestone
+    | HeroCategory
+
+
+type alias NewSessionForm =
+    { heroId : Maybe HeroId
+    , duration : String
+    , sessionType : SessionType
+    , techniques : String
+    , notes : String
+    , date : String
+    }
+
+
 type alias FrontendModel =
     { key : Key
     , localStorage : LocalStorage
@@ -66,6 +131,11 @@ type alias FrontendModel =
     , activeTab : Tab
     , heroes : Dict String Hero
     , learningPhases : List LearningPhase
+    , trainingSessions : List TrainingSession
+    , techniqueProgress : List TechniqueProgress
+    , achievements : List Achievement
+    , showAddSessionModal : Bool
+    , newSessionForm : NewSessionForm
     }
 
 
@@ -78,6 +148,9 @@ type alias UserSession =
     { clientId : String
     , selectedHero : Maybe HeroId
     , visitCount : Int
+    , trainingSessions : List TrainingSession
+    , techniqueProgress : List TechniqueProgress
+    , achievements : List Achievement
     }
 
 
@@ -90,11 +163,21 @@ type FrontendMsg
     | ChangeTheme UserPreference
     | SelectHero (Maybe HeroId)
     | SetActiveTab Tab
+    | ToggleAddSessionModal
+    | UpdateNewSessionForm NewSessionForm
+    | SaveTrainingSession
+    | DeleteTrainingSession String
+    | UpdateTechniqueStatus String TechniqueStatus
+    | AddTechniqueNote String String
 
 
 type ToBackend
     = TrackHeroSelection (Maybe HeroId)
     | GetUserSession
+    | SaveSession TrainingSession
+    | DeleteSession String
+    | UpdateTechnique String TechniqueStatus
+    | SaveTechniqueNote String String
 
 
 type BackendMsg
@@ -103,3 +186,7 @@ type BackendMsg
 
 type ToFrontend
     = SessionData UserSession
+    | SessionSaved TrainingSession
+    | SessionDeleted String
+    | TechniqueUpdated String TechniqueStatus
+    | AchievementUnlocked Achievement
