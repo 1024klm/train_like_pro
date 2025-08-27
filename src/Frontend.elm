@@ -1,26 +1,28 @@
 module Frontend exposing (..)
 
 import Browser exposing (UrlRequest(..))
-import Browser.Dom
-import Browser.Events
+import Browser.Navigation as Nav
 import Dict exposing (Dict)
-import Effect.Browser.Dom as Dom exposing (HtmlId)
-import Effect.Browser.Events as Events
-import Browser.Navigation
+import Set exposing (Set)
 import Effect.Command as Command exposing (Command, FrontendOnly)
 import Effect.Lamdera
 import Lamdera
 import Effect.Subscription as Subscription exposing (Subscription)
-import Task
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Html.Keyed as Keyed
+import Html.Lazy exposing (lazy, lazy2, lazy3)
 import I18n
 import LocalStorage
 import Theme
 import Types exposing (..)
-import Progress
+import Router
+import Data
 import Url
+import Time
+import Task
+import Json.Decode as Decode
 
 
 type alias Model =
@@ -43,620 +45,1691 @@ app =
         }
 
 
-init : Url.Url -> Browser.Navigation.Key -> ( Model, Cmd FrontendMsg )
+init : Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init url key =
-    ( { key = key
-      , localStorage = LocalStorage.defaultLocalStorage
-      , clientId = ""
-      , selectedHero = Nothing
-      , activeTab = Overview
-      , heroes = initHeroes
-      , learningPhases = initLearningPhases
-      , trainingSessions = []
-      , techniqueProgress = []
-      , achievements = Progress.getAchievements
-      , showAddSessionModal = False
-      , newSessionForm = emptySessionForm
-      }
+    let
+        route = Router.fromUrl url
+        initialModel =
+            { key = key
+            , url = url
+            , route = route
+            , localStorage = LocalStorage.defaultLocalStorage
+            , userConfig = 
+                { t = I18n.translations I18n.EN
+                , isDark = False
+                , language = I18n.EN
+                }
+            , clientId = ""
+            , mobileMenuOpen = False
+            , searchQuery = ""
+            , activeFilters =
+                { heroFilter = Nothing
+                , academyLocation = Nothing
+                , eventType = Nothing
+                , dateRange = Nothing
+                }
+            , heroes = Data.initHeroes
+            , academies = Data.initAcademies
+            , events = Data.initEvents
+            , trainingPlans = Dict.empty
+            , trainingSessions = []
+            , userProfile = Nothing
+            , favorites = Data.emptyFavorites
+            , loadingStates = Dict.empty
+            , modals =
+                { sessionModal = False
+                , heroDetailModal = Nothing
+                , shareModal = Nothing
+                , filterModal = False
+                }
+            , notifications = []
+            , animations =
+                { heroCards = False
+                , pageTransition = False
+                , scrollProgress = 0
+                }
+            }
+    in
+    ( initialModel
     , Cmd.batch
-        [ Task.perform (\_ -> NoOpFrontendMsg) (Task.succeed ())
-        , Lamdera.sendToBackend GetUserSession
+        [ Lamdera.sendToBackend GetInitialData
+        , Lamdera.sendToBackend (TrackPageView route)
         ]
     )
 
 
-emptySessionForm : NewSessionForm
-emptySessionForm =
-    { heroId = Nothing
-    , duration = ""
-    , sessionType = Technique
-    , techniques = ""
-    , notes = ""
-    , date = ""
-    }
-
-
-initHeroes : Dict String Hero
-initHeroes =
-    Dict.fromList
-        [ ( "gordon"
-          , { name = "Gordon Ryan"
-            , nickname = "The King"
-            , color = "bg-red-500"
-            , lightColor = "bg-red-100"
-            , specialties = [ "Leg Locks", "Back Control", "Mental Game" ]
-            , philosophy = "Perfectionnement technique obsessionnel + confiance absolue"
-            , keyPrinciples =
-                [ "Maîtriser les détails avant la vitesse"
-                , "Développer un jeu complet (gi/no-gi)"
-                , "Confiance mentale = arme secrète"
-                , "Étudier constamment les adversaires"
-                ]
-            , trainingApproach =
-                { technique = "2-3h/jour de technique pure"
-                , drilling = "Répétition jusqu'à l'automatisme"
-                , sparring = "Rounds ciblés sur positions spécifiques"
-                , study = "Analyse vidéo quotidienne"
-                }
-            , weeklyPlan =
-                [ "Lundi: Leg locks + back attacks"
-                , "Mardi: Passing + top control"
-                , "Mercredi: Guard + sweeps"
-                , "Jeudi: Submissions + transitions"
-                , "Vendredi: Sparring libre"
-                , "Samedi: Drilling intensif"
-                , "Dimanche: Récupération + étude"
-                ]
-            }
-          )
-        , ( "buchecha"
-          , { name = "Marcus Buchecha Almeida"
-            , nickname = "The Phenom"
-            , color = "bg-blue-600"
-            , lightColor = "bg-blue-100"
-            , specialties = [ "Pressure Passing", "Top Control", "Athleticism" ]
-            , philosophy = "Pression constante + cardio surhumain + technique solide"
-            , keyPrinciples =
-                [ "La pression brise la technique"
-                , "Cardio = base de tout"
-                , "Simplicité > complexité"
-                , "Toujours avancer, jamais reculer"
-                ]
-            , trainingApproach =
-                { technique = "Focus sur les fondamentaux"
-                , drilling = "Haute intensité + répétition"
-                , sparring = "Rounds longs (10-15min)"
-                , study = "Analyse de ses propres erreurs"
-                }
-            , weeklyPlan =
-                [ "Lundi: Cardio + passes de garde"
-                , "Mardi: Top control + submissions"
-                , "Mercredi: Défense + escapes"
-                , "Jeudi: Sparring intensif"
-                , "Vendredi: Technique + drilling"
-                , "Samedi: Compétition simulation"
-                , "Dimanche: Récupération active"
-                ]
-            }
-          )
-        , ( "rafael"
-          , { name = "Rafael Mendes"
-            , nickname = "The Wizard"
-            , color = "bg-green-600"
-            , lightColor = "bg-green-100"
-            , specialties = [ "Berimbolo", "Lapel Guards", "Movement" ]
-            , philosophy = "Innovation technique + fluidité parfaite"
-            , keyPrinciples =
-                [ "Créer de nouveaux mouvements"
-                , "Fluidité > force"
-                , "Chaque position a une solution"
-                , "Enseigner pour mieux comprendre"
-                ]
-            , trainingApproach =
-                { technique = "Expérimentation constante"
-                , drilling = "Mouvements fluides et enchaînements"
-                , sparring = "Jeu créatif et positions nouvelles"
-                , study = "Développement technique personnel"
-                }
-            , weeklyPlan =
-                [ "Lundi: Berimbolo + transitions"
-                , "Mardi: Lapel guards + sweeps"
-                , "Mercredi: Leg drags + back takes"
-                , "Jeudi: Sparring créatif"
-                , "Vendredi: Nouveaux mouvements"
-                , "Samedi: Teaching + drilling"
-                , "Dimanche: Flow training"
-                ]
-            }
-          )
-        , ( "leandro"
-          , { name = "Leandro Lo"
-            , nickname = "The Passer"
-            , color = "bg-purple-600"
-            , lightColor = "bg-purple-100"
-            , specialties = [ "Guard Passing", "Takedowns", "Competition" ]
-            , philosophy = "Technique parfaite + timing impeccable"
-            , keyPrinciples =
-                [ "Le timing bat la force"
-                , "Bases solides = victoire"
-                , "Patience tactique"
-                , "Adaptation constante"
-                ]
-            , trainingApproach =
-                { technique = "Perfectionnement des bases"
-                , drilling = "Timing et précision"
-                , sparring = "Simulation de compétition"
-                , study = "Stratégie et game planning"
-                }
-            , weeklyPlan =
-                [ "Lundi: Takedowns + top position"
-                , "Mardi: Guard passing drills"
-                , "Mercredi: Submissions + control"
-                , "Jeudi: Competition sparring"
-                , "Vendredi: Technical refinement"
-                , "Samedi: Open mat"
-                , "Dimanche: Recovery + analysis"
-                ]
-            }
-          )
-        , ( "galvao"
-          , { name = "André Galvão"
-            , nickname = "The General"
-            , color = "bg-orange-600"
-            , lightColor = "bg-orange-100"
-            , specialties = [ "Leadership", "Teaching", "Well-rounded" ]
-            , philosophy = "Excellence dans tous les domaines + leadership"
-            , keyPrinciples =
-                [ "Enseigner = apprendre"
-                , "Leadership par l'exemple"
-                , "Jeu complet nécessaire"
-                , "Mentalité d'équipe"
-                ]
-            , trainingApproach =
-                { technique = "Approche systématique"
-                , drilling = "Variété et adaptation"
-                , sparring = "Tous niveaux et styles"
-                , study = "Développement d'équipe"
-                }
-            , weeklyPlan =
-                [ "Lundi: Gi technique + teaching"
-                , "Mardi: No-gi + competition prep"
-                , "Mercredi: Fundamentals + drilling"
-                , "Jeudi: Advanced sparring"
-                , "Vendredi: Team training"
-                , "Samedi: Seminars + learning"
-                , "Dimanche: Planning + recovery"
-                ]
-            }
-          )
-        ]
-
-
-initLearningPhases : List LearningPhase
-initLearningPhases =
-    [ { phase = "Phase 1: Fondations (0-6 mois)"
-      , icon = "🎯"
-      , focus = "Bases solides comme Buchecha"
-      , goals = [ "Escapes de base", "Positions fondamentales", "Cardio de base" ]
-      }
-    , { phase = "Phase 2: Développement (6-18 mois)"
-      , icon = "🧠"
-      , focus = "Créativité comme Rafael Mendes"
-      , goals = [ "Premier jeu de garde", "Passes basiques", "Flow et timing" ]
-      }
-    , { phase = "Phase 3: Spécialisation (18+ mois)"
-      , icon = "🏆"
-      , focus = "Excellence comme Gordon Ryan"
-      , goals = [ "Spécialités personnelles", "Game planning", "Mentalité de compétition" ]
-      }
-    ]
-
-
-update : FrontendMsg -> Model -> ( Model, Cmd FrontendMsg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        UrlClicked urlRequest ->
-            case urlRequest of
-                Internal url ->
-                    ( model
-                    , Browser.Navigation.pushUrl model.key (Url.toString url)
-                    )
-
-                External url ->
-                    ( model
-                    , Browser.Navigation.load url
-                    )
-
-        UrlChanged url ->
-            ( model, Cmd.none )
-
         NoOpFrontendMsg ->
             ( model, Cmd.none )
 
-        ReceivedLocalStorage value ->
-            ( { model | localStorage = value }, Cmd.none )
+        UrlClicked urlRequest ->
+            case urlRequest of
+                Internal url ->
+                    ( model, Nav.pushUrl model.key (Url.toString url) )
 
-        ChangeLanguage language ->
-            ( model
-            , Cmd.none
-            )
+                External url ->
+                    ( model, Nav.load url )
 
-        ChangeTheme theme ->
-            ( model
-            , Cmd.none
-            )
-
-        SelectHero maybeHeroId ->
-            ( { model | selectedHero = maybeHeroId }
-            , Lamdera.sendToBackend (TrackHeroSelection maybeHeroId)
-            )
-
-        SetActiveTab tab ->
-            ( { model | activeTab = tab }, Cmd.none )
-
-        ToggleAddSessionModal ->
-            ( { model | showAddSessionModal = not model.showAddSessionModal }, Cmd.none )
-
-        UpdateNewSessionForm newForm ->
-            ( { model | newSessionForm = newForm }, Cmd.none )
-
-        SaveTrainingSession ->
-            case (model.newSessionForm.heroId, String.toInt model.newSessionForm.duration) of
-                (Just heroId, Just duration) ->
-                    let
-                        newSession =
-                            { id = String.fromInt (List.length model.trainingSessions + 1)
-                            , date = model.newSessionForm.date
-                            , heroId = heroId
-                            , duration = duration
-                            , techniques = String.split "," model.newSessionForm.techniques |> List.map String.trim
-                            , notes = model.newSessionForm.notes
-                            , sessionType = model.newSessionForm.sessionType
-                            }
-                    in
-                    ( { model 
-                        | showAddSessionModal = False
-                        , newSessionForm = emptySessionForm 
-                      }
-                    , Lamdera.sendToBackend (SaveSession newSession)
-                    )
-                
-                _ ->
-                    ( model, Cmd.none )
-
-        DeleteTrainingSession sessionId ->
-            ( model, Lamdera.sendToBackend (DeleteSession sessionId) )
-
-        UpdateTechniqueStatus techniqueId status ->
-            ( model, Lamdera.sendToBackend (UpdateTechnique techniqueId status) )
-
-        AddTechniqueNote techniqueId note ->
-            ( model, Lamdera.sendToBackend (SaveTechniqueNote techniqueId note) )
-
-
-updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
-updateFromBackend msg model =
-    case msg of
-        SessionData session ->
+        UrlChanged url ->
             let
-                techniques = 
-                    case session.selectedHero of
-                        Just heroId ->
-                            if List.isEmpty session.techniqueProgress then
-                                Progress.getTechniquesForHero heroId
-                            else
-                                session.techniqueProgress
-                        Nothing ->
-                            session.techniqueProgress
+                newRoute = Router.fromUrl url
             in
-            ( { model
-                | clientId = session.clientId
-                , selectedHero = session.selectedHero
-                , trainingSessions = session.trainingSessions
-                , techniqueProgress = techniques
-                , achievements = 
-                    if List.isEmpty session.achievements then
-                        model.achievements
-                    else
-                        session.achievements
+            ( { model 
+                | url = url
+                , route = newRoute
+                , mobileMenuOpen = False
+                , animations = { heroCards = True, pageTransition = True, scrollProgress = 0 }
+              }
+            , Cmd.batch
+                [ Lamdera.sendToBackend (TrackPageView newRoute)
+                , scrollToTop
+                ]
+            )
+
+        ReceivedLocalStorage localStorage ->
+            let
+                language = I18n.EN -- Default to English for now
+                isDark = False -- Default to light theme for now
+                userConfig = model.userConfig
+            in
+            ( { model 
+                | localStorage = localStorage
+                , userConfig = 
+                    { userConfig 
+                        | isDark = isDark
+                        , language = language
+                        , t = I18n.translations language
+                    }
               }
             , Cmd.none
             )
 
-        SessionSaved newSession ->
-            ( { model | trainingSessions = newSession :: model.trainingSessions }
-            , Cmd.none
-            )
+        NavigateTo route ->
+            ( model, Router.navigateTo model.key route )
 
-        SessionDeleted sessionId ->
-            ( { model | trainingSessions = List.filter (\s -> s.id /= sessionId) model.trainingSessions }
-            , Cmd.none
-            )
+        ToggleMobileMenu ->
+            ( { model | mobileMenuOpen = not model.mobileMenuOpen }, Cmd.none )
 
-        TechniqueUpdated techniqueId newStatus ->
+        UpdateSearchQuery query ->
+            ( { model | searchQuery = query }, Cmd.none )
+
+        ApplyFilter filter ->
             let
-                updateTechnique tech =
-                    if tech.techniqueId == techniqueId then
-                        { tech | status = newStatus, lastPracticed = Just "today" }
-                    else
-                        tech
+                filters = model.activeFilters
             in
-            ( { model | techniqueProgress = List.map updateTechnique model.techniqueProgress }
+            ( { model | activeFilters = { filters | heroFilter = Just filter } }
             , Cmd.none
             )
 
-        AchievementUnlocked achievement ->
+        ClearFilters ->
+            ( { model | activeFilters = 
+                { heroFilter = Nothing
+                , academyLocation = Nothing
+                , eventType = Nothing
+                , dateRange = Nothing
+                }
+              }
+            , Cmd.none
+            )
+
+        ChangeLanguage language ->
             let
-                updateAchievement ach =
-                    if ach.id == achievement.id then
-                        achievement
-                    else
-                        ach
+                userConfig = model.userConfig
             in
-            ( { model | achievements = List.map updateAchievement model.achievements }
+            ( { model | userConfig = { userConfig | language = language, t = I18n.translations language } }
+            , Cmd.none -- LocalStorage saving not implemented yet
+            )
+
+        ChangeTheme theme ->
+            let
+                userConfig = model.userConfig
+                isDark = False -- Default to light theme for now
+            in
+            ( { model | userConfig = { userConfig | isDark = isDark } }
+            , Cmd.none -- LocalStorage saving not implemented yet
+            )
+
+        ToggleFavorite favoriteType id ->
+            let
+                favorites = model.favorites
+                newFavorites =
+                    case favoriteType of
+                        HeroFavorite ->
+                            { favorites | heroes = toggleSet id favorites.heroes }
+                        AcademyFavorite ->
+                            { favorites | academies = toggleSet id favorites.academies }
+                        EventFavorite ->
+                            { favorites | events = toggleSet id favorites.events }
+            in
+            ( { model | favorites = newFavorites }
+            , Lamdera.sendToBackend (SaveFavorites newFavorites)
+            )
+
+        SelectHero heroId ->
+            ( model
+            , Cmd.batch
+                [ Router.navigateTo model.key (HeroDetail heroId)
+                , Lamdera.sendToBackend (GetHeroDetail heroId)
+                ]
+            )
+
+        OpenModal modalType ->
+            let
+                modals = model.modals
+                newModals =
+                    case modalType of
+                        SessionModal ->
+                            { modals | sessionModal = True }
+                        HeroModal id ->
+                            { modals | heroDetailModal = Just id }
+                        ShareModal id ->
+                            { modals | shareModal = Just id }
+                        FilterModal ->
+                            { modals | filterModal = True }
+            in
+            ( { model | modals = newModals }, Cmd.none )
+
+        CloseModal ->
+            ( { model | modals = 
+                { sessionModal = False
+                , heroDetailModal = Nothing
+                , shareModal = Nothing
+                , filterModal = False
+                }
+              }
             , Cmd.none
             )
 
+        ShowNotification notifType message ->
+            let
+                notification =
+                    { id = "notif-" ++ String.fromInt (List.length model.notifications)
+                    , type_ = notifType
+                    , message = message
+                    , timestamp = ""
+                    }
+            in
+            ( { model | notifications = notification :: model.notifications }
+            , Cmd.none
+            )
 
-subscriptions : Model -> Sub FrontendMsg
+        DismissNotification id ->
+            ( { model | notifications = List.filter (\n -> n.id /= id) model.notifications }
+            , Cmd.none
+            )
+
+        AnimationTick _ ->
+            let
+                animations = model.animations
+            in
+            ( { model | animations = { animations | scrollProgress = animations.scrollProgress + 0.01 } }
+            , Cmd.none
+            )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+toggleSet : comparable -> Set comparable -> Set comparable
+toggleSet item set =
+    if Set.member item set then
+        Set.remove item set
+    else
+        Set.insert item set
+
+
+scrollToTop : Cmd Msg
+scrollToTop =
+    Task.perform (\_ -> NoOpFrontendMsg) (Task.succeed ())
+
+
+updateFromBackend : ToFrontend -> Model -> ( Model, Cmd Msg )
+updateFromBackend msg model =
+    case msg of
+        InitialDataReceived data ->
+            ( { model 
+                | heroes = data.heroes
+                , academies = data.academies
+                , events = data.events
+              }
+            , Cmd.none
+            )
+
+        HeroDetailReceived hero ->
+            ( { model | heroes = Dict.insert hero.id hero model.heroes }
+            , Cmd.none
+            )
+
+        FavoritesSaved favorites ->
+            ( { model | favorites = favorites }
+            , Cmd.none
+            )
+
+        NotificationReceived notification ->
+            ( { model | notifications = notification :: model.notifications }
+            , Cmd.none
+            )
+
+        _ ->
+            ( model, Cmd.none )
+
+
+subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+        [ Sub.none -- LocalStorage subscription not implemented yet
+        , if model.animations.pageTransition then
+            Time.every 16 AnimationTick
+          else
+            Sub.none
+        ]
 
 
-view : Model -> Browser.Document FrontendMsg
+view : Model -> Browser.Document Msg
 view model =
-    let
-        userConfig =
-            { t = I18n.translations
-            , isDark = Theme.getMode model.localStorage.userPreference model.localStorage.systemMode == Theme.Dark
-            }
-    in
-    { title = "Train Like Pro - BJJ Heroes Framework"
-    , body =
-        [ div [ class "max-w-6xl mx-auto p-6 bg-gray-50 dark:bg-gray-900 min-h-screen" ]
-            [ viewHeader
-            , viewNavigation model.activeTab
-            , case model.activeTab of
-                Overview ->
-                    viewOverview model
-
-                Heroes ->
-                    viewHeroes model
-
-                Plan ->
-                    viewPlan model
-
-                Progress ->
-                    viewProgress model
+    { title = viewTitle model
+    , body = 
+        [ div 
+            [ class "min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black transition-colors duration-300"
+            , classList [ ("dark", model.userConfig.isDark) ]
+            ]
+            [ viewHeader model
+            , viewNotifications model.notifications
+            , main_ [ class "relative" ]
+                [ viewPage model ]
+            , viewModals model
+            , viewFooter model
             ]
         ]
     }
 
 
-viewHeader : Html FrontendMsg
-viewHeader =
-    div [ class "text-center mb-8" ]
-        [ h1 [ class "text-4xl font-bold text-gray-900 dark:text-white mb-2" ]
-            [ text "Ton Cadre d'Apprentissage JJB" ]
-        , p [ class "text-xl text-gray-600 dark:text-gray-300" ]
-            [ text "Apprends des légendes du grappling" ]
-        ]
+viewTitle : Model -> String
+viewTitle model =
+    case model.route of
+        Home -> "BJJ Heroes - Train Like Champions"
+        HeroesRoute _ -> "Heroes - BJJ Heroes"
+        HeroDetail id -> 
+            Dict.get id model.heroes
+                |> Maybe.map .name
+                |> Maybe.withDefault "Hero"
+                |> (\name -> name ++ " - BJJ Heroes")
+        Academies _ -> "Academies - BJJ Heroes"
+        AcademyDetail id -> 
+            Dict.get id model.academies
+                |> Maybe.map .name
+                |> Maybe.withDefault "Academy"
+                |> (\name -> name ++ " - BJJ Heroes")
+        Events _ -> "Events - BJJ Heroes"
+        EventDetail id ->
+            Dict.get id model.events
+                |> Maybe.map .name
+                |> Maybe.withDefault "Event"
+                |> (\name -> name ++ " - BJJ Heroes")
+        Training -> "Training - BJJ Heroes"
+        Profile -> "Profile - BJJ Heroes"
+        NotFound -> "404 - BJJ Heroes"
 
 
-viewNavigation : Tab -> Html FrontendMsg
-viewNavigation activeTab =
-    div [ class "flex justify-center mb-8" ]
-        [ div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-1 flex space-x-1" ]
-            [ viewTabButton Overview "Vue d'ensemble" activeTab
-            , viewTabButton Heroes "Tes Héros" activeTab
-            , viewTabButton Plan "Plan d'Action" activeTab
-            , viewTabButton Progress "Progression" activeTab
+viewHeader : Model -> Html Msg
+viewHeader model =
+    header 
+        [ class "sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm" ]
+        [ div [ class "container mx-auto px-4 py-4" ]
+            [ div [ class "flex items-center justify-between" ]
+                [ viewLogo
+                , viewDesktopNav model
+                , viewHeaderActions model
+                , viewMobileMenuButton model
+                ]
+            , if model.mobileMenuOpen then
+                viewMobileMenu model
+              else
+                text ""
             ]
         ]
 
 
-viewTabButton : Tab -> String -> Tab -> Html FrontendMsg
-viewTabButton tab label activeTab =
+viewLogo : Html Msg
+viewLogo =
+    button 
+        [ onClick (NavigateTo Home)
+        , class "flex items-center space-x-3 hover:opacity-80 transition-opacity"
+        ]
+        [ div [ class "w-10 h-10 bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center shadow-lg" ]
+            [ span [ class "text-white font-bold text-lg" ] [ text "BJJ" ] ]
+        , div []
+            [ h1 [ class "text-xl font-bold text-gray-900 dark:text-white" ] [ text "BJJ Heroes" ]
+            , p [ class "text-xs text-gray-500 dark:text-gray-400" ] [ text "Train Like Champions" ]
+            ]
+        ]
+
+
+viewDesktopNav : Model -> Html Msg
+viewDesktopNav model =
+    nav [ class "hidden lg:flex items-center space-x-4" ]
+        [ navLink model Home "Home" "🏠"
+        , navLink model (HeroesRoute Nothing) "Heroes" "🥋"
+        , navLink model (Academies Nothing) "Academies" "🏛️"
+        , navLink model (Events AllEvents) "Events" "📅"
+        , navLink model Training "Training" "💪"
+        ]
+
+
+navLink : Model -> Route -> String -> String -> Html Msg
+navLink model route label icon =
+    let
+        isActive = 
+            case (model.route, route) of
+                (Home, Home) -> True
+                (HeroesRoute _, HeroesRoute _) -> True
+                (HeroDetail _, HeroesRoute _) -> True
+                (Academies _, Academies _) -> True
+                (AcademyDetail _, Academies _) -> True
+                (Events _, Events _) -> True
+                (EventDetail _, Events _) -> True
+                (Training, Training) -> True
+                (Profile, Profile) -> True
+                _ -> False
+    in
     button
-        [ onClick (SetActiveTab tab)
-        , class <|
-            "px-6 py-2 rounded-md font-medium transition-colors "
-                ++ (if activeTab == tab then
-                        "bg-blue-600 text-white"
-
-                    else
-                        "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                   )
-        ]
-        [ text label ]
-
-
-viewOverview : Model -> Html FrontendMsg
-viewOverview model =
-    div [ class "space-y-8" ]
-        [ viewLearningPhases model.learningPhases
-        , viewUniversalPrinciples
-        ]
-
-
-viewLearningPhases : List LearningPhase -> Html FrontendMsg
-viewLearningPhases phases =
-    div [ class "grid md:grid-cols-3 gap-6" ]
-        (List.map viewLearningPhase phases)
-
-
-viewLearningPhase : LearningPhase -> Html FrontendMsg
-viewLearningPhase phase =
-    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
-        [ div [ class "flex items-center mb-4" ]
-            [ div [ class "bg-blue-100 dark:bg-blue-900 p-2 rounded-lg mr-3 text-2xl" ]
-                [ text phase.icon ]
-            , h3 [ class "font-bold text-lg dark:text-white" ]
-                [ text phase.phase ]
+        [ onClick (NavigateTo route)
+        , class "flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200"
+        , classList
+            [ ("bg-red-600 text-white shadow-md", isActive)
+            , ("text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800", not isActive)
             ]
-        , p [ class "text-blue-600 dark:text-blue-400 font-medium mb-3" ]
-            [ text phase.focus ]
-        , ul [ class "space-y-2" ]
-            (List.map
-                (\goal ->
-                    li [ class "flex items-center text-sm dark:text-gray-300" ]
-                        [ span [ class "text-green-500 mr-2" ] [ text "→" ]
-                        , text goal
-                        ]
+        ]
+        [ text (icon ++ " " ++ label)
+        ]
+
+
+viewHeaderActions : Model -> Html Msg
+viewHeaderActions model =
+    div [ class "hidden lg:flex items-center space-x-4" ]
+        [ viewSearchBar model
+        , viewThemeToggle model
+        , viewLanguageSelector model
+        , viewProfileButton model
+        ]
+
+
+viewSearchBar : Model -> Html Msg
+viewSearchBar model =
+    div [ class "relative" ]
+        [ input
+            [ type_ "search"
+            , placeholder "Search heroes, academies..."
+            , value model.searchQuery
+            , onInput UpdateSearchQuery
+            , class "w-64 px-4 py-2 pl-10 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 border border-gray-300 dark:border-gray-600"
+            ]
+            []
+        , span [ class "absolute left-3 top-2" ] [ text "🔍" ]
+        ]
+
+
+viewThemeToggle : Model -> Html Msg
+viewThemeToggle model =
+    button
+        [ onClick (ChangeTheme (if model.userConfig.isDark then Theme.LightMode else Theme.DarkMode))
+        , class "p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
+        ]
+        [ text (if model.userConfig.isDark then "☀️" else "🌙") ]
+
+
+viewLanguageSelector : Model -> Html Msg
+viewLanguageSelector model =
+    select
+        [ onInput (\lang -> ChangeLanguage (if lang == "fr" then I18n.FR else I18n.EN))
+        , class "px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 border border-gray-300 dark:border-gray-600"
+        ]
+        [ option [ value "en", selected (model.userConfig.language == I18n.EN) ] [ text "EN" ]
+        , option [ value "fr", selected (model.userConfig.language == I18n.FR) ] [ text "FR" ]
+        ]
+
+
+viewProfileButton : Model -> Html Msg
+viewProfileButton model =
+    button
+        [ onClick (NavigateTo Profile)
+        , class "p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
+        ]
+        [ text "👤" ]
+
+
+viewMobileMenuButton : Model -> Html Msg
+viewMobileMenuButton model =
+    button
+        [ onClick ToggleMobileMenu
+        , class "lg:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600"
+        ]
+        [ if model.mobileMenuOpen then
+            text "✕"
+          else
+            text "☰"
+        ]
+
+
+viewMobileMenu : Model -> Html Msg
+viewMobileMenu model =
+    div [ class "lg:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg" ]
+        [ div [ class "p-4 space-y-2" ]
+            [ mobileNavLink (NavigateTo Home) "Home" "🏠"
+            , mobileNavLink (NavigateTo (HeroesRoute Nothing)) "Heroes" "🥋"
+            , mobileNavLink (NavigateTo (Academies Nothing)) "Academies" "🏛️"
+            , mobileNavLink (NavigateTo (Events AllEvents)) "Events" "📅"
+            , mobileNavLink (NavigateTo Training) "Training" "💪"
+            , mobileNavLink (NavigateTo Profile) "Profile" "👤"
+            ]
+        ]
+
+
+mobileNavLink : Msg -> String -> String -> Html Msg
+mobileNavLink msg label icon =
+    button
+        [ onClick msg
+        , class "w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        ]
+        [ text (icon ++ " " ++ label) ]
+
+
+viewNotifications : List Notification -> Html Msg
+viewNotifications notifications =
+    div [ class "fixed top-20 right-4 z-50 space-y-2" ]
+        (List.map viewNotification notifications)
+
+
+viewNotification : Notification -> Html Msg
+viewNotification notification =
+    let
+        (bgColor, icon) =
+            case notification.type_ of
+                Success -> ("bg-green-500", "✅")
+                Error -> ("bg-red-500", "❌")
+                Info -> ("bg-blue-500", "ℹ️")
+                Warning -> ("bg-yellow-500", "⚠️")
+    in
+    div 
+        [ class ("flex items-center space-x-3 p-4 rounded-lg text-white shadow-lg animate-slide-in " ++ bgColor) ]
+        [ span [ class "text-xl" ] [ text icon ]
+        , span [ class "flex-1" ] [ text notification.message ]
+        , button 
+            [ onClick (DismissNotification notification.id)
+            , class "hover:opacity-75"
+            ]
+            [ text "✖️" ]
+        ]
+
+
+viewPage : Model -> Html Msg
+viewPage model =
+    case model.route of
+        Home ->
+            viewHomePage model
+
+        HeroesRoute filter ->
+            viewHeroesPage model filter
+
+        HeroDetail id ->
+            viewHeroDetailPage model id
+
+        Academies location ->
+            viewAcademiesPage model location
+
+        AcademyDetail id ->
+            viewAcademyDetailPage model id
+
+        Events filter ->
+            viewEventsPage model filter
+
+        EventDetail id ->
+            viewEventDetailPage model id
+
+        Training ->
+            viewTrainingPage model
+
+        Profile ->
+            viewProfilePage model
+
+        NotFound ->
+            viewNotFoundPage model
+
+
+viewHomePage : Model -> Html Msg
+viewHomePage model =
+    div [ class "animate-fade-in" ]
+        [ viewHeroSection model
+        , viewFeaturedHeroes model
+        , viewUpcomingEvents model
+        , viewTopAcademies model
+        , viewCallToAction model
+        ]
+
+
+viewHeroSection : Model -> Html Msg
+viewHeroSection model =
+    section [ class "relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-red-900 to-black" ]
+        [ div [ class "absolute inset-0 bg-black/40" ] []
+        , div [ class "relative z-10 text-center px-4 animate-slide-up" ]
+            [ h1 [ class "text-5xl md:text-7xl font-bold text-white mb-6 drop-shadow-2xl" ]
+                [ text "Train Like a "
+                , span [ class "text-red-400 drop-shadow-2xl" ] [ text "Champion" ]
+                ]
+            , p [ class "text-xl md:text-2xl text-gray-100 mb-8 max-w-3xl mx-auto drop-shadow-lg" ]
+                [ text "Learn from the greatest BJJ athletes in history. Master their techniques, follow their training methods, and elevate your game." ]
+            , div [ class "flex flex-col sm:flex-row gap-4 justify-center" ]
+                [ button
+                    [ onClick (NavigateTo (HeroesRoute Nothing))
+                    , class "px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-xl transform hover:scale-105 transition-all duration-200"
+                    ]
+                    [ text "Explore Heroes" ]
+                , button
+                    [ onClick (NavigateTo Training)
+                    , class "px-8 py-4 bg-white/10 backdrop-blur hover:bg-white/20 text-white font-bold rounded-lg shadow-xl transform hover:scale-105 transition-all duration-200 border border-white/30"
+                    ]
+                    [ text "Start Training" ]
+                ]
+            ]
+        , div [ class "absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce" ]
+            [ span [ class "text-white text-3xl drop-shadow-lg" ] [ text "↓" ] ]
+        ]
+
+
+viewFeaturedHeroes : Model -> Html Msg
+viewFeaturedHeroes model =
+    section [ class "py-20 px-4 bg-gray-50 dark:bg-gray-900" ]
+        [ div [ class "container mx-auto" ]
+            [ h2 [ class "text-4xl font-bold text-center mb-4 text-gray-900 dark:text-white" ] [ text "Featured Heroes" ]
+            , p [ class "text-center text-gray-600 dark:text-gray-400 mb-12" ] [ text "Learn from the legends who shaped the sport" ]
+            , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
+                (model.heroes
+                    |> Dict.values
+                    |> List.take 6
+                    |> List.map (viewHeroCard model)
                 )
-                phase.goals
+            ]
+        ]
+
+
+viewHeroCard : Model -> Hero -> Html Msg
+viewHeroCard model hero =
+    div 
+        [ onClick (SelectHero hero.id)
+        , class "group cursor-pointer transform hover:scale-105 transition-all duration-300"
+        ]
+        [ div [ class "relative overflow-hidden rounded-xl shadow-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" ]
+            [ div [ class "h-64 bg-gradient-to-br from-red-500 to-red-700 relative" ]
+                [ div [ class "absolute inset-0 bg-black/40" ] []
+                , div [ class "absolute bottom-4 left-4 text-white z-10" ]
+                    [ h3 [ class "text-2xl font-bold drop-shadow-lg" ] [ text hero.name ]
+                    , p [ class "text-sm opacity-90 drop-shadow-md" ] [ text hero.nickname ]
+                    ]
+                , if Set.member hero.id model.favorites.heroes then
+                    span [ class "absolute top-4 right-4 text-2xl drop-shadow-lg" ] [ text "⭐" ]
+                  else
+                    text ""
+                ]
+            , div [ class "p-6" ]
+                [ div [ class "flex items-center justify-between mb-4" ]
+                    [ span [ class "px-3 py-1 bg-red-600 text-white rounded-full text-sm font-medium shadow-sm" ]
+                        [ text (weightClassToString hero.weight) ]
+                    , span [ class "text-gray-600 dark:text-gray-400 text-sm font-medium" ]
+                        [ text hero.nationality ]
+                    ]
+                , p [ class "text-gray-600 dark:text-gray-300 mb-4 line-clamp-2" ] [ text hero.bio ]
+                , div [ class "flex items-center justify-between" ]
+                    [ div [ class "flex items-center space-x-2" ]
+                        [ span [ class "text-green-600 dark:text-green-400 font-bold" ] 
+                            [ text (String.fromInt hero.record.wins ++ "W") ]
+                        , span [ class "text-gray-400" ] [ text "-" ]
+                        , span [ class "text-red-600 dark:text-red-400" ] 
+                            [ text (String.fromInt hero.record.losses ++ "L") ]
+                        ]
+                    , button
+                        [ onClick (ToggleFavorite HeroFavorite hero.id)
+                        , class "p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        , Html.Events.stopPropagationOn "click" (Decode.succeed (NoOpFrontendMsg, True))
+                        ]
+                        [ text (if Set.member hero.id model.favorites.heroes then "❤️" else "♥") ]
+                    ]
+                ]
+            ]
+        ]
+
+
+weightClassToString : WeightClass -> String
+weightClassToString weight =
+    case weight of
+        Rooster -> "Rooster"
+        LightFeather -> "Light Feather"
+        Feather -> "Feather"
+        Light -> "Light"
+        Middle -> "Middle"
+        MediumHeavy -> "Medium Heavy"
+        Heavy -> "Heavy"
+        SuperHeavy -> "Super Heavy"
+        UltraHeavy -> "Ultra Heavy"
+
+
+viewUpcomingEvents : Model -> Html Msg
+viewUpcomingEvents model =
+    section [ class "py-20 px-4 bg-white dark:bg-gray-800" ]
+        [ div [ class "container mx-auto" ]
+            [ h2 [ class "text-4xl font-bold text-center mb-12 text-gray-900 dark:text-white" ] [ text "Upcoming Events" ]
+            , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
+                (model.events
+                    |> Dict.values
+                    |> List.filter (\e -> e.status == Upcoming)
+                    |> List.take 3
+                    |> List.map viewEventCard
+                )
+            ]
+        ]
+
+
+viewEventCard : Event -> Html Msg
+viewEventCard event =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-700" ]
+        [ div [ class "h-48 bg-gradient-to-br from-blue-500 to-blue-700 relative" ]
+            [ div [ class "absolute inset-0 flex items-center justify-center" ]
+                [ span [ class "text-6xl drop-shadow-lg" ] [ text "🏆" ] ]
+            ]
+        , div [ class "p-6" ]
+            [ h3 [ class "text-xl font-bold mb-2 text-gray-900 dark:text-white" ] [ text event.name ]
+            , p [ class "text-gray-600 dark:text-gray-400 mb-4" ] [ text event.date ]
+            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] 
+                [ text (event.location.city ++ ", " ++ event.location.country) ]
+            ]
+        ]
+
+
+viewTopAcademies : Model -> Html Msg
+viewTopAcademies model =
+    section [ class "py-20 px-4 bg-gray-50 dark:bg-gray-900" ]
+        [ div [ class "container mx-auto" ]
+            [ h2 [ class "text-4xl font-bold text-center mb-12 text-gray-900 dark:text-white" ] [ text "Top Academies" ]
+            , div [ class "grid grid-cols-1 md:grid-cols-2 gap-6" ]
+                (model.academies
+                    |> Dict.values
+                    |> List.take 2
+                    |> List.map viewAcademyCard
+                )
+            ]
+        ]
+
+
+viewAcademyCard : Academy -> Html Msg
+viewAcademyCard academy =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-700" ]
+        [ div [ class "flex items-start space-x-4" ]
+            [ div [ class "w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center shadow-md" ]
+                [ span [ class "text-3xl drop-shadow-md" ] [ text "🏛️" ] ]
+            , div [ class "flex-1" ]
+                [ h3 [ class "text-xl font-bold mb-2 text-gray-900 dark:text-white" ] [ text academy.name ]
+                , p [ class "text-gray-600 dark:text-gray-400 mb-2" ] 
+                    [ text ("Head Coach: " ++ academy.headCoach) ]
+                , p [ class "text-sm text-gray-500 dark:text-gray-500" ] 
+                    [ text (academy.location.city ++ ", " ++ academy.location.country) ]
+                ]
+            ]
+        ]
+
+
+viewCallToAction : Model -> Html Msg
+viewCallToAction model =
+    section [ class "py-20 px-4 bg-gradient-to-r from-red-600 to-red-800" ]
+        [ div [ class "container mx-auto text-center" ]
+            [ h2 [ class "text-4xl font-bold text-white mb-6 drop-shadow-lg" ] [ text "Ready to Level Up?" ]
+            , p [ class "text-xl text-red-100 mb-8 max-w-2xl mx-auto" ]
+                [ text "Join thousands of practitioners learning from the best in the world" ]
+            , button
+                [ onClick (NavigateTo Training)
+                , class "px-8 py-4 bg-white text-red-600 font-bold rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+                ]
+                [ text "Start Your Journey" ]
+            ]
+        ]
+
+
+viewHeroesPage : Model -> Maybe HeroFilter -> Html Msg
+viewHeroesPage model filter =
+    div [ class "container mx-auto px-4 py-8" ]
+        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "BJJ Heroes" ]
+        , viewHeroFilters model filter
+        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" ]
+            (model.heroes
+                |> Dict.values
+                |> filterHeroes filter
+                |> List.map (viewHeroCard model)
             )
         ]
 
 
-viewUniversalPrinciples : Html FrontendMsg
-viewUniversalPrinciples =
-    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
-        [ h3 [ class "text-2xl font-bold mb-4 dark:text-white" ]
-            [ text "Principes Universels de tes Héros" ]
-        , div [ class "grid md:grid-cols-2 gap-6" ]
-            [ div []
-                [ h4 [ class "font-semibold text-lg mb-3 flex items-center dark:text-white" ]
-                    [ span [ class "mr-2" ] [ text "🧠" ]
-                    , text "Mental & Mindset"
-                    ]
-                , ul [ class "space-y-2 text-sm dark:text-gray-300" ]
-                    [ li [] [ text "• Confiance absolue (Gordon Ryan)" ]
-                    , li [] [ text "• Pression constante (Buchecha)" ]
-                    , li [] [ text "• Créativité (Rafael Mendes)" ]
-                    , li [] [ text "• Patience tactique (Leandro Lo)" ]
-                    , li [] [ text "• Leadership (André Galvão)" ]
-                    ]
+viewHeroFilters : Model -> Maybe HeroFilter -> Html Msg
+viewHeroFilters model currentFilter =
+    div [ class "mb-8 flex flex-wrap gap-2" ]
+        [ filterButton "All" (currentFilter == Nothing || currentFilter == Just AllHeroes) (ApplyFilter AllHeroes)
+        , filterButton "Super Heavy" (currentFilter == Just (ByWeight SuperHeavy)) (ApplyFilter (ByWeight SuperHeavy))
+        , filterButton "Leg Locks" (currentFilter == Just (ByStyle LegLocks)) (ApplyFilter (ByStyle LegLocks))
+        , filterButton "Guard" (currentFilter == Just (ByStyle Guard)) (ApplyFilter (ByStyle Guard))
+        , filterButton "Passing" (currentFilter == Just (ByStyle Passing)) (ApplyFilter (ByStyle Passing))
+        ]
+
+
+filterButton : String -> Bool -> Msg -> Html Msg
+filterButton label isActive msg =
+    button
+        [ onClick msg
+        , class "px-4 py-2 rounded-lg font-medium transition-all"
+        , classList
+            [ ("bg-red-600 text-white", isActive)
+            , ("bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600", not isActive)
+            ]
+        ]
+        [ text label ]
+
+
+filterHeroes : Maybe HeroFilter -> List Hero -> List Hero
+filterHeroes maybeFilter heroes =
+    case maybeFilter of
+        Nothing ->
+            heroes
+
+        Just AllHeroes ->
+            heroes
+
+        Just (ByWeight weight) ->
+            List.filter (\h -> h.weight == weight) heroes
+
+        Just (ByStyle style) ->
+            List.filter (\h -> h.style == style) heroes
+
+        Just (ByNationality nationality) ->
+            List.filter (\h -> h.nationality == nationality) heroes
+
+
+viewHeroDetailPage : Model -> String -> Html Msg
+viewHeroDetailPage model heroId =
+    case Dict.get heroId model.heroes of
+        Just hero ->
+            div []
+                [ viewHeroHeader hero model
+                , viewHeroContent hero model
                 ]
-            , div []
-                [ h4 [ class "font-semibold text-lg mb-3 flex items-center dark:text-white" ]
-                    [ span [ class "mr-2" ] [ text "💪" ]
-                    , text "Entraînement"
-                    ]
-                , ul [ class "space-y-2 text-sm dark:text-gray-300" ]
-                    [ li [] [ text "• Technique avant tout" ]
-                    , li [] [ text "• Drilling jusqu'à l'automatisme" ]
-                    , li [] [ text "• Cardio comme base" ]
-                    , li [] [ text "• Étude vidéo régulière" ]
-                    , li [] [ text "• Sparring intelligent" ]
+
+        Nothing ->
+            div [ class "container mx-auto px-4 py-8" ]
+                [ p [ class "text-center text-gray-500" ] [ text "Hero not found" ] ]
+
+
+viewHeroHeader : Hero -> Model -> Html Msg
+viewHeroHeader hero model =
+    div [ class "relative h-96 bg-gradient-to-br from-red-600 to-red-800" ]
+        [ div [ class "absolute inset-0 bg-black/40" ] []
+        , div [ class "container mx-auto px-4 h-full flex items-end pb-8" ]
+            [ div [ class "text-white" ]
+                [ h1 [ class "text-5xl font-bold mb-2" ] [ text hero.name ]
+                , p [ class "text-2xl mb-4 opacity-90" ] [ text hero.nickname ]
+                , div [ class "flex items-center space-x-4" ]
+                    [ span [ class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg" ]
+                        [ text (hero.team) ]
+                    , span [ class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg" ]
+                        [ text (weightClassToString hero.weight) ]
+                    , button
+                        [ onClick (ToggleFavorite HeroFavorite hero.id)
+                        , class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors"
+                        ]
+                        [ text (if Set.member hero.id model.favorites.heroes then "❤️ Favorited" else "🤍 Add to Favorites") ]
                     ]
                 ]
             ]
         ]
 
 
-viewHeroes : Model -> Html FrontendMsg
-viewHeroes model =
-    div [ class "space-y-6" ]
-        [ viewHeroGrid model
-        , case model.selectedHero of
-            Just heroId ->
-                viewSelectedHero heroId model.heroes
+viewHeroContent : Hero -> Model -> Html Msg
+viewHeroContent hero model =
+    div [ class "container mx-auto px-4 py-8" ]
+        [ div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
+            [ div [ class "lg:col-span-2 space-y-8" ]
+                [ viewHeroBio hero
+                , viewHeroRecord hero
+                , viewHeroTechniques hero
+                , viewHeroVideos hero
+                ]
+            , div [ class "space-y-8" ]
+                [ viewHeroStats hero
+                , viewHeroSocial hero
+                , viewHeroAchievements hero
+                ]
+            ]
+        ]
 
+
+viewHeroBio : Hero -> Html Msg
+viewHeroBio hero =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Biography" ]
+        , p [ class "text-gray-600 dark:text-gray-300 leading-relaxed" ] [ text hero.bio ]
+        ]
+
+
+viewHeroRecord : Hero -> Html Msg
+viewHeroRecord hero =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Competition Record" ]
+        , div [ class "grid grid-cols-3 gap-4 mb-6" ]
+            [ recordStat "Wins" (String.fromInt hero.record.wins) "text-green-600"
+            , recordStat "Losses" (String.fromInt hero.record.losses) "text-red-600"
+            , recordStat "Draws" (String.fromInt hero.record.draws) "text-gray-600"
+            ]
+        , div [ class "space-y-2" ]
+            (List.map (\title -> 
+                div [ class "flex items-center space-x-2" ]
+                    [ span [ class "text-xl" ] [ text "🏆" ]
+                    , span [ class "text-gray-700 dark:text-gray-300" ] [ text title ]
+                    ]
+            ) hero.record.titles)
+        ]
+
+
+recordStat : String -> String -> String -> Html Msg
+recordStat label value colorClass =
+    div [ class "text-center" ]
+        [ p [ class ("text-3xl font-bold " ++ colorClass) ] [ text value ]
+        , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text label ]
+        ]
+
+
+viewHeroTechniques : Hero -> Html Msg
+viewHeroTechniques hero =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Signature Techniques" ]
+        , div [ class "space-y-4" ]
+            (List.map viewTechnique hero.techniques)
+        ]
+
+
+viewTechnique : Technique -> Html Msg
+viewTechnique technique =
+    div [ class "border-l-4 border-red-500 pl-4" ]
+        [ h3 [ class "font-bold dark:text-white" ] [ text technique.name ]
+        , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text technique.description ]
+        ]
+
+
+viewHeroVideos : Hero -> Html Msg
+viewHeroVideos hero =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Videos" ]
+        , div [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
+            (List.map viewVideoCard hero.videos)
+        ]
+
+
+viewVideoCard : Video -> Html Msg
+viewVideoCard video =
+    div [ class "bg-gray-100 dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" ]
+        [ h3 [ class "font-medium dark:text-white mb-2" ] [ text video.title ]
+        , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text video.date ]
+        ]
+
+
+viewHeroStats : Hero -> Html Msg
+viewHeroStats hero =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Statistics" ]
+        , div [ class "space-y-3" ]
+            [ statRow "Win Rate" (String.fromFloat hero.stats.winRate ++ "%")
+            , statRow "Submission Rate" (String.fromFloat hero.stats.submissionRate ++ "%")
+            , statRow "Avg Match Time" (String.fromFloat hero.stats.averageMatchTime ++ " min")
+            , statRow "Favorite Position" hero.stats.favoritePosition
+            , statRow "Favorite Submission" hero.stats.favoriteSubmission
+            ]
+        ]
+
+
+statRow : String -> String -> Html Msg
+statRow label value =
+    div [ class "flex justify-between" ]
+        [ span [ class "text-gray-600 dark:text-gray-400" ] [ text label ]
+        , span [ class "font-medium dark:text-white" ] [ text value ]
+        ]
+
+
+viewHeroSocial : Hero -> Html Msg
+viewHeroSocial hero =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Social Media" ]
+        , div [ class "space-y-3" ]
+            [ case hero.socialMedia.instagram of
+                Just handle ->
+                    socialLink "Instagram" handle "📷"
+                Nothing ->
+                    text ""
+            , case hero.socialMedia.youtube of
+                Just channel ->
+                    socialLink "YouTube" channel "📺"
+                Nothing ->
+                    text ""
+            , case hero.socialMedia.website of
+                Just url ->
+                    socialLink "Website" url "🌐"
+                Nothing ->
+                    text ""
+            ]
+        ]
+
+
+socialLink : String -> String -> String -> Html Msg
+socialLink platform handle icon =
+    div [ class "flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-lg cursor-pointer" ]
+        [ span [ class "text-xl" ] [ text icon ]
+        , div [ class "flex-1" ]
+            [ p [ class "font-medium dark:text-white" ] [ text platform ]
+            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text handle ]
+            ]
+        ]
+
+
+viewHeroAchievements : Hero -> Html Msg
+viewHeroAchievements hero =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Achievements" ]
+        , div [ class "space-y-3" ]
+            (List.map viewAchievement hero.achievements)
+        ]
+
+
+viewAchievement : Achievement -> Html Msg
+viewAchievement achievement =
+    div [ class "flex items-center space-x-3" ]
+        [ span [ class "text-2xl" ] [ text achievement.icon ]
+        , div [ class "flex-1" ]
+            [ p [ class "font-medium dark:text-white" ] [ text achievement.name ]
+            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text achievement.description ]
+            ]
+        ]
+
+
+viewAcademiesPage : Model -> Maybe String -> Html Msg
+viewAcademiesPage model location =
+    div [ class "container mx-auto px-4 py-8" ]
+        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "BJJ Academies" ]
+        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
+            (model.academies
+                |> Dict.values
+                |> List.map (viewAcademyListCard model)
+            )
+        ]
+
+
+viewAcademyListCard : Model -> Academy -> Html Msg
+viewAcademyListCard model academy =
+    div 
+        [ onClick (NavigateTo (AcademyDetail academy.id))
+        , class "bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer"
+        ]
+        [ h3 [ class "text-xl font-bold mb-2 dark:text-white" ] [ text academy.name ]
+        , p [ class "text-gray-600 dark:text-gray-400 mb-2" ] 
+            [ text ("Head Coach: " ++ academy.headCoach) ]
+        , p [ class "text-sm text-gray-500 dark:text-gray-500 mb-4" ] 
+            [ text (academy.location.city ++ ", " ++ academy.location.country) ]
+        , p [ class "text-gray-600 dark:text-gray-300 line-clamp-3" ] [ text academy.description ]
+        ]
+
+
+viewAcademyDetailPage : Model -> String -> Html Msg
+viewAcademyDetailPage model academyId =
+    case Dict.get academyId model.academies of
+        Just academy ->
+            div [ class "container mx-auto px-4 py-8" ]
+                [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text academy.name ]
+                , div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
+                    [ div [ class "lg:col-span-2" ]
+                        [ viewAcademyInfo academy
+                        , viewAcademyPrograms academy
+                        ]
+                    , div []
+                        [ viewAcademySchedule academy
+                        , viewAcademyMembers academy
+                        ]
+                    ]
+                ]
+
+        Nothing ->
+            div [ class "container mx-auto px-4 py-8" ]
+                [ p [ class "text-center text-gray-500" ] [ text "Academy not found" ] ]
+
+
+viewAcademyInfo : Academy -> Html Msg
+viewAcademyInfo academy =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "About" ]
+        , p [ class "text-gray-600 dark:text-gray-300 mb-4" ] [ text academy.description ]
+        , div [ class "space-y-2" ]
+            [ infoRow "Head Coach" academy.headCoach
+            , infoRow "Established" (String.fromInt academy.established)
+            , infoRow "Location" (academy.location.city ++ ", " ++ academy.location.country)
+            , infoRow "Address" academy.location.address
+            ]
+        ]
+
+
+infoRow : String -> String -> Html Msg
+infoRow label value =
+    div [ class "flex" ]
+        [ span [ class "font-medium text-gray-700 dark:text-gray-300 w-32" ] [ text (label ++ ":") ]
+        , span [ class "text-gray-600 dark:text-gray-400" ] [ text value ]
+        ]
+
+
+viewAcademyPrograms : Academy -> Html Msg
+viewAcademyPrograms academy =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Programs" ]
+        , div [ class "space-y-4" ]
+            (List.map viewProgram academy.programs)
+        ]
+
+
+viewProgram : Types.Program -> Html Msg
+viewProgram program =
+    div [ class "border-l-4 border-blue-500 pl-4" ]
+        [ h3 [ class "font-bold dark:text-white" ] [ text program.name ]
+        , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text program.description ]
+        , div [ class "flex items-center space-x-4 mt-2" ]
+            [ span [ class "text-sm text-gray-500" ] [ text ("Duration: " ++ program.duration) ]
+            , case program.price of
+                Just price ->
+                    span [ class "text-sm font-medium text-green-600" ] [ text ("$" ++ String.fromFloat price ++ "/month") ]
+                Nothing ->
+                    text ""
+            ]
+        ]
+
+
+viewAcademySchedule : Academy -> Html Msg
+viewAcademySchedule academy =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Schedule" ]
+        , div [ class "space-y-3" ]
+            (List.map viewClassSchedule academy.schedule)
+        ]
+
+
+viewClassSchedule : ClassSchedule -> Html Msg
+viewClassSchedule schedule =
+    div [ class "border-b border-gray-200 dark:border-gray-700 pb-2" ]
+        [ div [ class "flex justify-between items-start" ]
+            [ div []
+                [ p [ class "font-medium dark:text-white" ] [ text schedule.className ]
+                , p [ class "text-sm text-gray-500" ] [ text schedule.instructor ]
+                ]
+            , div [ class "text-right" ]
+                [ p [ class "text-sm font-medium dark:text-white" ] [ text (dayToString schedule.dayOfWeek) ]
+                , p [ class "text-sm text-gray-500" ] [ text schedule.time ]
+                ]
+            ]
+        ]
+
+
+dayToString : DayOfWeek -> String
+dayToString day =
+    case day of
+        Monday -> "Monday"
+        Tuesday -> "Tuesday"
+        Wednesday -> "Wednesday"
+        Thursday -> "Thursday"
+        Friday -> "Friday"
+        Saturday -> "Saturday"
+        Sunday -> "Sunday"
+
+
+viewAcademyMembers : Academy -> Html Msg
+viewAcademyMembers academy =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Notable Members" ]
+        , div [ class "space-y-2" ]
+            (List.map (\member ->
+                div [ class "flex items-center space-x-2" ]
+                    [ span [ class "text-lg" ] [ text "🥋" ]
+                    , span [ class "dark:text-white" ] [ text member ]
+                    ]
+            ) academy.notableMembers)
+        ]
+
+
+viewEventsPage : Model -> EventsFilter -> Html Msg
+viewEventsPage model filter =
+    div [ class "container mx-auto px-4 py-8" ]
+        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "BJJ Events" ]
+        , viewEventFilters filter
+        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
+            (model.events
+                |> Dict.values
+                |> filterEvents filter
+                |> List.map (viewEventListCard model)
+            )
+        ]
+
+
+viewEventFilters : EventsFilter -> Html Msg
+viewEventFilters currentFilter =
+    div [ class "mb-8 flex gap-2" ]
+        [ eventFilterButton "All" (currentFilter == AllEvents) (NavigateTo (Events AllEvents))
+        , eventFilterButton "Upcoming" (currentFilter == UpcomingEvents) (NavigateTo (Events UpcomingEvents))
+        , eventFilterButton "Past" (currentFilter == PastEvents) (NavigateTo (Events PastEvents))
+        ]
+
+
+eventFilterButton : String -> Bool -> Msg -> Html Msg
+eventFilterButton label isActive msg =
+    button
+        [ onClick msg
+        , class "px-4 py-2 rounded-lg font-medium transition-all"
+        , classList
+            [ ("bg-blue-600 text-white", isActive)
+            , ("bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300", not isActive)
+            ]
+        ]
+        [ text label ]
+
+
+filterEvents : EventsFilter -> List Event -> List Event
+filterEvents filter events =
+    case filter of
+        AllEvents ->
+            events
+
+        UpcomingEvents ->
+            List.filter (\e -> e.status == Upcoming || e.status == Live) events
+
+        PastEvents ->
+            List.filter (\e -> e.status == Completed) events
+
+
+viewEventListCard : Model -> Event -> Html Msg
+viewEventListCard model event =
+    div 
+        [ onClick (NavigateTo (EventDetail event.id))
+        , class "bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer"
+        ]
+        [ div [ class "h-32 bg-gradient-to-br from-blue-400 to-blue-600 relative" ]
+            [ div [ class "absolute inset-0 flex items-center justify-center" ]
+                [ span [ class "text-5xl" ] [ text (eventTypeIcon event.type_) ] ]
+            ]
+        , div [ class "p-6" ]
+            [ h3 [ class "text-xl font-bold mb-2 dark:text-white" ] [ text event.name ]
+            , p [ class "text-gray-600 dark:text-gray-400 mb-2" ] [ text event.date ]
+            , p [ class "text-sm text-gray-500 dark:text-gray-500" ] 
+                [ text (event.location.city ++ ", " ++ event.location.country) ]
+            , div [ class "mt-4 flex justify-between items-center" ]
+                [ span [ class (eventStatusClass event.status) ] [ text (eventStatusText event.status) ]
+                , button
+                    [ onClick (ToggleFavorite EventFavorite event.id)
+                    , Html.Events.stopPropagationOn "click" (Decode.succeed (NoOpFrontendMsg, True))
+                    , class "p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    ]
+                    [ text (if Set.member event.id model.favorites.events then "⭐" else "☆") ]
+                ]
+            ]
+        ]
+
+
+eventTypeIcon : EventType -> String
+eventTypeIcon eventType =
+    case eventType of
+        Tournament -> "🏆"
+        SuperFight -> "🥊"
+        Seminar -> "📚"
+        Camp -> "🏕️"
+
+
+eventStatusClass : EventStatus -> String
+eventStatusClass status =
+    case status of
+        Upcoming -> "px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-xs font-medium"
+        Live -> "px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-xs font-medium animate-pulse"
+        Completed -> "px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs font-medium"
+        Cancelled -> "px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 rounded text-xs font-medium line-through"
+
+
+eventStatusText : EventStatus -> String
+eventStatusText status =
+    case status of
+        Upcoming -> "Upcoming"
+        Live -> "LIVE"
+        Completed -> "Completed"
+        Cancelled -> "Cancelled"
+
+
+viewEventDetailPage : Model -> String -> Html Msg
+viewEventDetailPage model eventId =
+    case Dict.get eventId model.events of
+        Just event ->
+            div [ class "container mx-auto px-4 py-8" ]
+                [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text event.name ]
+                , div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
+                    [ div [ class "lg:col-span-2" ]
+                        [ viewEventInfo event
+                        , viewEventBrackets event
+                        ]
+                    , div []
+                        [ viewEventDetails event
+                        , viewEventLinks event
+                        ]
+                    ]
+                ]
+
+        Nothing ->
+            div [ class "container mx-auto px-4 py-8" ]
+                [ p [ class "text-center text-gray-500" ] [ text "Event not found" ] ]
+
+
+viewEventInfo : Event -> Html Msg
+viewEventInfo event =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Event Information" ]
+        , p [ class "text-gray-600 dark:text-gray-300 mb-4" ] [ text event.description ]
+        , div [ class "space-y-2" ]
+            [ infoRow "Date" event.date
+            , infoRow "Location" (event.location.city ++ ", " ++ event.location.country)
+            , infoRow "Venue" event.location.address
+            , infoRow "Organization" event.organization
+            , infoRow "Status" (eventStatusText event.status)
+            ]
+        ]
+
+
+viewEventBrackets : Event -> Html Msg
+viewEventBrackets event =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Brackets" ]
+        , div [ class "space-y-4" ]
+            (List.map viewBracket event.brackets)
+        ]
+
+
+viewBracket : Bracket -> Html Msg
+viewBracket bracket =
+    div [ class "border-l-4 border-green-500 pl-4" ]
+        [ h3 [ class "font-bold dark:text-white" ] 
+            [ text (bracket.division ++ " - " ++ weightClassToString bracket.weightClass) ]
+        , p [ class "text-sm text-gray-600 dark:text-gray-400" ] 
+            [ text (beltToString bracket.belt ++ " Belt") ]
+        , div [ class "mt-2 flex flex-wrap gap-2" ]
+            (List.map (\comp ->
+                span [ class "px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm" ] [ text comp ]
+            ) bracket.competitors)
+        ]
+
+
+beltToString : BeltLevel -> String
+beltToString belt =
+    case belt of
+        White -> "White"
+        Blue -> "Blue"
+        Purple -> "Purple"
+        Brown -> "Brown"
+        Black -> "Black"
+
+
+viewEventDetails : Event -> Html Msg
+viewEventDetails event =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Details" ]
+        , div [ class "space-y-3" ]
+            [ detailRow "Type" (eventTypeToString event.type_) (eventTypeIcon event.type_)
+            , detailRow "Status" (eventStatusText event.status) "📊"
+            , detailRow "Organization" event.organization "🏢"
+            ]
+        ]
+
+
+eventTypeToString : EventType -> String
+eventTypeToString eventType =
+    case eventType of
+        Tournament -> "Tournament"
+        SuperFight -> "Super Fight"
+        Seminar -> "Seminar"
+        Camp -> "Training Camp"
+
+
+detailRow : String -> String -> String -> Html Msg
+detailRow label value icon =
+    div [ class "flex items-center space-x-3" ]
+        [ span [ class "text-xl" ] [ text icon ]
+        , div [ class "flex-1" ]
+            [ p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text label ]
+            , p [ class "font-medium dark:text-white" ] [ text value ]
+            ]
+        ]
+
+
+viewEventLinks : Event -> Html Msg
+viewEventLinks event =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Links" ]
+        , div [ class "space-y-3" ]
+            [ case event.registrationUrl of
+                Just url ->
+                    linkButton "Register" "🎫"
+                Nothing ->
+                    text ""
+            , case event.streamUrl of
+                Just url ->
+                    linkButton "Watch Stream" "📺"
+                Nothing ->
+                    text ""
+            ]
+        ]
+
+
+linkButton : String -> String -> Html Msg
+linkButton label icon =
+    button [ class "w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" ]
+        [ span [ class "text-xl" ] [ text icon ]
+        , span [ class "font-medium" ] [ text label ]
+        ]
+
+
+viewTrainingPage : Model -> Html Msg
+viewTrainingPage model =
+    div [ class "container mx-auto px-4 py-8" ]
+        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "Training Plans" ]
+        , div [ class "bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white mb-8" ]
+            [ h2 [ class "text-3xl font-bold mb-4" ] [ text "Start Your Journey" ]
+            , p [ class "text-lg mb-6 opacity-90" ] [ text "Choose a hero and follow their training methodology" ]
+            , button [ class "px-6 py-3 bg-white text-blue-600 font-bold rounded-lg hover:shadow-xl transition-all" ]
+                [ text "Create Training Plan" ]
+            ]
+        , viewTrainingStats model
+        , viewRecentSessions model
+        ]
+
+
+viewTrainingStats : Model -> Html Msg
+viewTrainingStats model =
+    div [ class "grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" ]
+        [ statCard "Total Sessions" "0" "📊" "bg-blue-500"
+        , statCard "Hours Trained" "0" "⏱️" "bg-green-500"
+        , statCard "Current Streak" "0 days" "🔥" "bg-orange-500"
+        , statCard "Techniques" "0" "🎯" "bg-purple-500"
+        ]
+
+
+statCard : String -> String -> String -> String -> Html Msg
+statCard label value icon bgColor =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ div [ class "flex items-center justify-between mb-2" ]
+            [ span [ class ("text-3xl p-2 rounded-lg " ++ bgColor ++ " bg-opacity-20") ] [ text icon ]
+            , p [ class "text-2xl font-bold dark:text-white" ] [ text value ]
+            ]
+        , p [ class "text-gray-600 dark:text-gray-400" ] [ text label ]
+        ]
+
+
+viewRecentSessions : Model -> Html Msg
+viewRecentSessions model =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Recent Sessions" ]
+        , if List.isEmpty model.trainingSessions then
+            div [ class "text-center py-8" ]
+                [ span [ class "text-5xl mb-4 block" ] [ text "📝" ]
+                , p [ class "text-gray-500 dark:text-gray-400" ] [ text "No training sessions yet" ]
+                , button 
+                    [ onClick (OpenModal SessionModal)
+                    , class "mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    ]
+                    [ text "Log Your First Session" ]
+                ]
+          else
+            div [ class "space-y-4" ]
+                (List.map viewSessionCard model.trainingSessions)
+        ]
+
+
+viewSessionCard : TrainingSession -> Html Msg
+viewSessionCard session =
+    div [ class "border-l-4 border-green-500 pl-4" ]
+        [ div [ class "flex justify-between items-start" ]
+            [ div []
+                [ p [ class "font-medium dark:text-white" ] [ text (sessionTypeToString session.sessionType) ]
+                , p [ class "text-sm text-gray-500" ] [ text session.date ]
+                ]
+            , span [ class "text-sm text-gray-600 dark:text-gray-400" ] 
+                [ text (String.fromInt session.duration ++ " min") ]
+            ]
+        ]
+
+
+sessionTypeToString : SessionType -> String
+sessionTypeToString sessionType =
+    case sessionType of
+        TechniqueSession -> "Technique"
+        DrillingSession -> "Drilling"
+        SparringSession -> "Sparring"
+        CompetitionSession -> "Competition"
+        OpenMatSession -> "Open Mat"
+        PrivateSession -> "Private Lesson"
+
+
+viewProfilePage : Model -> Html Msg
+viewProfilePage model =
+    div [ class "container mx-auto px-4 py-8" ]
+        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "Profile" ]
+        , case model.userProfile of
+            Just profile ->
+                viewUserProfile profile model
+
+            Nothing ->
+                viewGuestProfile model
+        ]
+
+
+viewUserProfile : UserProfile -> Model -> Html Msg
+viewUserProfile profile model =
+    div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
+        [ div [ class "lg:col-span-2" ]
+            [ viewProfileInfo profile
+            , viewProfileStats profile
+            , viewProfileAchievements profile
+            ]
+        , div []
+            [ viewProfileFavorites model
+            , viewProfileGoals profile
+            ]
+        ]
+
+
+viewProfileInfo : UserProfile -> Html Msg
+viewProfileInfo profile =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Profile Information" ]
+        , div [ class "space-y-3" ]
+            [ infoRow "Username" profile.username
+            , infoRow "Email" profile.email
+            , infoRow "Belt Level" (beltToString profile.beltLevel)
+            , infoRow "Training Since" profile.startedTraining
+            , case profile.academy of
+                Just academy ->
+                    infoRow "Academy" academy
+                Nothing ->
+                    text ""
+            ]
+        ]
+
+
+viewProfileStats : UserProfile -> Html Msg
+viewProfileStats profile =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Statistics" ]
+        , div [ class "grid grid-cols-2 md:grid-cols-3 gap-4" ]
+            [ statBox "Sessions" (String.fromInt profile.stats.totalSessions)
+            , statBox "Hours" (String.fromFloat profile.stats.totalHours)
+            , statBox "Streak" (String.fromInt profile.stats.currentStreak ++ " days")
+            , statBox "Best Streak" (String.fromInt profile.stats.longestStreak ++ " days")
+            , statBox "Techniques" (String.fromInt profile.stats.techniquesLearned)
+            , case profile.stats.favoritePosition of
+                Just position ->
+                    statBox "Favorite" position
+                Nothing ->
+                    text ""
+            ]
+        ]
+
+
+statBox : String -> String -> Html Msg
+statBox label value =
+    div [ class "text-center" ]
+        [ p [ class "text-2xl font-bold dark:text-white" ] [ text value ]
+        , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text label ]
+        ]
+
+
+viewProfileAchievements : UserProfile -> Html Msg
+viewProfileAchievements profile =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Achievements" ]
+        , if List.isEmpty profile.achievements then
+            p [ class "text-gray-500 dark:text-gray-400" ] [ text "No achievements yet" ]
+          else
+            div [ class "grid grid-cols-2 md:grid-cols-3 gap-4" ]
+                (List.map viewAchievementBadge profile.achievements)
+        ]
+
+
+viewAchievementBadge : Achievement -> Html Msg
+viewAchievementBadge achievement =
+    div [ class "text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg" ]
+        [ span [ class "text-3xl" ] [ text achievement.icon ]
+        , p [ class "text-sm font-medium dark:text-white mt-2" ] [ text achievement.name ]
+        , p [ class "text-xs text-gray-500 dark:text-gray-400" ] 
+            [ text (String.fromInt achievement.points ++ " pts") ]
+        ]
+
+
+viewProfileFavorites : Model -> Html Msg
+viewProfileFavorites model =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Favorites" ]
+        , div [ class "space-y-4" ]
+            [ favoriteSection "Heroes" (Set.toList model.favorites.heroes) "🥋"
+            , favoriteSection "Academies" (Set.toList model.favorites.academies) "🏛️"
+            , favoriteSection "Events" (Set.toList model.favorites.events) "📅"
+            ]
+        ]
+
+
+favoriteSection : String -> List String -> String -> Html Msg
+favoriteSection title items icon =
+    div []
+        [ h3 [ class "font-medium text-gray-700 dark:text-gray-300 mb-2" ] [ text title ]
+        , if List.isEmpty items then
+            p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text "No favorites yet" ]
+          else
+            div [ class "space-y-1" ]
+                (List.map (\item ->
+                    div [ class "flex items-center space-x-2" ]
+                        [ span [ class "text-lg" ] [ text icon ]
+                        , span [ class "text-sm dark:text-white" ] [ text item ]
+                        ]
+                ) items)
+        ]
+
+
+viewProfileGoals : UserProfile -> Html Msg
+viewProfileGoals profile =
+    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Training Goals" ]
+        , if List.isEmpty profile.trainingGoals then
+            p [ class "text-gray-500 dark:text-gray-400" ] [ text "No goals set" ]
+          else
+            div [ class "space-y-2" ]
+                (List.map (\goal ->
+                    div [ class "flex items-center space-x-2" ]
+                        [ span [ class "text-lg" ] [ text "🎯" ]
+                        , span [ class "dark:text-white" ] [ text goal ]
+                        ]
+                ) profile.trainingGoals)
+        , button [ class "mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" ]
+            [ text "Add Goal" ]
+        ]
+
+
+viewGuestProfile : Model -> Html Msg
+viewGuestProfile model =
+    div [ class "max-w-md mx-auto text-center py-12" ]
+        [ span [ class "text-6xl mb-4 block" ] [ text "👤" ]
+        , h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Welcome, Guest!" ]
+        , p [ class "text-gray-600 dark:text-gray-400 mb-6" ] 
+            [ text "Create an account to track your training progress, save favorites, and more." ]
+        , button [ class "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors" ]
+            [ text "Sign Up" ]
+        ]
+
+
+viewNotFoundPage : Model -> Html Msg
+viewNotFoundPage model =
+    div [ class "container mx-auto px-4 py-16 text-center" ]
+        [ span [ class "text-8xl mb-4 block" ] [ text "🤷" ]
+        , h1 [ class "text-4xl font-bold mb-4 dark:text-white" ] [ text "404 - Page Not Found" ]
+        , p [ class "text-gray-600 dark:text-gray-400 mb-8" ] 
+            [ text "The page you're looking for doesn't exist." ]
+        , button 
+            [ onClick (NavigateTo Home)
+            , class "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
+            ]
+            [ text "Go Home" ]
+        ]
+
+
+viewModals : Model -> Html Msg
+viewModals model =
+    div []
+        [ if model.modals.sessionModal then
+            viewSessionModal model
+          else
+            text ""
+        , case model.modals.heroDetailModal of
+            Just heroId ->
+                viewHeroQuickView model heroId
             Nothing ->
                 text ""
         ]
 
 
-viewHeroGrid : Model -> Html FrontendMsg
-viewHeroGrid model =
-    div [ class "grid md:grid-cols-2 lg:grid-cols-3 gap-4" ]
-        [ viewHeroCard Gordon "gordon" model
-        , viewHeroCard Buchecha "buchecha" model
-        , viewHeroCard Rafael "rafael" model
-        , viewHeroCard Leandro "leandro" model
-        , viewHeroCard Galvao "galvao" model
+viewSessionModal : Model -> Html Msg
+viewSessionModal model =
+    div [ class "fixed inset-0 bg-black/50 flex items-center justify-center z-50" ]
+        [ div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4" ]
+            [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Log Training Session" ]
+            , p [ class "text-gray-600 dark:text-gray-400" ] [ text "Session logging coming soon!" ]
+            , button 
+                [ onClick CloseModal
+                , class "mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                ]
+                [ text "Close" ]
+            ]
         ]
 
 
-viewHeroCard : HeroId -> String -> Model -> Html FrontendMsg
-viewHeroCard heroId heroKey model =
-    case Dict.get heroKey model.heroes of
+viewHeroQuickView : Model -> String -> Html Msg
+viewHeroQuickView model heroId =
+    case Dict.get heroId model.heroes of
         Just hero ->
-            div
-                [ onClick (SelectHero (if model.selectedHero == Just heroId then Nothing else Just heroId))
-                , class <|
-                    hero.color
-                        ++ " text-white rounded-lg p-4 cursor-pointer transition-transform hover:scale-105"
-                        ++ (if model.selectedHero == Just heroId then
-                                " ring-4 ring-white"
-
-                            else
-                                ""
-                           )
-                ]
-                [ h3 [ class "font-bold text-lg" ] [ text hero.name ]
-                , p [ class "text-sm opacity-90" ] [ text ("\"" ++ hero.nickname ++ "\"") ]
-                , p [ class "text-xs mt-2 opacity-80" ] [ text hero.philosophy ]
-                ]
-
-        Nothing ->
-            text ""
-
-
-viewSelectedHero : HeroId -> Dict String Hero -> Html FrontendMsg
-viewSelectedHero heroId heroes =
-    let
-        heroKey =
-            case heroId of
-                Gordon ->
-                    "gordon"
-
-                Buchecha ->
-                    "buchecha"
-
-                Rafael ->
-                    "rafael"
-
-                Leandro ->
-                    "leandro"
-
-                Galvao ->
-                    "galvao"
-    in
-    case Dict.get heroKey heroes of
-        Just hero ->
-            div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6" ]
-                [ div [ class "flex items-center mb-6" ]
-                    [ div [ class (hero.color ++ " w-4 h-4 rounded-full mr-3") ] []
-                    , h2 [ class "text-2xl font-bold dark:text-white" ] [ text hero.name ]
-                    , span [ class "ml-3 text-gray-500 dark:text-gray-400" ]
-                        [ text ("\"" ++ hero.nickname ++ "\"") ]
-                    ]
-                , div [ class "grid md:grid-cols-2 gap-6" ]
-                    [ div []
-                        [ h4 [ class "font-semibold text-lg mb-3 dark:text-white" ] [ text "Spécialités" ]
-                        , div [ class "flex flex-wrap gap-2 mb-4" ]
-                            (List.map
-                                (\spec ->
-                                    span [ class (hero.lightColor ++ " px-3 py-1 rounded-full text-sm text-gray-800") ]
-                                        [ text spec ]
-                                )
-                                hero.specialties
-                            )
-                        , h4 [ class "font-semibold text-lg mb-3 dark:text-white" ] [ text "Principes Clés" ]
-                        , ul [ class "space-y-2" ]
-                            (List.map
-                                (\principle ->
-                                    li [ class "flex items-start text-sm dark:text-gray-300" ]
-                                        [ span [ class "text-green-500 mr-2 mt-0.5 flex-shrink-0" ] [ text "→" ]
-                                        , text principle
-                                        ]
-                                )
-                                hero.keyPrinciples
-                            )
+            div [ class "fixed inset-0 bg-black/50 flex items-center justify-center z-50" ]
+                [ div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" ]
+                    [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text hero.name ]
+                    , p [ class "text-gray-600 dark:text-gray-400 mb-4" ] [ text hero.bio ]
+                    , button 
+                        [ onClick CloseModal
+                        , class "px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                         ]
-                    , div []
-                        [ h4 [ class "font-semibold text-lg mb-3 dark:text-white" ] [ text "Plan Hebdomadaire" ]
-                        , div [ class "space-y-2" ]
-                            (List.map
-                                (\day ->
-                                    div [ class "bg-gray-50 dark:bg-gray-700 p-2 rounded text-sm dark:text-gray-300" ]
-                                        [ text day ]
-                                )
-                                hero.weeklyPlan
-                            )
-                        ]
+                        [ text "Close" ]
                     ]
                 ]
 
@@ -664,454 +1737,61 @@ viewSelectedHero heroId heroes =
             text ""
 
 
-viewPlan : Model -> Html FrontendMsg
-viewPlan model =
-    div [ class "space-y-6" ]
-        [ viewActionPlan
-        , viewChampionMindset
-        ]
-
-
-viewActionPlan : Html FrontendMsg
-viewActionPlan =
-    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
-        [ h2 [ class "text-2xl font-bold mb-4 flex items-center dark:text-white" ]
-            [ span [ class "mr-3" ] [ text "⏰" ]
-            , text "Ton Plan d'Action Personnalisé"
-            ]
-        , div [ class "grid md:grid-cols-2 gap-6" ]
-            [ div []
-                [ h3 [ class "font-semibold text-lg mb-3 dark:text-white" ] [ text "Semaine Type (Débutant)" ]
-                , div [ class "space-y-2 text-sm" ]
-                    [ viewDayPlan "Lundi" "Cours gi + escapes (Buchecha style)" "bg-blue-50 dark:bg-blue-900"
-                    , viewDayPlan "Mardi" "Open mat + flow (Rafael style)" "bg-green-50 dark:bg-green-900"
-                    , viewDayPlan "Mercredi" "Techniques + drilling (Leandro style)" "bg-purple-50 dark:bg-purple-900"
-                    , viewDayPlan "Jeudi" "Sparring + étude vidéo (Gordon style)" "bg-red-50 dark:bg-red-900"
-                    , viewDayPlan "Vendredi" "Cours + questions (Galvão style)" "bg-orange-50 dark:bg-orange-900"
-                    , viewDayPlan "Weekend" "Récupération + théorie" "bg-gray-50 dark:bg-gray-700"
-                    ]
-                ]
-            , div []
-                [ h3 [ class "font-semibold text-lg mb-3 dark:text-white" ] [ text "Objectifs Mensuels" ]
-                , div [ class "space-y-3" ]
-                    [ viewMonthlyGoal "Mois 1-2: Survie" "Ne pas se faire soumettre, positions de base" "border-blue-500"
-                    , viewMonthlyGoal "Mois 3-4: Mouvement" "Fluidité, transitions, premiers sweeps" "border-green-500"
-                    , viewMonthlyGoal "Mois 5-6: Attaque" "Premières soumissions, garde active" "border-purple-500"
-                    ]
-                ]
-            ]
-        ]
-
-
-viewDayPlan : String -> String -> String -> Html FrontendMsg
-viewDayPlan day description colorClass =
-    div [ class (colorClass ++ " p-3 rounded dark:text-gray-200") ]
-        [ strong [] [ text (day ++ ": ") ]
-        , text description
-        ]
-
-
-viewMonthlyGoal : String -> String -> String -> Html FrontendMsg
-viewMonthlyGoal title description borderColor =
-    div [ class ("border-l-4 " ++ borderColor ++ " pl-4") ]
-        [ h4 [ class "font-medium dark:text-white" ] [ text title ]
-        , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text description ]
-        ]
-
-
-viewChampionMindset : Html FrontendMsg
-viewChampionMindset =
-    div [ class "bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-6" ]
-        [ h3 [ class "text-xl font-bold mb-3 flex items-center" ]
-            [ span [ class "mr-3" ] [ text "👥" ]
-            , text "Mentalité de Champion"
-            ]
-        , div [ class "grid md:grid-cols-3 gap-4 text-sm" ]
-            [ div []
-                [ strong [] [ text "Comme Gordon: " ]
-                , text "Étudie tes adversaires, visualise tes techniques"
-                ]
-            , div []
-                [ strong [] [ text "Comme Buchecha: " ]
-                , text "Pousse ton cardio, ne lâche jamais"
-                ]
-            , div []
-                [ strong [] [ text "Comme Rafael: " ]
-                , text "Sois créatif, expérimente constamment"
-                ]
-            ]
-        ]
-
-
-viewProgress : Model -> Html FrontendMsg
-viewProgress model =
-    div [ class "space-y-8" ]
-        [ viewProgressHeader model
-        , viewTrainingStats model
-        , viewRecentSessions model
-        , viewTechniqueChecklist model
-        , viewAchievements model
-        , if model.showAddSessionModal then
-            viewAddSessionModal model
-          else
-            text ""
-        ]
-
-
-viewProgressHeader : Model -> Html FrontendMsg
-viewProgressHeader model =
-    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
-        [ div [ class "flex justify-between items-center mb-4" ]
-            [ h2 [ class "text-2xl font-bold dark:text-white" ]
-                [ text "Suivi de Progression" ]
-            , button
-                [ onClick ToggleAddSessionModal
-                , class "bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                ]
-                [ span [ class "mr-2" ] [ text "+" ]
-                , text "Nouvelle Session"
-                ]
-            ]
-        , case model.selectedHero of
-            Just heroId ->
-                div [ class "text-lg text-gray-600 dark:text-gray-300" ]
-                    [ text ("Héros actuel: " ++ heroIdToString heroId) ]
-            
-            Nothing ->
-                div [ class "text-yellow-600 dark:text-yellow-400" ]
-                    [ text "⚠️ Sélectionnez un héros dans l'onglet 'Tes Héros' pour commencer" ]
-        ]
-
-
-viewTrainingStats : Model -> Html FrontendMsg
-viewTrainingStats model =
-    let
-        totalHours = Progress.getTotalTrainingHours model.trainingSessions
-        totalSessions = List.length model.trainingSessions
-        techniqueStats = Progress.calculateProgress model.techniqueProgress
-        completedAchievements = List.filter (\a -> a.unlockedAt /= Nothing) model.achievements |> List.length
-    in
-    div [ class "grid grid-cols-2 md:grid-cols-4 gap-4" ]
-        [ viewStatCard "🏋️" "Sessions Totales" (String.fromInt totalSessions) "bg-blue-50 dark:bg-blue-900"
-        , viewStatCard "⏱️" "Heures d'Entraînement" (String.fromFloat (toFloat (round (totalHours * 10)) / 10)) "bg-green-50 dark:bg-green-900"
-        , viewStatCard "🎯" "Techniques Maîtrisées" (String.fromInt techniqueStats.mastered ++ "/" ++ String.fromInt techniqueStats.total) "bg-purple-50 dark:bg-purple-900"
-        , viewStatCard "🏆" "Achievements" (String.fromInt completedAchievements ++ "/" ++ String.fromInt (List.length model.achievements)) "bg-yellow-50 dark:bg-yellow-900"
-        ]
-
-
-viewStatCard : String -> String -> String -> String -> Html FrontendMsg
-viewStatCard icon label value bgColor =
-    div [ class (bgColor ++ " rounded-lg p-4 text-center") ]
-        [ div [ class "text-3xl mb-2" ] [ text icon ]
-        , div [ class "text-sm text-gray-600 dark:text-gray-300 mb-1" ] [ text label ]
-        , div [ class "text-2xl font-bold dark:text-white" ] [ text value ]
-        ]
-
-
-viewRecentSessions : Model -> Html FrontendMsg
-viewRecentSessions model =
-    let
-        recentSessions = Progress.getRecentSessions 5 model.trainingSessions
-    in
-    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
-        [ h3 [ class "text-xl font-bold mb-4 dark:text-white" ] 
-            [ text "Sessions Récentes" ]
-        , if List.isEmpty recentSessions then
-            div [ class "text-gray-500 dark:text-gray-400 text-center py-8" ]
-                [ text "Aucune session enregistrée. Cliquez sur 'Nouvelle Session' pour commencer!" ]
-          else
-            div [ class "space-y-3" ]
-                (List.map viewSessionCard recentSessions)
-        ]
-
-
-viewSessionCard : TrainingSession -> Html FrontendMsg
-viewSessionCard session =
-    div [ class "border dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" ]
-        [ div [ class "flex justify-between items-start" ]
-            [ div []
-                [ div [ class "flex items-center gap-3 mb-2" ]
-                    [ span [ class "font-semibold dark:text-white" ] 
-                        [ text (session.date ++ " - " ++ heroIdToString session.heroId) ]
-                    , span [ class "text-sm bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded" ]
-                        [ text (Progress.sessionTypeToString session.sessionType) ]
-                    ]
-                , div [ class "text-sm text-gray-600 dark:text-gray-300" ]
-                    [ text (String.fromInt session.duration ++ " minutes") ]
-                , if not (String.isEmpty session.notes) then
-                    div [ class "text-sm text-gray-500 dark:text-gray-400 mt-2 italic" ]
-                        [ text session.notes ]
-                  else
-                    text ""
-                ]
-            , button
-                [ onClick (DeleteTrainingSession session.id)
-                , class "text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
-                ]
-                [ text "🗑️" ]
-            ]
-        ]
-
-
-viewTechniqueChecklist : Model -> Html FrontendMsg
-viewTechniqueChecklist model =
-    case model.selectedHero of
-        Just heroId ->
-            let
-                techniques = List.filter (\t -> t.heroId == heroId) model.techniqueProgress
-            in
-            div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
-                [ h3 [ class "text-xl font-bold mb-4 dark:text-white" ] 
-                    [ text "Checklist des Techniques" ]
-                , if List.isEmpty techniques then
-                    div [ class "text-gray-500 dark:text-gray-400" ]
-                        [ text "Les techniques seront chargées après votre première connexion." ]
-                  else
-                    div [ class "space-y-2" ]
-                        (List.map viewTechniqueItem techniques)
-                ]
-
-        Nothing ->
-            text ""
-
-
-viewTechniqueItem : TechniqueProgress -> Html FrontendMsg
-viewTechniqueItem technique =
-    div [ class "border dark:border-gray-700 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" ]
-        [ div [ class "flex items-center justify-between" ]
-            [ div [ class "flex items-center gap-3" ]
-                [ statusIcon technique.status
-                , div []
-                    [ div [ class "font-medium dark:text-white" ] [ text technique.name ]
-                    , div [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text technique.category ]
-                    ]
-                ]
-            , select
-                [ onInput (\value -> UpdateTechniqueStatus technique.techniqueId (stringToTechniqueStatus value))
-                , class "text-sm border dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-700 dark:text-white"
-                , value (techniqueStatusToValue technique.status)
-                ]
-                [ option [ value "notstarted" ] [ text "Non commencé" ]
-                , option [ value "learning" ] [ text "En apprentissage" ]
-                , option [ value "drilling" ] [ text "En drill" ]
-                , option [ value "mastered" ] [ text "Maîtrisé" ]
-                ]
-            ]
-        ]
-
-
-statusIcon : TechniqueStatus -> Html msg
-statusIcon status =
-    case status of
-        NotStarted ->
-            span [ class "text-gray-400 text-xl" ] [ text "○" ]
-        
-        Learning ->
-            span [ class "text-yellow-500 text-xl" ] [ text "◐" ]
-        
-        InDrilling ->
-            span [ class "text-blue-500 text-xl" ] [ text "◕" ]
-        
-        Mastered ->
-            span [ class "text-green-500 text-xl" ] [ text "●" ]
-
-
-techniqueStatusToValue : TechniqueStatus -> String
-techniqueStatusToValue status =
-    case status of
-        NotStarted -> "notstarted"
-        Learning -> "learning"
-        InDrilling -> "drilling"
-        Mastered -> "mastered"
-
-
-stringToTechniqueStatus : String -> TechniqueStatus
-stringToTechniqueStatus str =
-    case str of
-        "learning" -> Learning
-        "drilling" -> InDrilling
-        "mastered" -> Mastered
-        _ -> NotStarted
-
-
-viewAchievements : Model -> Html FrontendMsg
-viewAchievements model =
-    div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
-        [ h3 [ class "text-xl font-bold mb-4 dark:text-white" ] 
-            [ text "Achievements" ]
-        , div [ class "grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" ]
-            (List.map viewAchievementCard model.achievements)
-        ]
-
-
-viewAchievementCard : Achievement -> Html FrontendMsg
-viewAchievementCard achievement =
-    let
-        isUnlocked = achievement.unlockedAt /= Nothing
-        opacity = if isUnlocked then "" else "opacity-50"
-    in
-    div [ class (opacity ++ " text-center p-4 rounded-lg " ++ 
-                 if isUnlocked then "bg-yellow-50 dark:bg-yellow-900" else "bg-gray-100 dark:bg-gray-700") ]
-        [ div [ class "text-4xl mb-2" ] [ text achievement.icon ]
-        , div [ class "font-medium text-sm dark:text-white" ] [ text achievement.name ]
-        , div [ class "text-xs text-gray-600 dark:text-gray-300 mt-1" ] [ text achievement.description ]
-        ]
-
-
-viewAddSessionModal : Model -> Html FrontendMsg
-viewAddSessionModal model =
-    div [ class "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" ]
-        [ div [ class "bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4" ]
-            [ h3 [ class "text-xl font-bold mb-4 dark:text-white" ] 
-                [ text "Nouvelle Session d'Entraînement" ]
-            , div [ class "space-y-4" ]
+viewFooter : Model -> Html Msg
+viewFooter model =
+    footer [ class "bg-gray-900 text-white py-12 mt-20" ]
+        [ div [ class "container mx-auto px-4" ]
+            [ div [ class "grid grid-cols-1 md:grid-cols-4 gap-8 mb-8" ]
                 [ div []
-                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
-                        [ text "Date" ]
-                    , input
-                        [ type_ "date"
-                        , value model.newSessionForm.date
-                        , onInput (\v -> 
-                            let
-                                form = model.newSessionForm
-                            in
-                            UpdateNewSessionForm { form | date = v }
-                          )
-                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
-                        ]
-                        []
+                    [ h3 [ class "text-xl font-bold mb-4" ] [ text "BJJ Heroes" ]
+                    , p [ class "text-gray-400" ] [ text "Train like champions with guidance from the greatest athletes in BJJ history." ]
                     ]
                 , div []
-                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
-                        [ text "Héros" ]
-                    , select
-                        [ onInput (\v -> 
-                            let
-                                form = model.newSessionForm
-                            in
-                            UpdateNewSessionForm { form | heroId = stringToHeroId v }
-                          )
-                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
-                        ]
-                        [ option [ value "" ] [ text "Sélectionner un héros" ]
-                        , option [ value "gordon" ] [ text "Gordon Ryan" ]
-                        , option [ value "buchecha" ] [ text "Buchecha" ]
-                        , option [ value "rafael" ] [ text "Rafael Mendes" ]
-                        , option [ value "leandro" ] [ text "Leandro Lo" ]
-                        , option [ value "galvao" ] [ text "André Galvão" ]
+                    [ h4 [ class "font-bold mb-4" ] [ text "Explore" ]
+                    , ul [ class "space-y-2" ]
+                        [ footerLink "Heroes" (NavigateTo (HeroesRoute Nothing))
+                        , footerLink "Academies" (NavigateTo (Academies Nothing))
+                        , footerLink "Events" (NavigateTo (Events AllEvents))
+                        , footerLink "Training" (NavigateTo Training)
                         ]
                     ]
                 , div []
-                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
-                        [ text "Type de Session" ]
-                    , select
-                        [ onInput (\v -> 
-                            let
-                                form = model.newSessionForm
-                            in
-                            UpdateNewSessionForm { form | sessionType = stringToSessionType v }
-                          )
-                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
-                        ]
-                        [ option [ value "technique" ] [ text "Technique" ]
-                        , option [ value "drilling" ] [ text "Drilling" ]
-                        , option [ value "sparring" ] [ text "Sparring" ]
-                        , option [ value "competition" ] [ text "Compétition" ]
-                        , option [ value "openmat" ] [ text "Open Mat" ]
+                    [ h4 [ class "font-bold mb-4" ] [ text "Resources" ]
+                    , ul [ class "space-y-2" ]
+                        [ li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text "Technique Library" ] ]
+                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text "Training Tips" ] ]
+                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text "Competition Rules" ] ]
+                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text "Blog" ] ]
                         ]
                     ]
                 , div []
-                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
-                        [ text "Durée (minutes)" ]
-                    , input
-                        [ type_ "number"
-                        , value model.newSessionForm.duration
-                        , onInput (\v -> 
-                            let
-                                form = model.newSessionForm
-                            in
-                            UpdateNewSessionForm { form | duration = v }
-                          )
-                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
+                    [ h4 [ class "font-bold mb-4" ] [ text "Connect" ]
+                    , div [ class "flex space-x-4" ]
+                        [ span [ class "text-2xl cursor-pointer hover:text-blue-400 transition-colors" ] [ text "📘" ]
+                        , span [ class "text-2xl cursor-pointer hover:text-blue-400 transition-colors" ] [ text "🐦" ]
+                        , span [ class "text-2xl cursor-pointer hover:text-pink-400 transition-colors" ] [ text "📷" ]
+                        , span [ class "text-2xl cursor-pointer hover:text-red-500 transition-colors" ] [ text "📺" ]
                         ]
-                        []
-                    ]
-                , div []
-                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
-                        [ text "Techniques pratiquées" ]
-                    , textarea
-                        [ value model.newSessionForm.techniques
-                        , onInput (\v -> 
-                            let
-                                form = model.newSessionForm
-                            in
-                            UpdateNewSessionForm { form | techniques = v }
-                          )
-                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
-                        , rows 3
-                        , placeholder "Ex: Berimbolo, Triangle, Armbar..."
-                        ]
-                        []
-                    ]
-                , div []
-                    [ label [ class "block text-sm font-medium mb-1 dark:text-gray-300" ] 
-                        [ text "Notes" ]
-                    , textarea
-                        [ value model.newSessionForm.notes
-                        , onInput (\v -> 
-                            let
-                                form = model.newSessionForm
-                            in
-                            UpdateNewSessionForm { form | notes = v }
-                          )
-                        , class "w-full border dark:border-gray-600 rounded px-3 py-2 dark:bg-gray-700 dark:text-white"
-                        , rows 3
-                        ]
-                        []
                     ]
                 ]
-            , div [ class "flex justify-end gap-3 mt-6" ]
-                [ button
-                    [ onClick ToggleAddSessionModal
-                    , class "px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                    ]
-                    [ text "Annuler" ]
-                , button
-                    [ onClick SaveTrainingSession
-                    , class "px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    ]
-                    [ text "Enregistrer" ]
+            , div [ class "border-t border-gray-800 pt-8 text-center text-gray-400" ]
+                [ p [] [ text "© 2024 BJJ Heroes. Train Like Champions. All rights reserved." ]
                 ]
             ]
         ]
 
 
-heroIdToString : HeroId -> String
-heroIdToString heroId =
-    case heroId of
-        Gordon -> "Gordon Ryan"
-        Buchecha -> "Buchecha"
-        Rafael -> "Rafael Mendes"
-        Leandro -> "Leandro Lo"
-        Galvao -> "André Galvão"
+footerLink : String -> Msg -> Html Msg
+footerLink label msg =
+    li []
+        [ button 
+            [ onClick msg
+            , class "text-gray-400 hover:text-white transition-colors"
+            ]
+            [ text label ]
+        ]
 
 
-stringToHeroId : String -> Maybe HeroId
-stringToHeroId str =
-    case str of
-        "gordon" -> Just Gordon
-        "buchecha" -> Just Buchecha
-        "rafael" -> Just Rafael
-        "leandro" -> Just Leandro
-        "galvao" -> Just Galvao
-        _ -> Nothing
-
-
-stringToSessionType : String -> SessionType
-stringToSessionType str =
-    case str of
-        "drilling" -> Drilling
-        "sparring" -> Sparring
-        "competition" -> Competition
-        "openmat" -> OpenMat
-        _ -> Technique
+stopPropagationOn : String -> Decode.Decoder (msg, Bool) -> Attribute msg
+stopPropagationOn event decoder =
+    Html.Events.stopPropagationOn event decoder

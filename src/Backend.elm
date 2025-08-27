@@ -1,9 +1,10 @@
 module Backend exposing (..)
 
 import Dict exposing (Dict)
-import Lamdera exposing (ClientId, SessionId)
+import Set exposing (Set)
+import Lamdera
 import Types exposing (..)
-import Progress
+import Data
 import Time
 
 
@@ -22,7 +23,18 @@ app =
 
 init : ( Model, Cmd BackendMsg )
 init =
-    ( { userSessions = Dict.empty }
+    ( { sessions = Dict.empty
+      , heroes = Data.initHeroes
+      , academies = Data.initAcademies
+      , events = Data.initEvents
+      , userProfiles = Dict.empty
+      , analytics =
+            { pageViews = Dict.empty
+            , heroViews = Dict.empty
+            , searchQueries = []
+            , popularTechniques = Dict.empty
+            }
+      }
     , Cmd.none
     )
 
@@ -33,247 +45,155 @@ update msg model =
         NoOpBackendMsg ->
             ( model, Cmd.none )
 
+        ClientConnected sessionId clientId ->
+            let
+                newSession =
+                    { id = sessionId
+                    , clientId = clientId
+                    , userProfile = Nothing
+                    , lastActivity = Time.millisToPosix 0
+                    , favorites = Data.emptyFavorites
+                    }
+            in
+            ( { model | sessions = Dict.insert sessionId newSession model.sessions }
+            , Cmd.none
+            )
+
+        ClientDisconnected sessionId ->
+            ( { model | sessions = Dict.remove sessionId model.sessions }
+            , Cmd.none
+            )
+
+        UpdateAnalytics ->
+            ( model, Cmd.none )
+
 
 updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd BackendMsg )
 updateFromFrontend sessionId clientId msg model =
     case msg of
-        TrackHeroSelection maybeHeroId ->
+        GetInitialData ->
+            ( model
+            , Lamdera.sendToFrontend clientId
+                (InitialDataReceived
+                    { heroes = model.heroes
+                    , academies = model.academies
+                    , events = model.events
+                    }
+                )
+            )
+
+        SaveFavorites favorites ->
             let
-                updatedSession =
-                    case Dict.get sessionId model.userSessions of
+                updatedSessions =
+                    case Dict.get sessionId model.sessions of
                         Just session ->
-                            { session | selectedHero = maybeHeroId }
+                            Dict.insert sessionId { session | favorites = favorites } model.sessions
 
                         Nothing ->
-                            { clientId = sessionId
-                            , selectedHero = maybeHeroId
-                            , visitCount = 1
-                            , trainingSessions = []
-                            , techniqueProgress = []
-                            , achievements = Progress.getAchievements
-                            }
-
-                updatedModel =
-                    { model | userSessions = Dict.insert sessionId updatedSession model.userSessions }
+                            model.sessions
             in
-            ( updatedModel
-            , Lamdera.sendToFrontend clientId (SessionData updatedSession)
+            ( { model | sessions = updatedSessions }
+            , Lamdera.sendToFrontend clientId (FavoritesSaved favorites)
             )
 
-        GetUserSession ->
+        TrackPageView route ->
             let
-                session =
-                    case Dict.get sessionId model.userSessions of
-                        Just existingSession ->
-                            { existingSession | visitCount = existingSession.visitCount + 1 }
-
-                        Nothing ->
-                            { clientId = sessionId
-                            , selectedHero = Nothing
-                            , visitCount = 1
-                            , trainingSessions = []
-                            , techniqueProgress = []
-                            , achievements = Progress.getAchievements
-                            }
-
-                updatedModel =
-                    { model | userSessions = Dict.insert sessionId session model.userSessions }
+                pageKey = routeToAnalyticsKey route
+                updatedAnalytics = model.analytics
+                newPageViews =
+                    Dict.update pageKey
+                        (\maybeCount -> Just ((Maybe.withDefault 0 maybeCount) + 1))
+                        updatedAnalytics.pageViews
             in
-            ( updatedModel
-            , Lamdera.sendToFrontend clientId (SessionData session)
-            )
-
-        SaveSession session ->
-            let
-                updatedSession =
-                    case Dict.get sessionId model.userSessions of
-                        Just userSession ->
-                            let
-                                newSessions = session :: userSession.trainingSessions
-                                possibleAchievements = checkForAchievements newSessions userSession.techniqueProgress userSession.achievements
-                            in
-                            { userSession 
-                                | trainingSessions = newSessions
-                                , achievements = possibleAchievements.achievements
-                            }
-
-                        Nothing ->
-                            { clientId = sessionId
-                            , selectedHero = Just session.heroId
-                            , visitCount = 1
-                            , trainingSessions = [session]
-                            , techniqueProgress = Progress.getTechniquesForHero session.heroId
-                            , achievements = Progress.getAchievements
-                            }
-
-                updatedModel =
-                    { model | userSessions = Dict.insert sessionId updatedSession model.userSessions }
-            in
-            ( updatedModel
-            , Cmd.batch
-                [ Lamdera.sendToFrontend clientId (SessionSaved session)
-                , case Dict.get sessionId model.userSessions of
-                    Just userSession ->
-                        let
-                            result = checkForAchievements updatedSession.trainingSessions updatedSession.techniqueProgress updatedSession.achievements
-                        in
-                        case result.newlyUnlocked of
-                            Just achievement ->
-                                Lamdera.sendToFrontend clientId (AchievementUnlocked achievement)
-                            Nothing ->
-                                Cmd.none
-                    Nothing ->
-                        Cmd.none
-                ]
-            )
-
-        DeleteSession deleteId ->
-            let
-                updatedSession =
-                    case Dict.get sessionId model.userSessions of
-                        Just session ->
-                            { session | trainingSessions = List.filter (\s -> s.id /= deleteId) session.trainingSessions }
-                        Nothing ->
-                            { clientId = sessionId
-                            , selectedHero = Nothing
-                            , visitCount = 1
-                            , trainingSessions = []
-                            , techniqueProgress = []
-                            , achievements = Progress.getAchievements
-                            }
-
-                updatedModel =
-                    { model | userSessions = Dict.insert sessionId updatedSession model.userSessions }
-            in
-            ( updatedModel
-            , Lamdera.sendToFrontend clientId (SessionDeleted deleteId)
-            )
-
-        UpdateTechnique techniqueId status ->
-            let
-                updatedSession =
-                    case Dict.get sessionId model.userSessions of
-                        Just session ->
-                            let
-                                updateTech tech =
-                                    if tech.techniqueId == techniqueId then
-                                        { tech | status = status, lastPracticed = Just "today" }
-                                    else
-                                        tech
-                                
-                                newTechniques = List.map updateTech session.techniqueProgress
-                                possibleAchievements = checkForAchievements session.trainingSessions newTechniques session.achievements
-                            in
-                            { session 
-                                | techniqueProgress = newTechniques
-                                , achievements = possibleAchievements.achievements
-                            }
-                        Nothing ->
-                            { clientId = sessionId
-                            , selectedHero = Nothing
-                            , visitCount = 1
-                            , trainingSessions = []
-                            , techniqueProgress = []
-                            , achievements = Progress.getAchievements
-                            }
-
-                updatedModel =
-                    { model | userSessions = Dict.insert sessionId updatedSession model.userSessions }
-            in
-            ( updatedModel
-            , Cmd.batch
-                [ Lamdera.sendToFrontend clientId (TechniqueUpdated techniqueId status)
-                , case Dict.get sessionId model.userSessions of
-                    Just userSession ->
-                        let
-                            result = checkForAchievements updatedSession.trainingSessions updatedSession.techniqueProgress updatedSession.achievements
-                        in
-                        case result.newlyUnlocked of
-                            Just achievement ->
-                                Lamdera.sendToFrontend clientId (AchievementUnlocked achievement)
-                            Nothing ->
-                                Cmd.none
-                    Nothing ->
-                        Cmd.none
-                ]
-            )
-
-        SaveTechniqueNote techniqueId note ->
-            let
-                updatedSession =
-                    case Dict.get sessionId model.userSessions of
-                        Just session ->
-                            let
-                                updateTech tech =
-                                    if tech.techniqueId == techniqueId then
-                                        { tech | notes = note }
-                                    else
-                                        tech
-                            in
-                            { session | techniqueProgress = List.map updateTech session.techniqueProgress }
-                        Nothing ->
-                            { clientId = sessionId
-                            , selectedHero = Nothing
-                            , visitCount = 1
-                            , trainingSessions = []
-                            , techniqueProgress = []
-                            , achievements = Progress.getAchievements
-                            }
-
-                updatedModel =
-                    { model | userSessions = Dict.insert sessionId updatedSession model.userSessions }
-            in
-            ( updatedModel
+            ( { model | analytics = { updatedAnalytics | pageViews = newPageViews } }
             , Cmd.none
             )
 
+        SearchHeroes query ->
+            let
+                updatedAnalytics = model.analytics
+                newQueries = query :: updatedAnalytics.searchQueries
+            in
+            ( { model | analytics = { updatedAnalytics | searchQueries = List.take 100 newQueries } }
+            , Cmd.none
+            )
 
-checkForAchievements : List TrainingSession -> List TechniqueProgress -> List Achievement -> { achievements : List Achievement, newlyUnlocked : Maybe Achievement }
-checkForAchievements sessions techniques achievements =
-    let
-        totalSessions = List.length sessions
-        totalHours = Progress.getTotalTrainingHours sessions
-        masteredTechniques = List.filter (\t -> t.status == Mastered) techniques |> List.length
-        uniqueHeroes = List.map .heroId sessions |> List.foldl (\h acc -> if List.member h acc then acc else h :: acc) [] |> List.length
-        
-        checkAchievement achievement =
-            case achievement.id of
-                "first-session" ->
-                    if totalSessions >= 1 && achievement.unlockedAt == Nothing then
-                        { achievement | unlockedAt = Just "today" }
-                    else
-                        achievement
-                
-                "technique-master" ->
-                    if masteredTechniques >= 1 && achievement.unlockedAt == Nothing then
-                        { achievement | unlockedAt = Just "today" }
-                    else
-                        achievement
-                
-                "all-heroes" ->
-                    if uniqueHeroes >= 5 && achievement.unlockedAt == Nothing then
-                        { achievement | unlockedAt = Just "today" }
-                    else
-                        achievement
-                
-                "100-hours" ->
-                    if totalHours >= 100 && achievement.unlockedAt == Nothing then
-                        { achievement | unlockedAt = Just "today" }
-                    else
-                        achievement
-                
-                _ ->
-                    achievement
-        
-        updatedAchievements = List.map checkAchievement achievements
-        newlyUnlocked = filter2 (\old new -> old.unlockedAt == Nothing && new.unlockedAt /= Nothing) achievements updatedAchievements |> List.head
-    in
-    { achievements = updatedAchievements
-    , newlyUnlocked = newlyUnlocked
-    }
+        GetHeroDetail heroId ->
+            case Dict.get heroId model.heroes of
+                Just hero ->
+                    let
+                        updatedAnalytics = model.analytics
+                        newHeroViews =
+                            Dict.update heroId
+                                (\maybeCount -> Just ((Maybe.withDefault 0 maybeCount) + 1))
+                                updatedAnalytics.heroViews
+                    in
+                    ( { model | analytics = { updatedAnalytics | heroViews = newHeroViews } }
+                    , Lamdera.sendToFrontend clientId (HeroDetailReceived hero)
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        GetAcademyDetail academyId ->
+            case Dict.get academyId model.academies of
+                Just academy ->
+                    ( model
+                    , Lamdera.sendToFrontend clientId (AcademyDetailReceived academy)
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        GetEventDetail eventId ->
+            case Dict.get eventId model.events of
+                Just event ->
+                    ( model
+                    , Lamdera.sendToFrontend clientId (EventDetailReceived event)
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        SaveUserProfile profile ->
+            let
+                updatedProfiles = Dict.insert profile.id profile model.userProfiles
+                updatedSessions =
+                    case Dict.get sessionId model.sessions of
+                        Just session ->
+                            Dict.insert sessionId { session | userProfile = Just profile } model.sessions
+
+                        Nothing ->
+                            model.sessions
+            in
+            ( { model 
+                | userProfiles = updatedProfiles
+                , sessions = updatedSessions
+              }
+            , Lamdera.sendToFrontend clientId (UserProfileSaved profile)
+            )
+
+        SaveTrainingData trainingSession ->
+            ( model
+            , Lamdera.sendToFrontend clientId (TrainingDataSaved trainingSession)
+            )
+
+        GetAnalytics ->
+            ( model
+            , Lamdera.sendToFrontend clientId (AnalyticsReceived model.analytics)
+            )
 
 
-filter2 : (a -> a -> Bool) -> List a -> List a -> List a
-filter2 pred list1 list2 =
-    List.map2 Tuple.pair list1 list2
-        |> List.filterMap (\(a, b) -> if pred a b then Just b else Nothing)
+routeToAnalyticsKey : Route -> String
+routeToAnalyticsKey route =
+    case route of
+        Home -> "home"
+        HeroesRoute _ -> "heroes"
+        HeroDetail id -> "hero:" ++ id
+        Academies _ -> "academies"
+        AcademyDetail id -> "academy:" ++ id
+        Events _ -> "events"
+        EventDetail id -> "event:" ++ id
+        Training -> "training"
+        Profile -> "profile"
+        NotFound -> "404"
