@@ -109,6 +109,29 @@ localStorageDecoder =
 
 
 
+-- HELPERS
+
+
+getLanguage : LocalStorage -> Maybe I18n.Language
+getLanguage localStorage =
+    Just localStorage.language
+
+
+getTheme : LocalStorage -> Maybe Theme.Mode  
+getTheme localStorage =
+    Just localStorage.systemMode
+
+
+setLanguage : I18n.Language -> LocalStorage -> LocalStorage
+setLanguage language localStorage =
+    { localStorage | language = language }
+
+
+save : LocalStorage -> Cmd msg
+save localStorage =
+    Cmd.none  -- In real implementation, this would save to localStorage
+
+
 -- DEFAULTS
 
 

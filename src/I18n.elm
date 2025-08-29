@@ -1,702 +1,614 @@
 module I18n exposing (..)
 
-{-| This module handles internationalization (i18n) for the application.
-It provides translations for all UI text in supported languages.
+{-| Complete internationalization module for Train Like Pro
+Supports English and French languages
 -}
 
 
 -- TYPES
-
 
 type Language
     = EN
     | FR
 
 
-type alias Translation =
-    { -- General
+type alias Translations =
+    { -- App Info
       appTitle : String
+    , appSubtitle : String
     , language : String
-    , english : String
-    , french : String
     , loading : String
     
-    -- Header
-    , headerTitle : String
-    , headerSubtitle : String
-    , headerDescription : String
-    
-    -- Features
-    , personalizedPlans : String
-    , progressTracking : String
-    , eliteTechniques : String
-    , championMindset : String
-    
     -- Navigation
-    , overview : String
+    , dashboard : String
     , heroes : String
-    , actionPlan : String
-    , progress : String
+    , academies : String
+    , events : String
+    , training : String
+    , profile : String
+    , helpSupport : String
+    , navigation : String
+    , helpComingSoon : String
     
-    -- Welcome Section
-    , welcomeTitle : String
-    , welcomeDescription : String
-    , whatYouWillLearn : String
-    , specificTechniques : String
-    , trainingMethods : String
-    , fightingPhilosophy : String
-    , personalizedPlansDesc : String
-    , yourProgress : String
-    , detailedTracking : String
-    , techniqueChecklist : String
-    , achievementsToUnlock : String
-    , progressStats : String
-    
-    -- How It Works
-    , howItWorksTitle : String
-    , chooseHero : String
-    , chooseHeroDesc : String
-    , followPlan : String
-    , followPlanDesc : String
-    , recordSessions : String
-    , recordSessionsDesc : String
-    , progressEvolve : String
-    , progressEvolveDesc : String
-    
-    -- Heroes
-    , heroesTitle : String
-    , heroesDescription : String
-    , selectHeroPrompt : String
-    , selectHeroDescription : String
-    , weeklyPlan : String
-    , specializedTechniques : String
-    , championMindsetDesc : String
-    
-    -- Hero Names & Descriptions
-    , gordonRyan : String
-    , gordonNickname : String
-    , gordonDesc : String
-    , buchecha : String
-    , buchechaDesc : String
-    , rafael : String
-    , rafaelDesc : String
-    , leandro : String
-    , leandroDesc : String
-    , galvao : String
-    , galvaoDesc : String
+    -- Dashboard
+    , level : String
+    , experience : String
+    , xpToLevel : String
+    , xpToLevelUp : String
+    , streak : String
+    , days : String
+    , day : String
+    , todaysFocus : String
+    , todaysFocusSubtitle : String
+    , startYourJourney : String
+    , createAccount : String
+    , dailyProgress : String
+    , quests : String
+    , questsNew : String
     
     -- Training
-    , readyToTrain : String
-    , seePlan : String
-    , trackProgress : String
-    , keyPrinciples : String
-    , principlesAndApproach : String
-    , trainingMethod : String
-    , technique : String
-    , drilling : String
-    , sparring : String
-    , study : String
-    , weeklyPlanTitle : String
-    
-    -- Plan
-    , planTitle : String
-    , planDescription : String
-    , adaptedPrograms : String
-    , adaptedProgramsDesc : String
-    , provenMethods : String
-    , provenMethodsDesc : String
-    , guaranteedProgress : String
-    , guaranteedProgressDesc : String
-    
-    -- Training Tips
-    , championTips : String
-    , physicalTraining : String
-    , mentalRecovery : String
-    , warmupRequired : String
-    , warmupRequiredDesc : String
-    , functionalStrength : String
-    , functionalStrengthDesc : String
-    , specificCardio : String
-    , specificCardioDesc : String
-    , sleepPriority : String
-    , sleepPriorityDesc : String
-    , visualization : String
-    , visualizationDesc : String
-    , videoAnalysis : String
-    , videoAnalysisDesc : String
-    
-    -- Progress
-    , progressTitle : String
-    , progressDescription : String
-    , sessions : String
-    , sessionsDesc : String
+    , trainingActive : String
+    , currentDrill : String
+    , sessionXP : String
     , techniques : String
-    , techniquesDesc : String
+    , endSession : String
+    , startTraining : String
+    , readyToTrain : String
+    , readyToTrainSubtitle : String
+    , noActiveSession : String
+    , selectTechnique : String
+    , chooseNextTechnique : String
+    , addRep : String
+    , perfect : String
+    
+    -- Profile
+    , welcome : String
+    , guest : String
+    , signUp : String
+    , logIn : String
+    , alreadyHaveAccount : String
+    , profileInfo : String
     , statistics : String
-    , statisticsDesc : String
     , achievements : String
-    , achievementsDesc : String
-    , progressTip : String
+    , goals : String
+    , addGoal : String
     
-    -- Success Tips
-    , successTips : String
-    , starting : String
-    , progression : String
-    , excellence : String
-    , chooseOneHero : String
-    , setSmartGoals : String
-    , recordAllSessions : String
-    , patience : String
-    , focusOnFewTechniques : String
-    , reviewRegularly : String
-    , teachToLearn : String
-    , stayHumble : String
-    , celebrateWins : String
-    , championsReminder : String
-    , championsQuote : String
-    , championsSage : String
+    -- Gamification
+    , dailyQuests : String
+    , dailyQuestsSubtitle : String
+    , todaysMissions : String
+    , allQuestsCompleted : String
+    , comeBackTomorrow : String
+    , weeklyGoal : String
+    , xpTargetProgress : String
+    , complete : String
+    , completed : String
+    , locked : String
+    , earned : String
+    , progress : String
+    , progressTo : String
     
-    -- Action Plan
-    , weeklySchedule : String
-    , monthlyGoals : String
-    , beginnerSchedule : String
-    , month1to2 : String
-    , month3to4 : String
-    , month5to6 : String
-    , survival : String
-    , survivalDesc : String
-    , movement : String
-    , movementDesc : String
-    , attack : String
-    , attackDesc : String
+    -- Roadmaps
+    , activeRoadmaps : String
+    , learningPathways : String
+    , noActiveRoadmaps : String
+    , browseRoadmaps : String
+    , weeks : String
+    , week : String
     
-    -- Progress Tracking
-    , newSession : String
-    , totalSessions : String
-    , trainingHours : String
-    , masteredTechniques : String
-    , recentSessions : String
-    , selectHeroFirst : String
-    , noSessionsYet : String
-    , newSessionModal : String
-    , date : String
-    , hero : String
-    , sessionType : String
-    , duration : String
-    , minutes : String
-    , practicesTechniques : String
-    , notes : String
-    , cancel : String
+    -- Belts
+    , whiteBelt : String
+    , blueBelt : String
+    , purpleBelt : String
+    , brownBelt : String
+    , blackBelt : String
+    , master : String
+    
+    -- Techniques Mastery
+    , learning : String
+    , practicing : String
+    , proficient : String
+    , advanced : String
+    , mastered : String
+    , techniqueMastery : String
+    
+    -- Messages & Notifications
+    , signUpFeature : String
+    , loginFeature : String
+    , comingSoon : String
+    , helpDocumentation : String
+    , goalSettingFeature : String
+    , externalLink : String
+    
+    -- Actions
+    , explorHeroes : String
+    , createTrainingPlan : String
+    , startSession : String
+    , viewDetails : String
+    , register : String
+    , watchStream : String
     , save : String
-    , selectHero : String
-    , currentHero : String
-    , heroSelectedDesc : String
-    , noHeroSelected : String
-    , selectHeroInstructions : String
-    , clickNewSession : String
+    , cancel : String
+    , close : String
+    , confirm : String
     
-    -- Session Types
-    , techniqueSession : String
-    , drillingSession : String
-    , sparringSession : String
-    , competitionSession : String
-    , openMatSession : String
+    -- Stats
+    , xpToday : String
+    , trainingStreak : String
+    , totalXP : String
+    , sessions : String
+    , rank : String
+    , nextGoal : String
+    , thisWeek : String
     
-    -- Missing Fields for Overview
-    , universalPrinciples : String
-    , mentalMindset : String
-    , absoluteConfidence : String
-    , constantPressure : String
-    , creativity : String
-    , tacticalPatience : String
-    , leadership : String
-    , training : String
-    , techniqueFirst : String
-    , drillingToAutomatism : String
-    , cardioAsBase : String
-    , regularVideoStudy : String
-    , intelligentSparring : String
-    , gettingStarted : String
-    , smartGoals : String
-    , patienceMarathon : String
-    , focusOnTechniques : String
-    , reviewNotes : String
-    , celebrateVictories : String
-    , championReminder : String
-    , championQuote : String
-    , championWisdom : String
+    -- Time
+    , today : String
+    , yesterday : String
+    , tomorrow : String
+    , minutes : String
+    , hours : String
+    , seconds : String
+    
+    -- Hero Page
+    , featuredHeroes : String
+    , learnFromLegends : String
+    , trainLikeChampion : String
+    , biography : String
+    , competitionRecord : String
+    , wins : String
+    , losses : String
+    , draws : String
+    , signatureTechniques : String
+    , videos : String
+    , addToFavorites : String
+    , favorited : String
+    
+    -- Events
+    , upcomingEvents : String
+    , pastEvents : String
+    , allEvents : String
+    , eventDetails : String
+    , location : String
+    , date : String
+    , participants : String
+    
+    -- Academy
+    , topAcademies : String
+    , schedule : String
+    , instructors : String
+    , contact : String
+    , website : String
+    
+    -- Error Messages
+    , pageNotFound : String
+    , errorOccurred : String
+    , tryAgain : String
+    , goHome : String
     }
 
 
+-- TRANSLATIONS
 
--- FUNCTIONS
+en : Translations
+en =
+    { -- App Info
+      appTitle = "Train Like Pro"
+    , appSubtitle = "BJJ Gamification System"
+    , language = "Language"
+    , loading = "Loading..."
+    
+    -- Navigation
+    , dashboard = "Dashboard"
+    , heroes = "Heroes"
+    , academies = "Academies"
+    , events = "Events"
+    , training = "Training"
+    , profile = "Profile"
+    , helpSupport = "Help & Support"
+    , navigation = "Navigation"
+    , helpComingSoon = "Help documentation coming soon! For now, explore the app to learn."
+    
+    -- Dashboard
+    , level = "LEVEL"
+    , experience = "EXPERIENCE"
+    , xpToLevel = "XP TO LEVEL UP"
+    , xpToLevelUp = "XP TO LEVEL UP"
+    , streak = "Streak"
+    , days = "days"
+    , day = "day"
+    , todaysFocus = "TODAY'S FOCUS"
+    , todaysFocusSubtitle = "Your active training mission"
+    , startYourJourney = "Start Your Journey"
+    , createAccount = "Create an account to track your training progress, save favorites, and unlock achievements."
+    , dailyProgress = "Daily Progress"
+    , quests = "Quests"
+    , questsNew = "new"
+    
+    -- Training
+    , trainingActive = "TRAINING ACTIVE"
+    , currentDrill = "CURRENT DRILL"
+    , sessionXP = "SESSION XP"
+    , techniques = "TECHNIQUES"
+    , endSession = "END SESSION"
+    , startTraining = "START TRAINING"
+    , readyToTrain = "READY TO TRAIN?"
+    , readyToTrainSubtitle = "Start your training session to earn XP and track progress"
+    , noActiveSession = "No active training session"
+    , selectTechnique = "SELECT TECHNIQUE"
+    , chooseNextTechnique = "Choose your next technique"
+    , addRep = "ADD REP"
+    , perfect = "PERFECT!"
+    
+    -- Profile
+    , welcome = "Welcome"
+    , guest = "Guest"
+    , signUp = "Sign Up"
+    , logIn = "Log In"
+    , alreadyHaveAccount = "Already have an account? Log in"
+    , profileInfo = "Profile Information"
+    , statistics = "Statistics"
+    , achievements = "ACHIEVEMENTS"
+    , goals = "Goals"
+    , addGoal = "Add Goal"
+    
+    -- Gamification
+    , dailyQuests = "DAILY QUESTS"
+    , dailyQuestsSubtitle = "Today's missions"
+    , todaysMissions = "Today's missions"
+    , allQuestsCompleted = "ALL QUESTS COMPLETED!"
+    , comeBackTomorrow = "Come back tomorrow for new challenges"
+    , weeklyGoal = "WEEKLY GOAL"
+    , xpTargetProgress = "XP target progress"
+    , complete = "COMPLETE"
+    , completed = "Completed"
+    , locked = "LOCKED"
+    , earned = "EARNED"
+    , progress = "PROGRESS"
+    , progressTo = "PROGRESS TO"
+    
+    -- Roadmaps
+    , activeRoadmaps = "ACTIVE ROADMAPS"
+    , learningPathways = "Your learning pathways"
+    , noActiveRoadmaps = "No active roadmaps. Start your learning journey!"
+    , browseRoadmaps = "BROWSE ROADMAPS"
+    , weeks = "WEEKS"
+    , week = "WEEK"
+    
+    -- Belts
+    , whiteBelt = "White Belt"
+    , blueBelt = "Blue Belt"
+    , purpleBelt = "Purple Belt"
+    , brownBelt = "Brown Belt"
+    , blackBelt = "Black Belt"
+    , master = "MASTER"
+    
+    -- Techniques Mastery
+    , learning = "LEARNING"
+    , practicing = "PRACTICING"
+    , proficient = "PROFICIENT"
+    , advanced = "ADVANCED"
+    , mastered = "MASTERED"
+    , techniqueMastery = "Technique Mastery"
+    
+    -- Messages & Notifications
+    , signUpFeature = "Sign up feature coming soon!"
+    , loginFeature = "Login feature coming soon!"
+    , comingSoon = "Coming soon!"
+    , helpDocumentation = "Help documentation coming soon! For now, explore the app to learn."
+    , goalSettingFeature = "Goal setting feature coming soon!"
+    , externalLink = "External link will open in new tab"
+    
+    -- Actions
+    , explorHeroes = "Explore Heroes"
+    , createTrainingPlan = "Create Training Plan"
+    , startSession = "Start Session"
+    , viewDetails = "View Details"
+    , register = "Register"
+    , watchStream = "Watch Stream"
+    , save = "Save"
+    , cancel = "Cancel"
+    , close = "Close"
+    , confirm = "Confirm"
+    
+    -- Stats
+    , xpToday = "XP Today"
+    , trainingStreak = "TRAINING STREAK"
+    , totalXP = "Total XP"
+    , sessions = "Sessions"
+    , rank = "RANK"
+    , nextGoal = "Next Goal"
+    , thisWeek = "This Week"
+    
+    -- Time
+    , today = "Today"
+    , yesterday = "Yesterday"
+    , tomorrow = "Tomorrow"
+    , minutes = "minutes"
+    , hours = "hours"
+    , seconds = "seconds"
+    
+    -- Hero Page
+    , featuredHeroes = "Featured Heroes"
+    , learnFromLegends = "Learn from the legends who shaped the sport"
+    , trainLikeChampion = "Train Like a Champion"
+    , biography = "Biography"
+    , competitionRecord = "Competition Record"
+    , wins = "Wins"
+    , losses = "Losses"
+    , draws = "Draws"
+    , signatureTechniques = "Signature Techniques"
+    , videos = "Videos"
+    , addToFavorites = "Add to Favorites"
+    , favorited = "Favorited"
+    
+    -- Events
+    , upcomingEvents = "Upcoming Events"
+    , pastEvents = "Past Events"
+    , allEvents = "All Events"
+    , eventDetails = "Event Details"
+    , location = "Location"
+    , date = "Date"
+    , participants = "Participants"
+    
+    -- Academy
+    , topAcademies = "Top Academies"
+    , schedule = "Schedule"
+    , instructors = "Instructors"
+    , contact = "Contact"
+    , website = "Website"
+    
+    -- Error Messages
+    , pageNotFound = "404 - Page Not Found"
+    , errorOccurred = "An error occurred"
+    , tryAgain = "Try Again"
+    , goHome = "Go Home"
+    }
 
 
-{-| Get translations for the current language
--}
-translations : Language -> Translation
-translations lang =
+fr : Translations
+fr =
+    { -- App Info
+      appTitle = "Train Like Pro"
+    , appSubtitle = "Système de Gamification BJJ"
+    , language = "Langue"
+    , loading = "Chargement..."
+    
+    -- Navigation
+    , dashboard = "Tableau de bord"
+    , heroes = "Héros"
+    , academies = "Académies"
+    , events = "Événements"
+    , training = "Entraînement"
+    , profile = "Profil"
+    , helpSupport = "Aide et Support"
+    , navigation = "Navigation"
+    , helpComingSoon = "La documentation d'aide arrive bientôt! Pour l'instant, explorez l'application pour apprendre."
+    
+    -- Dashboard
+    , level = "NIVEAU"
+    , experience = "EXPÉRIENCE"
+    , xpToLevel = "XP POUR MONTER DE NIVEAU"
+    , xpToLevelUp = "XP POUR MONTER DE NIVEAU"
+    , streak = "Série"
+    , days = "jours"
+    , day = "jour"
+    , todaysFocus = "FOCUS DU JOUR"
+    , todaysFocusSubtitle = "Votre mission d'entraînement active"
+    , startYourJourney = "Commencez Votre Aventure"
+    , createAccount = "Créez un compte pour suivre vos progrès, sauvegarder vos favoris et débloquer des succès."
+    , dailyProgress = "Progrès quotidien"
+    , quests = "Quêtes"
+    , questsNew = "nouvelles"
+    
+    -- Training
+    , trainingActive = "ENTRAÎNEMENT ACTIF"
+    , currentDrill = "EXERCICE ACTUEL"
+    , sessionXP = "XP DE SESSION"
+    , techniques = "TECHNIQUES"
+    , endSession = "TERMINER SESSION"
+    , startTraining = "COMMENCER L'ENTRAÎNEMENT"
+    , readyToTrain = "PRÊT À VOUS ENTRAÎNER?"
+    , readyToTrainSubtitle = "Commencez votre session pour gagner de l'XP et suivre vos progrès"
+    , noActiveSession = "Aucune session active"
+    , selectTechnique = "CHOISIR TECHNIQUE"
+    , chooseNextTechnique = "Choisissez votre prochaine technique"
+    , addRep = "AJOUTER REP"
+    , perfect = "PARFAIT!"
+    
+    -- Profile
+    , welcome = "Bienvenue"
+    , guest = "Invité"
+    , signUp = "S'inscrire"
+    , logIn = "Se connecter"
+    , alreadyHaveAccount = "Vous avez déjà un compte? Connectez-vous"
+    , profileInfo = "Informations du profil"
+    , statistics = "Statistiques"
+    , achievements = "SUCCÈS"
+    , goals = "Objectifs"
+    , addGoal = "Ajouter un objectif"
+    
+    -- Gamification
+    , dailyQuests = "QUÊTES QUOTIDIENNES"
+    , dailyQuestsSubtitle = "Missions du jour"
+    , todaysMissions = "Missions du jour"
+    , allQuestsCompleted = "TOUTES LES QUÊTES COMPLÉTÉES!"
+    , comeBackTomorrow = "Revenez demain pour de nouveaux défis"
+    , weeklyGoal = "OBJECTIF HEBDOMADAIRE"
+    , xpTargetProgress = "Progression de l'objectif XP"
+    , complete = "COMPLET"
+    , completed = "Complété"
+    , locked = "VERROUILLÉ"
+    , earned = "OBTENU"
+    , progress = "PROGRÈS"
+    , progressTo = "PROGRESSION VERS"
+    
+    -- Roadmaps
+    , activeRoadmaps = "PARCOURS ACTIFS"
+    , learningPathways = "Vos parcours d'apprentissage"
+    , noActiveRoadmaps = "Aucun parcours actif. Commencez votre voyage d'apprentissage!"
+    , browseRoadmaps = "PARCOURIR LES PARCOURS"
+    , weeks = "SEMAINES"
+    , week = "SEMAINE"
+    
+    -- Belts
+    , whiteBelt = "Ceinture Blanche"
+    , blueBelt = "Ceinture Bleue"
+    , purpleBelt = "Ceinture Violette"
+    , brownBelt = "Ceinture Marron"
+    , blackBelt = "Ceinture Noire"
+    , master = "MAÎTRE"
+    
+    -- Techniques Mastery
+    , learning = "APPRENTISSAGE"
+    , practicing = "PRATIQUE"
+    , proficient = "COMPÉTENT"
+    , advanced = "AVANCÉ"
+    , mastered = "MAÎTRISÉ"
+    , techniqueMastery = "Maîtrise des Techniques"
+    
+    -- Messages & Notifications
+    , signUpFeature = "La fonction d'inscription arrive bientôt!"
+    , loginFeature = "La fonction de connexion arrive bientôt!"
+    , comingSoon = "Bientôt disponible!"
+    , helpDocumentation = "Documentation d'aide bientôt disponible! Pour l'instant, explorez l'application."
+    , goalSettingFeature = "La fonction d'objectifs arrive bientôt!"
+    , externalLink = "Le lien externe s'ouvrira dans un nouvel onglet"
+    
+    -- Actions
+    , explorHeroes = "Explorer les Héros"
+    , createTrainingPlan = "Créer un Plan d'Entraînement"
+    , startSession = "Démarrer Session"
+    , viewDetails = "Voir les Détails"
+    , register = "S'inscrire"
+    , watchStream = "Regarder le Stream"
+    , save = "Sauvegarder"
+    , cancel = "Annuler"
+    , close = "Fermer"
+    , confirm = "Confirmer"
+    
+    -- Stats
+    , xpToday = "XP Aujourd'hui"
+    , trainingStreak = "SÉRIE D'ENTRAÎNEMENT"
+    , totalXP = "XP Total"
+    , sessions = "Sessions"
+    , rank = "RANG"
+    , nextGoal = "Prochain Objectif"
+    , thisWeek = "Cette Semaine"
+    
+    -- Time
+    , today = "Aujourd'hui"
+    , yesterday = "Hier"
+    , tomorrow = "Demain"
+    , minutes = "minutes"
+    , hours = "heures"
+    , seconds = "secondes"
+    
+    -- Hero Page
+    , featuredHeroes = "Héros en Vedette"
+    , learnFromLegends = "Apprenez des légendes qui ont façonné le sport"
+    , trainLikeChampion = "Entraînez-vous Comme un Champion"
+    , biography = "Biographie"
+    , competitionRecord = "Palmarès de Compétition"
+    , wins = "Victoires"
+    , losses = "Défaites"
+    , draws = "Matchs Nuls"
+    , signatureTechniques = "Techniques Signature"
+    , videos = "Vidéos"
+    , addToFavorites = "Ajouter aux Favoris"
+    , favorited = "Favori"
+    
+    -- Events
+    , upcomingEvents = "Événements à Venir"
+    , pastEvents = "Événements Passés"
+    , allEvents = "Tous les Événements"
+    , eventDetails = "Détails de l'Événement"
+    , location = "Lieu"
+    , date = "Date"
+    , participants = "Participants"
+    
+    -- Academy
+    , topAcademies = "Meilleures Académies"
+    , schedule = "Horaire"
+    , instructors = "Instructeurs"
+    , contact = "Contact"
+    , website = "Site Web"
+    
+    -- Error Messages
+    , pageNotFound = "404 - Page Non Trouvée"
+    , errorOccurred = "Une erreur s'est produite"
+    , tryAgain = "Réessayer"
+    , goHome = "Retour à l'Accueil"
+    }
+
+
+-- HELPER FUNCTIONS
+
+translate : Language -> Translations
+translate lang =
     case lang of
-        EN ->
-            { -- General
-              appTitle = "Train Like Pro"
-            , language = "Language"
-            , english = "English"
-            , french = "Français"
-            , loading = "Loading..."
-            
-            -- Header
-            , headerTitle = "🥋 Train Like Pro"
-            , headerSubtitle = "Your BJJ Learning Framework Inspired by Champions ⭐"
-            , headerDescription = "Discover the training secrets of the greatest Brazilian Jiu-Jitsu legends. Gordon Ryan, Buchecha, Rafael Mendes, Leandro Lo, and André Galvão share their methods to help you progress effectively."
-            
-            -- Features
-            , personalizedPlans = "Personalized plans"
-            , progressTracking = "Progress tracking"
-            , eliteTechniques = "Elite techniques"
-            , championMindset = "Champion mindset"
-            
-            -- Navigation
-            , overview = "🏠 Overview"
-            , heroes = "🦸 Your Heroes"
-            , actionPlan = "📋 Action Plan"
-            , progress = "📊 Progress"
-            
-            -- Welcome Section
-            , welcomeTitle = "🚀 Welcome to Your BJJ Journey"
-            , welcomeDescription = "This platform guides you in learning Brazilian Jiu-Jitsu by drawing inspiration from the training methods of the greatest champions. Each hero brings their unique philosophy to help you develop your own style."
-            , whatYouWillLearn = "🎯 What you'll learn"
-            , specificTechniques = "Specific techniques for each champion's style"
-            , trainingMethods = "Proven training methods"
-            , fightingPhilosophy = "Fighting mindset and philosophy"
-            , personalizedPlansDesc = "Personalized training plans"
-            , yourProgress = "📈 Your progress"
-            , detailedTracking = "Detailed session tracking"
-            , techniqueChecklist = "Complete technique checklist"
-            , achievementsToUnlock = "Achievements to unlock"
-            , progressStats = "Real-time progress statistics"
-            
-            -- How It Works
-            , howItWorksTitle = "🔧 How It Works"
-            , chooseHero = "Choose Your Hero"
-            , chooseHeroDesc = "Select the champion that matches your style or current goals"
-            , followPlan = "Follow the Plan"
-            , followPlanDesc = "Apply the specific training methods of your chosen hero"
-            , recordSessions = "Record Your Sessions"
-            , recordSessionsDesc = "Keep track of your training and practiced techniques"
-            , progressEvolve = "Progress & Evolve"
-            , progressEvolveDesc = "See your progression and unlock new achievements"
-            
-            -- Heroes
-            , heroesTitle = "🦸 Choose Your BJJ Hero"
-            , heroesDescription = "Each champion has developed their own style and training philosophy. Select the one that resonates with your current goals or discover new approaches to enrich your game."
-            , selectHeroPrompt = "Select a Hero to Begin"
-            , selectHeroDescription = "Click on one of the cards above to discover in detail the training methods of your favorite champion. You can then follow their personalized plan and adopt their philosophy."
-            , weeklyPlan = "Detailed weekly plan"
-            , specializedTechniques = "Specialized techniques"
-            , championMindsetDesc = "Champion mindset"
-            
-            -- Hero Names & Descriptions
-            , gordonRyan = "Gordon Ryan"
-            , gordonNickname = "The King"
-            , gordonDesc = "Perfect technique + Steel mental"
-            , buchecha = "Buchecha"
-            , buchechaDesc = "Pressure + Superhuman cardio"
-            , rafael = "Rafael Mendes"
-            , rafaelDesc = "Innovation + Fluidity"
-            , leandro = "Leandro Lo"
-            , leandroDesc = "Timing + Solid foundations"
-            , galvao = "André Galvão"
-            , galvaoDesc = "Leadership + Complete"
-            
-            -- Training
-            , readyToTrain = "🚀 Ready to train like"
-            , seePlan = "📋 See the Plan"
-            , trackProgress = "📊 Track my Progress"
-            , keyPrinciples = "Key Principles"
-            , principlesAndApproach = "🎯 Principles & Approach"
-            , trainingMethod = "Training Method"
-            , technique = "🎯 Technique:"
-            , drilling = "🔄 Drilling:"
-            , sparring = "⚔️ Sparring:"
-            , study = "📚 Study:"
-            , weeklyPlanTitle = "📅 Weekly Plan"
-            
-            -- Plan
-            , planTitle = "📋 Your BJJ Action Plan"
-            , planDescription = "Transform your training with structured plans inspired by champions. Each program is designed to maximize your progression according to your level and goals."
-            , adaptedPrograms = "Adapted Programs"
-            , adaptedProgramsDesc = "Personalized plans according to your level, from beginner to advanced competitor"
-            , provenMethods = "Proven Methods"
-            , provenMethodsDesc = "Techniques and approaches used by the greatest world champions"
-            , guaranteedProgress = "Guaranteed Progress"
-            , guaranteedProgressDesc = "Progressive structure to develop your skills step by step"
-            
-            -- Training Tips
-            , championTips = "💡 Champion Training Tips"
-            , physicalTraining = "🏋️ Physical Training"
-            , mentalRecovery = "🧠 Mental & Recovery"
-            , warmupRequired = "Mandatory Warm-up"
-            , warmupRequiredDesc = "15-20 min minimum before each session"
-            , functionalStrength = "Functional Strength"
-            , functionalStrengthDesc = "Prioritize compound movements"
-            , specificCardio = "Specific Cardio"
-            , specificCardioDesc = "High-intensity intervals adapted to BJJ"
-            , sleepPriority = "Sleep Priority"
-            , sleepPriorityDesc = "7-9h per night for recovery"
-            , visualization = "Visualization"
-            , visualizationDesc = "10 min/day of mental rehearsal"
-            , videoAnalysis = "Video Analysis"
-            , videoAnalysisDesc = "Study your sparring and the champions"
-            
-            -- Progress
-            , progressTitle = "📊 Track Your BJJ Progress"
-            , progressDescription = "Transform your training into concrete data! Record your sessions, track your techniques, and unlock achievements to stay motivated in your progression."
-            , sessions = "Sessions"
-            , sessionsDesc = "Record each training with details"
-            , techniques = "Techniques"
-            , techniquesDesc = "Complete checklist by hero"
-            , statistics = "Statistics"
-            , statisticsDesc = "Visualize your progress in real-time"
-            , achievements = "Achievements"
-            , achievementsDesc = "Unlock rewards"
-            , progressTip = "💡 Tip: Record your sessions right after training so you don't forget the techniques practiced!"
-            
-            -- Success Tips
-            , successTips = "🎯 Tips to Succeed in Your BJJ Journey"
-            , starting = "🚀 Starting"
-            , progression = "💡 Progression"
-            , excellence = "🏆 Excellence"
-            , chooseOneHero = "Start by choosing ONE hero and follow their approach"
-            , setSmartGoals = "Set SMART goals (Specific, Measurable, Achievable)"
-            , recordAllSessions = "Record ALL your sessions, even the short ones"
-            , patience = "Patience: BJJ is a marathon, not a sprint"
-            , focusOnFewTechniques = "Focus on 2-3 techniques maximum per session"
-            , reviewRegularly = "Review your notes and videos regularly"
-            , teachToLearn = "Teach what you learn to understand better"
-            , stayHumble = "Stay humble and keep learning from everyone"
-            , celebrateWins = "Celebrate your small victories and achievements"
-            , championsReminder = "💪 Champions' Reminder"
-            , championsQuote = "\"BJJ is not mastered, it is lived. Every mat is a lesson, every defeat an opportunity to learn.\""
-            , championsSage = "- Collective wisdom from the legends of the tatami"
-            
-            -- Action Plan
-            , weeklySchedule = "📅 Weekly Schedule (Beginner)"
-            , monthlyGoals = "🎯 Monthly Goals"
-            , beginnerSchedule = "Beginner Schedule"
-            , month1to2 = "Month 1-2: Survival"
-            , month3to4 = "Month 3-4: Movement"
-            , month5to6 = "Month 5-6: Attack"
-            , survival = "Survival"
-            , survivalDesc = "Don't get submitted, basic positions"
-            , movement = "Movement"
-            , movementDesc = "Fluidity, transitions, first sweeps"
-            , attack = "Attack"
-            , attackDesc = "First submissions, active guard"
-            
-            -- Progress Tracking
-            , newSession = "✨ New Session"
-            , totalSessions = "Total Sessions"
-            , trainingHours = "Training Hours"
-            , masteredTechniques = "Mastered Techniques"
-            , recentSessions = "🕐 Recent Sessions"
-            , selectHeroFirst = "⚠️ Select a hero in the 'Your Heroes' tab to get started"
-            , noSessionsYet = "No sessions recorded yet. Click 'New Session' to start!"
-            , newSessionModal = "✨ New Training Session"
-            , date = "📅 Date"
-            , hero = "Hero"
-            , sessionType = "Session Type"
-            , duration = "Duration"
-            , minutes = "minutes"
-            , practicesTechniques = "Practiced Techniques"
-            , notes = "Notes"
-            , cancel = "❌ Cancel"
-            , save = "💾 Save"
-            , selectHero = "Select a hero"
-            , currentHero = "Current Hero"
-            , heroSelectedDesc = "Follow their training plan and philosophy"
-            , noHeroSelected = "No Hero Selected"
-            , selectHeroInstructions = "Choose a hero in the 'Heroes' tab to start your journey"
-            , clickNewSession = "Click 'New Session' to start"
-            
-            -- Session Types
-            , techniqueSession = "Technique"
-            , drillingSession = "Drilling"
-            , sparringSession = "Sparring"
-            , competitionSession = "Competition"
-            , openMatSession = "Open Mat"
-            
-            -- Missing Fields for Overview
-            , universalPrinciples = "⚡ Universal Principles of Your Heroes"
-            , mentalMindset = "Mental & Mindset"
-            , absoluteConfidence = "Absolute confidence (Gordon Ryan)"
-            , constantPressure = "Constant pressure (Buchecha)"
-            , creativity = "Creativity (Rafael Mendes)"
-            , tacticalPatience = "Tactical patience (Leandro Lo)"
-            , leadership = "Leadership (André Galvão)"
-            , training = "Training"
-            , techniqueFirst = "Technique first"
-            , drillingToAutomatism = "Drilling to automatism"
-            , cardioAsBase = "Cardio as base"
-            , regularVideoStudy = "Regular video study"
-            , intelligentSparring = "Intelligent sparring"
-            , gettingStarted = "Getting Started"
-            , smartGoals = "Set SMART goals (Specific, Measurable, Achievable)"
-            , patienceMarathon = "Patience: BJJ is a marathon, not a sprint"
-            , focusOnTechniques = "Focus on 2-3 techniques maximum per session"
-            , reviewNotes = "Review your notes and videos regularly"
-            , celebrateVictories = "Celebrate your small victories and achievements"
-            , championReminder = "💪 Champions' Reminder"
-            , championQuote = "\"BJJ is not mastered, it is lived. Every mat is a lesson, every defeat an opportunity to learn.\""
-            , championWisdom = "- Collective wisdom from the legends of the tatami"
-            }
-
-        FR ->
-            { -- General
-              appTitle = "Train Like Pro"
-            , language = "Langue"
-            , english = "English"
-            , french = "Français"
-            , loading = "Chargement..."
-            
-            -- Header
-            , headerTitle = "🥋 Train Like Pro"
-            , headerSubtitle = "Ton Cadre d'Apprentissage JJB Inspiré des Champions ⭐"
-            , headerDescription = "Découvre les secrets d'entraînement des plus grandes légendes du Jiu-Jitsu Brésilien. Gordon Ryan, Buchecha, Rafael Mendes, Leandro Lo et André Galvão partagent leurs méthodes pour t'aider à progresser efficacement."
-            
-            -- Features
-            , personalizedPlans = "Plans personnalisés"
-            , progressTracking = "Suivi de progression"
-            , eliteTechniques = "Techniques d'élite"
-            , championMindset = "Mindset de champion"
-            
-            -- Navigation
-            , overview = "🏠 Vue d'ensemble"
-            , heroes = "🦸 Tes Héros"
-            , actionPlan = "📋 Plan d'Action"
-            , progress = "📊 Progression"
-            
-            -- Welcome Section
-            , welcomeTitle = "🚀 Bienvenue dans Ton Voyage JJB"
-            , welcomeDescription = "Cette plateforme t'accompagne dans ton apprentissage du Jiu-Jitsu Brésilien en s'inspirant des méthodes d'entraînement des plus grands champions. Chaque héros apporte sa philosophie unique pour t'aider à développer ton propre style."
-            , whatYouWillLearn = "🎯 Ce que tu vas apprendre"
-            , specificTechniques = "Techniques spécifiques à chaque style de champion"
-            , trainingMethods = "Méthodes d'entraînement éprouvées"
-            , fightingPhilosophy = "Mindset et philosophie de combat"
-            , personalizedPlansDesc = "Plans d'entraînement personnalisés"
-            , yourProgress = "📈 Ton progression"
-            , detailedTracking = "Suivi détaillé de tes sessions"
-            , techniqueChecklist = "Checklist des techniques à maîtriser"
-            , achievementsToUnlock = "Achievements à débloquer"
-            , progressStats = "Statistiques de progression"
-            
-            -- How It Works
-            , howItWorksTitle = "🔧 Comment ça fonctionne"
-            , chooseHero = "Choisis ton Héros"
-            , chooseHeroDesc = "Sélectionne le champion qui correspond à ton style ou à tes objectifs actuels"
-            , followPlan = "Suis le Plan"
-            , followPlanDesc = "Applique les méthodes d'entraînement spécifiques à ton héros choisi"
-            , recordSessions = "Enregistre tes Sessions"
-            , recordSessionsDesc = "Garde une trace de tes entraînements et techniques pratiquées"
-            , progressEvolve = "Progresse & Évolue"
-            , progressEvolveDesc = "Vois ta progression et débloques de nouveaux achievements"
-            
-            -- Heroes
-            , heroesTitle = "🦸 Choisis Ton Héros JJB"
-            , heroesDescription = "Chaque champion a développé son propre style et sa philosophie d'entraînement. Sélectionne celui qui résonne avec tes objectifs actuels ou découvre de nouvelles approches pour enrichir ton jeu."
-            , selectHeroPrompt = "Sélectionne un Héros pour Commencer"
-            , selectHeroDescription = "Clique sur l'une des cartes ci-dessus pour découvrir en détail les méthodes d'entraînement de ton champion préféré. Tu pourras ensuite suivre son plan personnalisé et adopter sa philosophie."
-            , weeklyPlan = "Plan hebdomadaire détaillé"
-            , specializedTechniques = "Techniques spécialisées"
-            , championMindsetDesc = "Mindset de champion"
-            
-            -- Hero Names & Descriptions
-            , gordonRyan = "Gordon Ryan"
-            , gordonNickname = "The King"
-            , gordonDesc = "Technique parfaite + Mental d'acier"
-            , buchecha = "Buchecha"
-            , buchechaDesc = "Pression + Cardio surhumain"
-            , rafael = "Rafael Mendes"
-            , rafaelDesc = "Innovation + Fluidité"
-            , leandro = "Leandro Lo"
-            , leandroDesc = "Timing + Bases solides"
-            , galvao = "André Galvão"
-            , galvaoDesc = "Leadership + Complet"
-            
-            -- Training
-            , readyToTrain = "🚀 Prêt à t'entraîner comme"
-            , seePlan = "📋 Voir le Plan"
-            , trackProgress = "📊 Suivre ma Progression"
-            , keyPrinciples = "Principes Clés"
-            , principlesAndApproach = "🎯 Principes & Approche"
-            , trainingMethod = "Méthode d'Entraînement"
-            , technique = "🎯 Technique:"
-            , drilling = "🔄 Drilling:"
-            , sparring = "⚔️ Sparring:"
-            , study = "📚 Étude:"
-            , weeklyPlanTitle = "📅 Plan Hebdomadaire"
-            
-            -- Plan
-            , planTitle = "📋 Ton Plan d'Action JJB"
-            , planDescription = "Transforme ton entraînement avec des plans structurés inspirés des champions. Chaque programme est conçu pour maximiser ta progression selon ton niveau et tes objectifs."
-            , adaptedPrograms = "Programmes Adaptés"
-            , adaptedProgramsDesc = "Plans personnalisés selon ton niveau, du débutant au compétiteur avancé"
-            , provenMethods = "Méthodes Éprouvées"
-            , provenMethodsDesc = "Techniques et approches utilisées par les plus grands champions mondiaux"
-            , guaranteedProgress = "Progression Garantie"
-            , guaranteedProgressDesc = "Structure progressive pour développer tes compétences étape par étape"
-            
-            -- Training Tips
-            , championTips = "💡 Conseils d'Entraînement des Champions"
-            , physicalTraining = "🏋️ Entraînement Physique"
-            , mentalRecovery = "🧠 Mental & Récupération"
-            , warmupRequired = "Échauffement Obligatoire"
-            , warmupRequiredDesc = "15-20 min minimum avant chaque session"
-            , functionalStrength = "Force Fonctionnelle"
-            , functionalStrengthDesc = "Privilégie les mouvements composés"
-            , specificCardio = "Cardio Spécifique"
-            , specificCardioDesc = "Intervalles haute intensité adaptés au JJB"
-            , sleepPriority = "Sommeil Prioritaire"
-            , sleepPriorityDesc = "7-9h par nuit pour la récupération"
-            , visualization = "Visualisation"
-            , visualizationDesc = "10 min/jour de répétition mentale"
-            , videoAnalysis = "Analyse Vidéo"
-            , videoAnalysisDesc = "Étudie tes sparrings et les champions"
-            
-            -- Progress
-            , progressTitle = "📊 Suivi de Ta Progression JJB"
-            , progressDescription = "Transforme tes entraînements en données concrètes ! Enregistre tes sessions, suit tes techniques et débloques des achievements pour rester motivé dans ta progression."
-            , sessions = "Sessions"
-            , sessionsDesc = "Enregistre chaque entraînement avec détails"
-            , techniques = "Techniques"
-            , techniquesDesc = "Checklist complète par héros"
-            , statistics = "Statistiques"
-            , statisticsDesc = "Visualise tes progrès en temps réel"
-            , achievements = "Achievements"
-            , achievementsDesc = "Débloques des récompenses"
-            , progressTip = "💡 Astuce : Enregistre tes sessions juste après l'entraînement pour ne rien oublier des techniques pratiquées !"
-            
-            -- Success Tips
-            , successTips = "🎯 Conseils pour Réussir ton Parcours JJB"
-            , starting = "🚀 Démarrage"
-            , progression = "💡 Progression"
-            , excellence = "🏆 Excellence"
-            , chooseOneHero = "Commence par choisir UN héros et suit son approche"
-            , setSmartGoals = "Fixe-toi des objectifs SMART (Spécifiques, Mesurables, Atteignables)"
-            , recordAllSessions = "Enregistre TOUTES tes sessions, même les courtes"
-            , patience = "Patience : le JJB est un marathon, pas un sprint"
-            , focusOnFewTechniques = "Concentre-toi sur 2-3 techniques maximum par session"
-            , reviewRegularly = "Révise régulièrement tes notes et vidéos"
-            , teachToLearn = "Enseigne ce que tu apprends pour mieux comprendre"
-            , stayHumble = "Reste humble et continue d'apprendre de tous"
-            , celebrateWins = "Célèbre tes petites victoires et achievements"
-            , championsReminder = "💪 Rappel des Champions"
-            , championsQuote = "\"Le JJB ne se maîtrise pas, il se vit. Chaque tapis est une leçon, chaque défaite une opportunité d'apprendre.\""
-            , championsSage = "- Sagesse collective des légendes du tatami"
-            
-            -- Action Plan
-            , weeklySchedule = "📅 Semaine Type (Débutant)"
-            , monthlyGoals = "🎯 Objectifs Mensuels"
-            , beginnerSchedule = "Programme Débutant"
-            , month1to2 = "Mois 1-2: Survie"
-            , month3to4 = "Mois 3-4: Mouvement"
-            , month5to6 = "Mois 5-6: Attaque"
-            , survival = "Survie"
-            , survivalDesc = "Ne pas se faire soumettre, positions de base"
-            , movement = "Mouvement"
-            , movementDesc = "Fluidité, transitions, premiers sweeps"
-            , attack = "Attaque"
-            , attackDesc = "Premières soumissions, garde active"
-            
-            -- Progress Tracking
-            , newSession = "✨ Nouvelle Session"
-            , totalSessions = "Sessions Totales"
-            , trainingHours = "Heures d'Entraînement"
-            , masteredTechniques = "Techniques Maîtrisées"
-            , recentSessions = "🕐 Sessions Récentes"
-            , selectHeroFirst = "⚠️ Sélectionne un héros dans l'onglet 'Tes Héros' pour commencer"
-            , noSessionsYet = "Aucune session enregistrée. Clique sur 'Nouvelle Session' pour commencer!"
-            , newSessionModal = "✨ Nouvelle Session d'Entraînement"
-            , date = "📅 Date"
-            , hero = "Héros"
-            , sessionType = "Type de Session"
-            , duration = "Durée"
-            , minutes = "minutes"
-            , practicesTechniques = "Techniques pratiquées"
-            , notes = "Notes"
-            , cancel = "❌ Annuler"
-            , save = "💾 Enregistrer"
-            , selectHero = "Sélectionner un héros"
-            , currentHero = "Héros Actuel"
-            , heroSelectedDesc = "Suis leur plan d'entraînement et leur philosophie"
-            , noHeroSelected = "Aucun Héros Sélectionné"
-            , selectHeroInstructions = "Choisis un héros dans l'onglet 'Héros' pour commencer ton parcours"
-            , clickNewSession = "Clique sur 'Nouvelle Session' pour commencer"
-            
-            -- Session Types
-            , techniqueSession = "Technique"
-            , drillingSession = "Drilling"
-            , sparringSession = "Sparring"
-            , competitionSession = "Compétition"
-            , openMatSession = "Open Mat"
-            
-            -- Missing Fields for Overview
-            , universalPrinciples = "⚡ Principes Universels de tes Héros"
-            , mentalMindset = "Mental & Mindset"
-            , absoluteConfidence = "Confiance absolue (Gordon Ryan)"
-            , constantPressure = "Pression constante (Buchecha)"
-            , creativity = "Créativité (Rafael Mendes)"
-            , tacticalPatience = "Patience tactique (Leandro Lo)"
-            , leadership = "Leadership (André Galvão)"
-            , training = "Entraînement"
-            , techniqueFirst = "Technique avant tout"
-            , drillingToAutomatism = "Drilling jusqu'à l'automatisme"
-            , cardioAsBase = "Cardio comme base"
-            , regularVideoStudy = "Étude vidéo régulière"
-            , intelligentSparring = "Sparring intelligent"
-            , gettingStarted = "Démarrage"
-            , smartGoals = "Fixe-toi des objectifs SMART (Spécifiques, Mesurables, Atteignables)"
-            , patienceMarathon = "Patience : le JJB est un marathon, pas un sprint"
-            , focusOnTechniques = "Concentre-toi sur 2-3 techniques maximum par session"
-            , reviewNotes = "Révise régulièrement tes notes et vidéos"
-            , celebrateVictories = "Célèbre tes petites victoires et achievements"
-            , championReminder = "💪 Rappel des Champions"
-            , championQuote = "\"Le JJB ne se maîtrise pas, il se vit. Chaque tapis est une leçon, chaque défaite une opportunité d'apprendre.\""
-            , championWisdom = "- Sagesse collective des légendes du tatami"
-            }
+        EN -> en
+        FR -> fr
 
 
-{-| Convert Language to String for storage
--}
 languageToString : Language -> String
 languageToString lang =
     case lang of
-        EN ->
-            "en"
-
-        FR ->
-            "fr"
+        EN -> "EN"
+        FR -> "FR"
 
 
-{-| Convert String to Language with fallback to EN
--}
+languageFromString : String -> Language
+languageFromString str =
+    case String.toUpper str of
+        "FR" -> FR
+        _ -> EN
+
+
+-- Alias for decoder compatibility
 stringToLanguage : String -> Language
-stringToLanguage str =
-    case str of
-        "fr" ->
-            FR
-
-        _ ->
-            EN
+stringToLanguage =
+    languageFromString
 
 
-{-| Get locale string for the language (e.g., "en-US", "fr-FR")
--}
-languageToLocale : Language -> String
-languageToLocale lang =
-    case lang of
-        EN ->
-            "en-US"
+-- Convenience functions for common translations
 
-        FR ->
-            "fr-FR"
+t : Language -> (Translations -> String) -> String
+t lang accessor =
+    accessor (translate lang)
+
+
+-- Format functions with language support
+
+formatStreak : Language -> Int -> String
+formatStreak lang count =
+    let
+        trans = translate lang
+    in
+    if count == 1 then
+        String.fromInt count ++ " " ++ trans.day
+    else
+        String.fromInt count ++ " " ++ trans.days
+
+
+formatXP : Language -> Int -> String
+formatXP lang xp =
+    String.fromInt xp ++ " XP"
+
+
+formatLevel : Language -> Int -> String
+formatLevel lang level =
+    let
+        trans = translate lang
+    in
+    trans.level ++ " " ++ String.fromInt level
+
+
+formatWeeks : Language -> Int -> String
+formatWeeks lang count =
+    let
+        trans = translate lang
+    in
+    if count == 1 then
+        String.fromInt count ++ " " ++ trans.week
+    else
+        String.fromInt count ++ " " ++ trans.weeks

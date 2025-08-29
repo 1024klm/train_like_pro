@@ -21,6 +21,7 @@ import Router
 import Data
 import Pages.Dashboard
 import Pages.TrainingSession
+import Components.Layout
 import Url
 import Time
 import Task
@@ -57,7 +58,7 @@ init url key =
             , route = route
             , localStorage = LocalStorage.defaultLocalStorage
             , userConfig = 
-                { t = I18n.translations I18n.EN
+                { t = I18n.translate I18n.EN
                 , isDark = False
                 , language = I18n.EN
                 }
@@ -139,8 +140,8 @@ update msg model =
 
         ReceivedLocalStorage localStorage ->
             let
-                language = I18n.EN -- Default to English for now
-                isDark = False -- Default to light theme for now
+                language = LocalStorage.getLanguage localStorage |> Maybe.withDefault I18n.EN
+                isDark = LocalStorage.getTheme localStorage |> Maybe.map (\theme -> theme == Theme.Dark) |> Maybe.withDefault False
                 userConfig = model.userConfig
             in
             ( { model 
@@ -149,7 +150,7 @@ update msg model =
                     { userConfig 
                         | isDark = isDark
                         , language = language
-                        , t = I18n.translations language
+                        , t = I18n.translate language
                     }
               }
             , Cmd.none
@@ -186,9 +187,10 @@ update msg model =
         ChangeLanguage language ->
             let
                 userConfig = model.userConfig
+                updatedModel = { model | userConfig = { userConfig | language = language, t = I18n.translate language } }
             in
-            ( { model | userConfig = { userConfig | language = language, t = I18n.translations language } }
-            , Cmd.none -- LocalStorage saving not implemented yet
+            ( updatedModel
+            , LocalStorage.save (LocalStorage.setLanguage language model.localStorage)
             )
 
         ChangeTheme theme ->
@@ -237,6 +239,8 @@ update msg model =
                             { modals | shareModal = Just id }
                         FilterModal ->
                             { modals | filterModal = True }
+                        TechniqueSelectionModal ->
+                            { modals | sessionModal = True } -- Using sessionModal for now
             in
             ( { model | modals = newModals }, Cmd.none )
 
@@ -342,16 +346,10 @@ view : Model -> Browser.Document Msg
 view model =
     { title = viewTitle model
     , body = 
-        [ div 
-            [ class "min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black transition-colors duration-300"
-            , classList [ ("dark", model.userConfig.isDark) ]
-            ]
-            [ viewHeader model
+        [ div [ class "dark" ]
+            [ Components.Layout.view model (viewPage model)
             , viewNotifications model.notifications
-            , main_ [ class "relative" ]
-                [ viewPage model ]
             , viewModals model
-            , viewFooter model
             ]
         ]
     }
@@ -1458,7 +1456,11 @@ viewEventLinks event =
 
 linkButton : String -> String -> Html Msg
 linkButton label icon =
-    button [ class "w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" ]
+    button 
+        [ onClick (ShowNotification Info (label ++ " - External link will open in new tab"))
+        , class "w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer"
+        , type_ "button"
+        ]
         [ span [ class "text-xl" ] [ text icon ]
         , span [ class "font-medium" ] [ text label ]
         ]
@@ -1471,7 +1473,11 @@ viewTrainingPage model =
         , div [ class "bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white mb-8" ]
             [ h2 [ class "text-3xl font-bold mb-4" ] [ text "Start Your Journey" ]
             , p [ class "text-lg mb-6 opacity-90" ] [ text "Choose a hero and follow their training methodology" ]
-            , button [ class "px-6 py-3 bg-white text-blue-600 font-bold rounded-lg hover:shadow-xl transition-all" ]
+            , button 
+                [ onClick StartSession
+                , class "px-6 py-3 bg-white text-blue-600 font-bold rounded-lg hover:shadow-xl transition-all cursor-pointer"
+                , type_ "button"
+                ]
                 [ text "Create Training Plan" ]
             ]
         , viewTrainingStats model
@@ -1683,20 +1689,51 @@ viewProfileGoals profile =
                         , span [ class "dark:text-white" ] [ text goal ]
                         ]
                 ) profile.trainingGoals)
-        , button [ class "mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" ]
+        , button 
+            [ onClick (ShowNotification Info "Goal setting feature coming soon!")
+            , class "mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer"
+            , type_ "button"
+            ]
             [ text "Add Goal" ]
         ]
 
 
 viewGuestProfile : Model -> Html Msg
 viewGuestProfile model =
-    div [ class "max-w-md mx-auto text-center py-12" ]
-        [ span [ class "text-6xl mb-4 block" ] [ text "👤" ]
-        , h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Welcome, Guest!" ]
-        , p [ class "text-gray-600 dark:text-gray-400 mb-6" ] 
-            [ text "Create an account to track your training progress, save favorites, and more." ]
-        , button [ class "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors" ]
-            [ text "Sign Up" ]
+    div [ class "flex-1 flex items-center justify-center bg-gray-950 p-8" ]
+        [ div [ class "max-w-md w-full" ]
+            [ -- Card container with better contrast
+              div [ class "bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-2xl" ]
+                [ -- Icon
+                  div [ class "flex justify-center mb-6" ]
+                    [ div [ class "w-24 h-24 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center" ]
+                        [ span [ class "text-5xl" ] [ text "👤" ] ]
+                    ]
+                , -- Title
+                  h2 [ class "text-3xl font-bold text-white text-center mb-4" ] 
+                    [ text "Start Your Journey" ]
+                , -- Description  
+                  p [ class "text-gray-400 text-center mb-8 leading-relaxed" ] 
+                    [ text "Create an account to track your training progress, save favorites, and unlock achievements." ]
+                , -- Buttons with proper handlers and z-index
+                  div [ class "space-y-3" ]
+                    [ button 
+                        [ onClick (ShowNotification Info "Sign up feature coming soon!")
+                        , class "w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer relative z-10"
+                        , type_ "button"
+                        , style "cursor" "pointer"
+                        ]
+                        [ text "Sign Up" ]
+                    , button 
+                        [ onClick (ShowNotification Info "Login feature coming soon!")
+                        , class "w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium py-3 px-6 rounded-lg transition-colors cursor-pointer relative z-10"
+                        , type_ "button"
+                        , style "cursor" "pointer"
+                        ]
+                        [ text "Already have an account? Log in" ]
+                    ]
+                ]
+            ]
         ]
 
 

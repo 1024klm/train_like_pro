@@ -4,7 +4,7 @@ import Browser exposing (UrlRequest)
 import Dict exposing (Dict)
 import Set exposing (Set)
 import Browser.Navigation exposing (Key)
-import I18n exposing (Language, Translation)
+import I18n exposing (Language, Translations)
 import LocalStorage exposing (LocalStorage)
 import Theme exposing (UserPreference)
 import Url exposing (Url)
@@ -16,7 +16,7 @@ import Time
 -- USER CONFIGURATION
 
 type alias UserConfig =
-    { t : Translation
+    { t : Translations
     , isDark : Bool
     , language : Language
     }
@@ -898,6 +898,7 @@ type ModalType
     | HeroModal String
     | ShareModal String
     | FilterModal
+    | TechniqueSelectionModal
 
 
 type ToBackend
