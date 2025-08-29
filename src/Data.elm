@@ -3,6 +3,7 @@ module Data exposing (..)
 import Dict exposing (Dict)
 import Set exposing (Set)
 import Types
+import Time
 
 
 initHeroes : Dict String Types.Hero
@@ -283,6 +284,8 @@ gordonTechniques =
       , description = "Gordon's systematic approach to controlling and finishing from the back"
       , keyDetails = [ "Hand fighting concepts", "Body triangle variations", "RNC mechanics" ]
       , videoUrl = Just "https://example.com/gordon-back"
+      , xpValue = 200
+      , prerequisites = []
       }
     , { id = "gordon-leg-system"
       , name = "Leg Lock System"
@@ -291,6 +294,8 @@ gordonTechniques =
       , description = "Complete leg entanglement system"
       , keyDetails = [ "Ashi Garami entries", "Breaking mechanics", "Heel exposure" ]
       , videoUrl = Just "https://example.com/gordon-legs"
+      , xpValue = 250
+      , prerequisites = []
       }
     ]
 
@@ -300,10 +305,12 @@ buchechaTechniques =
     [ { id = "buchecha-pressure"
       , name = "Pressure Passing"
       , category = Types.PassingTechnique
-      , difficulty = Types.Advanced
+      , difficulty = Types.DifficultyAdvanced
       , description = "Heavy pressure passing system"
       , keyDetails = [ "Weight distribution", "Hip pressure", "Shoulder control" ]
       , videoUrl = Nothing
+      , xpValue = 150
+      , prerequisites = []
       }
     ]
 
@@ -317,6 +324,8 @@ rafaTechniques =
       , description = "The signature berimbolo sweep"
       , keyDetails = [ "De La Riva entry", "Inversion mechanics", "Back take finish" ]
       , videoUrl = Just "https://example.com/rafa-berimbolo"
+      , xpValue = 300
+      , prerequisites = []
       }
     ]
 
@@ -326,10 +335,12 @@ galvaoTechniques =
     [ { id = "galvao-guillotine"
       , name = "High Elbow Guillotine"
       , category = Types.SubmissionTechnique
-      , difficulty = Types.Advanced
+      , difficulty = Types.DifficultyAdvanced
       , description = "Galvão's famous guillotine system"
       , keyDetails = [ "Arm positioning", "Hip movement", "Finishing mechanics" ]
       , videoUrl = Nothing
+      , xpValue = 150
+      , prerequisites = []
       }
     ]
 
@@ -343,6 +354,8 @@ loTechniques =
       , description = "Lo's explosive knee cut passing"
       , keyDetails = [ "Grips", "Angle", "Hip pressure" ]
       , videoUrl = Just "https://example.com/lo-knee-cut"
+      , xpValue = 150
+      , prerequisites = []
       }
     ]
 
@@ -559,7 +572,7 @@ initEvents =
             , streamUrl = Just "https://flograppling.com"
             , results = Nothing
             , brackets = adccBrackets
-            , status = Types.Upcoming
+            , status = Types.EventUpcoming
             }
           )
         , ( "worlds-2024"
@@ -581,7 +594,7 @@ initEvents =
             , streamUrl = Just "https://flograppling.com"
             , results = Nothing
             , brackets = worldsBrackets
-            , status = Types.Upcoming
+            , status = Types.EventUpcoming
             }
           )
         ]
@@ -647,4 +660,30 @@ defaultUserProfile userId =
         , techniquesLearned = 0
         , favoritePosition = Nothing
         }
+    , progress = defaultUserProgress
+    }
+
+
+defaultUserProgress : Types.UserProgress
+defaultUserProgress =
+    { totalXP = 0
+    , currentLevel = 1
+    , levelProgress = 0.0
+    , beltProgress = 0.0
+    , skillTree = Dict.empty
+    , techniqueMastery = Dict.empty
+    , roadmapProgress = Dict.empty
+    , unlockedAchievements = []
+    , titles = []
+    , badges = []
+    , dailyQuests = []
+    , weeklyGoals = 
+        { goals = []
+        , weekStart = Time.millisToPosix 0
+        , totalXPTarget = 500
+        , currentXP = 0
+        }
+    , lastActive = Time.millisToPosix 0
+    , currentStreak = 0
+    , longestStreak = 0
     }

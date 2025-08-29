@@ -19,6 +19,8 @@ import Theme
 import Types exposing (..)
 import Router
 import Data
+import Pages.Dashboard
+import Pages.TrainingSession
 import Url
 import Time
 import Task
@@ -75,6 +77,11 @@ init url key =
             , trainingSessions = []
             , userProfile = Nothing
             , favorites = Data.emptyFavorites
+            , userProgress = Data.defaultUserProgress
+            , roadmaps = Dict.empty
+            , activeRoadmap = Nothing
+            , activeSession = Nothing
+            , sessionTimer = 0
             , loadingStates = Dict.empty
             , modals =
                 { sessionModal = False
@@ -87,6 +94,8 @@ init url key =
                 { heroCards = False
                 , pageTransition = False
                 , scrollProgress = 0
+                , xpAnimation = Nothing
+                , levelUpAnimation = False
                 }
             }
     in
@@ -120,7 +129,7 @@ update msg model =
                 | url = url
                 , route = newRoute
                 , mobileMenuOpen = False
-                , animations = { heroCards = True, pageTransition = True, scrollProgress = 0 }
+                , animations = { heroCards = True, pageTransition = True, scrollProgress = 0, xpAnimation = Nothing, levelUpAnimation = False }
               }
             , Cmd.batch
                 [ Lamdera.sendToBackend (TrackPageView newRoute)
@@ -293,6 +302,8 @@ updateFromBackend msg model =
                 | heroes = data.heroes
                 , academies = data.academies
                 , events = data.events
+                , roadmaps = data.roadmaps
+                , userProgress = data.userProgress
               }
             , Cmd.none
             )
@@ -350,6 +361,9 @@ viewTitle : Model -> String
 viewTitle model =
     case model.route of
         Home -> "BJJ Heroes - Train Like Champions"
+        Dashboard -> "Dashboard - Train Like Pro"
+        TrainingView -> "Training Session - Train Like Pro"
+        RoadmapView _ -> "Roadmap - Train Like Pro"
         HeroesRoute _ -> "Heroes - BJJ Heroes"
         HeroDetail id -> 
             Dict.get id model.heroes
@@ -411,10 +425,11 @@ viewDesktopNav : Model -> Html Msg
 viewDesktopNav model =
     nav [ class "hidden lg:flex items-center space-x-4" ]
         [ navLink model Home "Home" "🏠"
+        , navLink model Dashboard "Dashboard" "📊"
         , navLink model (HeroesRoute Nothing) "Heroes" "🥋"
         , navLink model (Academies Nothing) "Academies" "🏛️"
         , navLink model (Events AllEvents) "Events" "📅"
-        , navLink model Training "Training" "💪"
+        , navLink model TrainingView "Training" "💪"
         ]
 
 
@@ -424,6 +439,7 @@ navLink model route label icon =
         isActive = 
             case (model.route, route) of
                 (Home, Home) -> True
+                (Dashboard, Dashboard) -> True
                 (HeroesRoute _, HeroesRoute _) -> True
                 (HeroDetail _, HeroesRoute _) -> True
                 (Academies _, Academies _) -> True
@@ -431,6 +447,8 @@ navLink model route label icon =
                 (Events _, Events _) -> True
                 (EventDetail _, Events _) -> True
                 (Training, Training) -> True
+                (TrainingView, TrainingView) -> True
+                (RoadmapView _, Dashboard) -> True -- Roadmaps grouped with Dashboard
                 (Profile, Profile) -> True
                 _ -> False
     in
@@ -569,6 +587,16 @@ viewPage model =
     case model.route of
         Home ->
             viewHomePage model
+            
+        Dashboard ->
+            Pages.Dashboard.view model
+            
+        TrainingView ->
+            Pages.TrainingSession.view model
+            
+        RoadmapView roadmapId ->
+            div [ class "p-8 text-center" ]
+                [ text ("Roadmap View: " ++ roadmapId ++ " - Coming Soon!") ]
 
         HeroesRoute filter ->
             viewHeroesPage model filter
@@ -722,7 +750,7 @@ viewUpcomingEvents model =
             , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
                 (model.events
                     |> Dict.values
-                    |> List.filter (\e -> e.status == Upcoming)
+                    |> List.filter (\e -> e.status == EventUpcoming)
                     |> List.take 3
                     |> List.map viewEventCard
                 )
@@ -1245,10 +1273,10 @@ filterEvents filter events =
             events
 
         UpcomingEvents ->
-            List.filter (\e -> e.status == Upcoming || e.status == Live) events
+            List.filter (\e -> e.status == EventUpcoming || e.status == EventLive) events
 
         PastEvents ->
-            List.filter (\e -> e.status == Completed) events
+            List.filter (\e -> e.status == EventCompleted) events
 
 
 viewEventListCard : Model -> Event -> Html Msg
@@ -1291,19 +1319,19 @@ eventTypeIcon eventType =
 eventStatusClass : EventStatus -> String
 eventStatusClass status =
     case status of
-        Upcoming -> "px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-xs font-medium"
-        Live -> "px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-xs font-medium animate-pulse"
-        Completed -> "px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs font-medium"
-        Cancelled -> "px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 rounded text-xs font-medium line-through"
+        EventUpcoming -> "px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded text-xs font-medium"
+        EventLive -> "px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded text-xs font-medium animate-pulse"
+        EventCompleted -> "px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded text-xs font-medium"
+        EventCancelled -> "px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 rounded text-xs font-medium line-through"
 
 
 eventStatusText : EventStatus -> String
 eventStatusText status =
     case status of
-        Upcoming -> "Upcoming"
-        Live -> "LIVE"
-        Completed -> "Completed"
-        Cancelled -> "Cancelled"
+        EventUpcoming -> "Upcoming"
+        EventLive -> "LIVE"
+        EventCompleted -> "Completed"
+        EventCancelled -> "Cancelled"
 
 
 viewEventDetailPage : Model -> String -> Html Msg
@@ -1498,7 +1526,7 @@ viewSessionCard session =
         [ div [ class "flex justify-between items-start" ]
             [ div []
                 [ p [ class "font-medium dark:text-white" ] [ text (sessionTypeToString session.sessionType) ]
-                , p [ class "text-sm text-gray-500" ] [ text session.date ]
+                , p [ class "text-sm text-gray-500" ] [ text "Date" ] -- TODO: Format Time.Posix to string
                 ]
             , span [ class "text-sm text-gray-600 dark:text-gray-400" ] 
                 [ text (String.fromInt session.duration ++ " min") ]

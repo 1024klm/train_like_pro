@@ -26,6 +26,7 @@ type alias UserConfig =
 
 type Route
     = Home
+    | Dashboard
     | HeroesRoute (Maybe HeroFilter)
     | HeroDetail String
     | Academies (Maybe String)
@@ -33,6 +34,8 @@ type Route
     | Events EventsFilter
     | EventDetail String
     | Training
+    | TrainingView
+    | RoadmapView String
     | Profile
     | NotFound
 
@@ -122,7 +125,27 @@ type alias Technique =
     , description : String
     , keyDetails : List String
     , videoUrl : Maybe String
+    , xpValue : Int -- XP gagné par pratique
+    , prerequisites : List String -- IDs des techniques requises
     }
+
+
+type alias WeeklyGoal =
+    { id : String
+    , description : String
+    , measurable : MeasurableGoal
+    , progress : Float
+    , completed : Bool
+    , xpReward : Int
+    }
+
+
+type MeasurableGoal
+    = RepetitionGoal Int Int -- current/target
+    | TimeGoal Int Int -- minutes current/target
+    | SuccessRateGoal Float Float
+    | TechniqueGoal String Int -- technique ID, target reps
+    | CustomGoal String
 
 
 type TechniqueCategory
@@ -137,7 +160,7 @@ type TechniqueCategory
 type Difficulty
     = Beginner
     | Intermediate
-    | Advanced
+    | DifficultyAdvanced
     | Expert
 
 
@@ -263,10 +286,10 @@ type EventType
 
 
 type EventStatus
-    = Upcoming
-    | Live
-    | Completed
-    | Cancelled
+    = EventUpcoming
+    | EventLive
+    | EventCompleted
+    | EventCancelled
 
 
 type alias MatchResult =
@@ -342,15 +365,44 @@ type SessionFocus
 
 type alias TrainingSession =
     { id : String
-    , date : String
+    , date : Time.Posix
     , planId : Maybe String
-    , duration : Int
-    , techniques : List String
+    , duration : Int -- minutes
+    , techniques : List TechniqueLog
     , notes : String
     , sessionType : SessionType
     , rating : Maybe Int
     , completed : Bool
+    , xpEarned : Int -- Total XP de la session
+    , mood : MoodRating
+    , energy : EnergyLevel
     }
+
+
+type alias TechniqueLog =
+    { techniqueId : String
+    , repetitions : Int
+    , quality : Int -- 1-5 stars
+    , partner : Maybe String
+    , notes : String
+    , xpEarned : Int
+    }
+
+
+type MoodRating
+    = Frustrated
+    | Neutral
+    | Good
+    | Excellent
+    | FlowState
+
+
+type EnergyLevel
+    = Exhausted
+    | Tired
+    | Normal
+    | Energetic
+    | PeakPerformance
 
 
 type SessionType
@@ -397,6 +449,7 @@ type alias UserProfile =
     , trainingGoals : List String
     , achievements : List Achievement
     , stats : UserStats
+    , progress : UserProgress -- NOUVEAU: Progression gamifiée
     }
 
 
@@ -407,6 +460,218 @@ type alias UserStats =
     , longestStreak : Int
     , techniquesLearned : Int
     , favoritePosition : Maybe String
+    }
+
+
+-- GAMIFICATION DATA
+
+type alias UserProgress =
+    { -- XP & Levels
+      totalXP : Int
+    , currentLevel : Int -- 1-100
+    , levelProgress : Float -- 0.0 to 1.0
+    , beltProgress : Float -- 0.0 to 1.0
+    
+      -- Skills & Techniques
+    , skillTree : Dict String SkillProgress
+    , techniqueMastery : Dict String TechniqueMastery
+    , roadmapProgress : Dict String RoadmapProgress
+    
+      -- Achievements & Stats
+    , unlockedAchievements : List String
+    , titles : List PlayerTitle
+    , badges : List Badge
+    
+      -- Daily/Weekly
+    , dailyQuests : List Quest
+    , weeklyGoals : WeeklyGoals
+    , lastActive : Time.Posix
+    , currentStreak : Int -- Jours consécutifs d'entraînement
+    , longestStreak : Int -- Record de streak
+    }
+
+
+type alias SkillProgress =
+    { skillId : String
+    , name : String -- "Guard", "Passing", "Takedowns"
+    , level : Int -- 1-10
+    , currentXP : Int
+    , xpToNext : Int
+    , subSkills : Dict String SubSkillProgress
+    }
+
+
+type alias SubSkillProgress =
+    { name : String
+    , level : Int
+    , mastery : Float
+    }
+
+
+type alias TechniqueMastery =
+    { techniqueId : String
+    , name : String
+    , repetitions : Int
+    , successfulReps : Int
+    , sparringSuccess : Int
+    , lastPracticed : Time.Posix
+    , mastery : MasteryLevel
+    , notes : List TechniqueNote
+    , xpEarned : Int
+    }
+
+
+type MasteryLevel
+    = Learning      -- 0-25% (Bronze icon)
+    | Practicing    -- 25-50% (Silver icon)
+    | Proficient    -- 50-75% (Gold icon)
+    | MasteryAdvanced      -- 75-90% (Platinum icon)
+    | MasteryComplete      -- 90-100% (Diamond icon)
+
+
+type alias TechniqueNote =
+    { date : Time.Posix
+    , content : String
+    , quality : Int -- 1-5 stars
+    }
+
+
+type alias PlayerTitle =
+    { id : String
+    , name : String -- "Guard Specialist", "Submission Hunter"
+    , description : String
+    , icon : String
+    , rarity : Rarity
+    , equipped : Bool
+    }
+
+
+type alias Badge =
+    { id : String
+    , name : String
+    , description : String
+    , icon : String
+    , category : BadgeCategory
+    , unlockedAt : Time.Posix
+    }
+
+
+type BadgeCategory
+    = TechniqueBadge
+    | ConsistencyBadge
+    | CompetitionBadge
+    | SocialBadge
+    | SpecialBadge
+
+
+type Rarity
+    = Common
+    | Rare
+    | Epic
+    | Legendary
+
+
+type alias Quest =
+    { id : String
+    , title : String
+    , description : String
+    , type_ : QuestType
+    , progress : Float
+    , target : Int
+    , xpReward : Int
+    , completed : Bool
+    , expiresAt : Time.Posix
+    }
+
+
+type QuestType
+    = DailyDrill String -- "Complete 50 armbar reps"
+    | TechniqueQuest String
+    | SparringQuest
+    | ConsistencyQuest
+    | StudyQuest -- Watch videos
+
+
+type alias WeeklyGoals =
+    { goals : List WeeklyGoal
+    , weekStart : Time.Posix
+    , totalXPTarget : Int
+    , currentXP : Int
+    }
+
+
+-- ROADMAP DATA
+
+type alias TechniqueRoadmap =
+    { id : String
+    , name : String
+    , slug : String
+    , description : String
+    , hero : String -- Champion associé
+    , difficulty : Difficulty
+    , estimatedWeeks : Int
+    , prerequisites : List String
+    , nodes : List RoadmapNode
+    , connections : List NodeConnection
+    }
+
+
+type alias RoadmapNode =
+    { id : String
+    , type_ : NodeType
+    , position : Position
+    , content : NodeContent
+    , status : NodeStatus
+    , requiredForNext : List String
+    }
+
+
+type NodeType
+    = ConceptNode
+    | TechniqueNode
+    | DrillNode
+    | SparringNode
+    | TestNode
+
+
+type alias Position =
+    { x : Int
+    , y : Int
+    }
+
+
+type alias NodeContent =
+    { title : String
+    , description : String
+    , videoUrl : Maybe String
+    , estimatedTime : Int -- minutes
+    , xpReward : Int
+    , tips : List String
+    , commonMistakes : List String
+    }
+
+
+type NodeStatus
+    = NodeLocked
+    | NodeAvailable
+    | NodeInProgress Int -- Pourcentage
+    | NodeCompleted
+    | NodeMastered
+
+
+type alias NodeConnection =
+    { from : String
+    , to : String
+    }
+
+
+type alias RoadmapProgress =
+    { roadmapId : String
+    , startedAt : Time.Posix
+    , completedNodes : Set String
+    , currentNode : Maybe String
+    , totalXPEarned : Int
+    , completionPercentage : Float
     }
 
 
@@ -435,6 +700,15 @@ type alias FrontendModel =
     -- User
     , userProfile : Maybe UserProfile
     , favorites : Favorites
+    , userProgress : UserProgress -- Progression gamifiée
+    
+    -- Roadmaps
+    , roadmaps : Dict String TechniqueRoadmap
+    , activeRoadmap : Maybe String
+    
+    -- Training Session Active
+    , activeSession : Maybe ActiveSession
+    , sessionTimer : Int -- secondes
     
     -- UI State
     , loadingStates : Dict String Bool
@@ -477,6 +751,24 @@ type alias AnimationState =
     { heroCards : Bool
     , pageTransition : Bool
     , scrollProgress : Float
+    , xpAnimation : Maybe XPAnimation
+    , levelUpAnimation : Bool
+    }
+
+
+type alias XPAnimation =
+    { amount : Int
+    , startTime : Time.Posix
+    , position : Position
+    }
+
+
+type alias ActiveSession =
+    { startTime : Time.Posix
+    , techniques : List TechniqueLog
+    , currentTechnique : Maybe String
+    , totalXP : Int
+    , notes : String
     }
 
 
@@ -570,6 +862,22 @@ type FrontendMsg
     | UpdateSessionProgress String Float
     | RateSession String Int
     
+    -- Gamification
+    | StartSession
+    | EndSession
+    | LogTechnique TechniqueLog
+    | IncrementReps String
+    | DecrementReps String
+    | SetQuality String Int
+    | CompleteQuest String
+    | ClaimAchievement String
+    | SelectRoadmap String
+    | SelectNode String
+    | CompleteNode String
+    | AnimateXP Int Position
+    | AnimateLevelUp
+    | UpdateSessionTimer Time.Posix
+    
     -- UI
     | OpenModal ModalType
     | CloseModal
@@ -603,6 +911,12 @@ type ToBackend
     | SaveUserProfile UserProfile
     | SaveTrainingData TrainingSession
     | GetAnalytics
+    | SaveProgress UserProgress
+    | SaveTechniqueLog TechniqueLog
+    | CompleteQuestBackend String
+    | UnlockAchievement String
+    | GetRoadmaps
+    | UpdateRoadmapProgress String RoadmapProgress
 
 
 type BackendMsg
@@ -617,6 +931,8 @@ type ToFrontend
         { heroes : Dict String Hero
         , academies : Dict String Academy
         , events : Dict String Event
+        , roadmaps : Dict String TechniqueRoadmap
+        , userProgress : UserProgress
         }
     | HeroDetailReceived Hero
     | AcademyDetailReceived Academy
@@ -626,3 +942,9 @@ type ToFrontend
     | TrainingDataSaved TrainingSession
     | AnalyticsReceived Analytics
     | NotificationReceived Notification
+    | ProgressUpdated UserProgress
+    | XPEarned Int
+    | LevelUp Int
+    | AchievementUnlocked Achievement
+    | QuestCompleted Quest
+    | RoadmapProgressUpdated RoadmapProgress

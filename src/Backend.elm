@@ -78,6 +78,8 @@ updateFromFrontend sessionId clientId msg model =
                     { heroes = model.heroes
                     , academies = model.academies
                     , events = model.events
+                    , roadmaps = Dict.empty -- TODO: Load from Data.Roadmaps
+                    , userProgress = Data.defaultUserProgress
                     }
                 )
             )
@@ -182,12 +184,41 @@ updateFromFrontend sessionId clientId msg model =
             ( model
             , Lamdera.sendToFrontend clientId (AnalyticsReceived model.analytics)
             )
+            
+        SaveProgress progress ->
+            -- TODO: Implement progress saving
+            ( model
+            , Lamdera.sendToFrontend clientId (ProgressUpdated progress)
+            )
+            
+        SaveTechniqueLog log ->
+            -- TODO: Implement technique log saving
+            ( model, Cmd.none )
+            
+        CompleteQuestBackend questId ->
+            -- TODO: Implement quest completion
+            ( model, Cmd.none )
+            
+        UnlockAchievement achievementId ->
+            -- TODO: Implement achievement unlocking
+            ( model, Cmd.none )
+            
+        GetRoadmaps ->
+            -- TODO: Send roadmaps from Data.Roadmaps
+            ( model, Cmd.none )
+            
+        UpdateRoadmapProgress roadmapId progress ->
+            -- TODO: Implement roadmap progress update
+            ( model
+            , Lamdera.sendToFrontend clientId (RoadmapProgressUpdated progress)
+            )
 
 
 routeToAnalyticsKey : Route -> String
 routeToAnalyticsKey route =
     case route of
         Home -> "home"
+        Dashboard -> "dashboard"
         HeroesRoute _ -> "heroes"
         HeroDetail id -> "hero:" ++ id
         Academies _ -> "academies"
@@ -195,5 +226,7 @@ routeToAnalyticsKey route =
         Events _ -> "events"
         EventDetail id -> "event:" ++ id
         Training -> "training"
+        TrainingView -> "training-session"
+        RoadmapView id -> "roadmap:" ++ id
         Profile -> "profile"
         NotFound -> "404"

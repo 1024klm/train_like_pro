@@ -11,6 +11,7 @@ routeParser : Parser (Route -> a) a
 routeParser =
     oneOf
         [ Parser.map Home top
+        , Parser.map Dashboard (s "dashboard")
         , Parser.map (HeroesRoute Nothing) (s "heroes")
         , Parser.map HeroesRoute (s "heroes" <?> heroFilterQuery)
         , Parser.map HeroDetail (s "hero" </> string)
@@ -22,6 +23,8 @@ routeParser =
         , Parser.map (Events PastEvents) (s "events" </> s "past")
         , Parser.map EventDetail (s "event" </> string)
         , Parser.map Training (s "training")
+        , Parser.map TrainingView (s "session")
+        , Parser.map RoadmapView (s "roadmap" </> string)
         , Parser.map Profile (s "profile")
         ]
 
@@ -150,6 +153,15 @@ toPath route =
 
         Training ->
             "/training"
+            
+        TrainingView ->
+            "/session"
+            
+        Dashboard ->
+            "/dashboard"
+            
+        RoadmapView id ->
+            "/roadmap/" ++ id
 
         Profile ->
             "/profile"
