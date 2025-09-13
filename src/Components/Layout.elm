@@ -4,7 +4,7 @@ import Html exposing (Html, div, nav, ul, li, a, button, text, span, i, img, h1,
 import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title, value, selected, tabindex)
 import Html.Events as Events exposing (onClick, onInput)
 import Json.Decode as Decode
-import Router.Helpers exposing (onPreventDefaultClick)
+import Router.Helpers exposing (onPreventDefaultClick, isInternalHref)
 import Types exposing (..)
 import Router
 import Theme exposing (darkTheme)
@@ -20,9 +20,9 @@ view model content =
         , if model.mobileMenuOpen then mobileMenu model else text ""
         ]
 
-main_ : FrontendModel -> Html FrontendMsg -> Html FrontendMsg  
+main_ : FrontendModel -> Html FrontendMsg -> Html FrontendMsg
 main_ model content =
-    div [ class "lg:ml-72" ]
+    div ([ class "lg:ml-72" ] ++ (if model.mobileMenuOpen then [ attribute "aria-hidden" "true" ] else []))
         [ topBar model
         , div [ class "p-4 lg:p-6" ]
             [ content ]
@@ -37,6 +37,9 @@ topBar model =
                     [ class "lg:hidden p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
                     , onClick ToggleMobileMenu
                     , id "mobile-menu-toggle"
+                    , attribute "aria-controls" "mobile-menu-dialog"
+                    , attribute "aria-expanded" (if model.mobileMenuOpen then "true" else "false")
+                    , attribute "aria-label" model.userConfig.t.navigation
                     ]
                     [ i [ class "fas fa-bars text-gray-300", attribute "aria-hidden" "true" ] [] ]
                 , div [ class "flex items-center gap-3" ]
@@ -139,7 +142,23 @@ mainNav model =
     in
     div [ class "flex-1 px-4 py-6 overflow-y-auto" ]
         [ ul [ class "space-y-2" ]
-            [ navItemWithId "mobile-first-link" model t.dashboard Dashboard "fas fa-tachometer-alt" False
+            [ navItem model t.dashboard Dashboard "fas fa-tachometer-alt" False
+            , navItem model t.heroes (HeroesRoute Nothing) "fas fa-users" False
+            , navItem model t.academies (Academies Nothing) "fas fa-university" False
+            , navItem model t.events (Events AllEvents) "fas fa-calendar" False
+            , navItem model t.training Training "fas fa-dumbbell" True
+            , navItem model t.profile Profile "fas fa-user" False
+            ]
+        ]
+
+mobileMainNav : FrontendModel -> Html FrontendMsg
+mobileMainNav model =
+    let
+        t = model.userConfig.t
+    in
+    div [ class "flex-1 px-4 py-6 overflow-y-auto" ]
+        [ ul [ class "space-y-2" ]
+            [ navItemMobileFirst model t.dashboard Dashboard "fas fa-tachometer-alt" False
             , navItem model t.heroes (HeroesRoute Nothing) "fas fa-users" False
             , navItem model t.academies (Academies Nothing) "fas fa-university" False
             , navItem model t.events (Events AllEvents) "fas fa-calendar" False
@@ -152,6 +171,10 @@ navItem : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
 navItem =
     navItemWithId ""
 
+navItemMobileFirst : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
+navItemMobileFirst =
+    navItemWithId "mobile-first-link"
+
 navItemWithId : String -> FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
 navItemWithId itemId model label route iconClass isAccented =
     let
@@ -163,13 +186,14 @@ navItemWithId itemId model label route iconClass isAccented =
             "bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-transparent hover:border-orange-500/30 text-orange-300 hover:from-orange-500/20 hover:to-red-500/20 hover:text-orange-200"
           else
             "text-gray-400 hover:bg-gray-800/50 hover:text-white border border-transparent hover:border-gray-700/50"
+        href_ = Router.toPath route
+        spaHandlers = if isInternalHref href_ then [ onPreventDefaultClick (NavigateTo route) ] else []
     in
     li []
         [ a ([ class (baseClasses ++ " " ++ activeClasses)
-            , href (Router.toPath route)
-            , onPreventDefaultClick (NavigateTo route)
+            , href href_
             , if isActive then attribute "aria-current" "page" else class ""
-            ] ++ (if String.isEmpty itemId then [] else [ id itemId ])
+            ] ++ (if String.isEmpty itemId then [] else [ id itemId ]) ++ spaHandlers
             )
             [ i [ class (iconClass ++ " w-5 text-center transition-colors"), attribute "aria-hidden" "true" ] []
             , span [ class "font-medium" ] [ text label ]
@@ -236,7 +260,7 @@ mobileMenu model =
                         [ i [ class "fas fa-times", attribute "aria-hidden" "true" ] [] ]
                     ]
                 , div [ class "flex-1 overflow-y-auto" ]
-                    [ mainNav model
+                    [ mobileMainNav model
                     , progressSection model
                     ]
                 ]

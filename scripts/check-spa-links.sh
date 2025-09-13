@@ -5,7 +5,7 @@
 echo "🔍 Checking for raw onClick (NavigateTo) usage..."
 
 # Look for onClick (NavigateTo pattern in src/
-violations=$(grep -r "onClick\s*(NavigateTo" src/ --include="*.elm" || true)
+violations=$(grep -rE 'onClick[[:space:]]*\([[:space:]]*NavigateTo' src/ --include='*.elm' || true)
 
 if [ -n "$violations" ]; then
     echo "❌ Found raw SPA navigation clicks. Use onPreventDefaultClick for SPA links:"

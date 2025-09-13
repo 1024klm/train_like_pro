@@ -558,9 +558,13 @@ mobileNavLink msg label icon =
 
 viewNotifications : List Notification -> Html Msg
 viewNotifications notifications =
+    let
+        hasErrors = List.any (\n -> n.type_ == Error) notifications
+        ariaLive = if hasErrors then "assertive" else "polite"
+    in
     div [ class "fixed top-20 right-4 z-notification space-y-2"
         , attribute "role" "status"
-        , attribute "aria-live" "polite"
+        , attribute "aria-live" ariaLive
         ]
         (List.map viewNotification notifications)
 
@@ -691,7 +695,8 @@ viewFighterStylePaths model =
     section [ class "space-y-4" ]
         [ div [ class "flex items-center justify-between mb-4" ]
             [ h2 [ class "text-2xl font-bold text-white" ]
-                [ i [ class "fas fa-route mr-2 text-purple-400" ] []
+                [ i [ class "fas fa-route mr-2 text-purple-400", attribute "aria-hidden" "true" ] []
+                , span [ class "sr-only" ] [ text "Navigate to fighter paths" ]
                 , text "Choose Your Path"
                 ]
             , button
@@ -777,6 +782,7 @@ viewTodaysPlan model =
         [ div [ class "flex items-center justify-between mb-6" ]
             [ h2 [ class "text-xl font-bold text-white" ]
                 [ i [ class "fas fa-calendar-day mr-2 text-green-400", attribute "aria-hidden" "true" ] []
+                , span [ class "sr-only" ] [ text "View today's training schedule" ]
                 , text "Today's Training Plan"
                 ]
             , span [ class "text-sm text-gray-400" ] [ text "Tuesday, Nov 12" ]
@@ -851,6 +857,7 @@ viewWeeklyGoals model =
         [ div [ class "flex items-center justify-between mb-6" ]
             [ h2 [ class "text-xl font-bold text-white" ]
                 [ i [ class "fas fa-trophy mr-2 text-yellow-400", attribute "aria-hidden" "true" ] []
+                , span [ class "sr-only" ] [ text "View weekly training goals" ]
                 , text "Weekly Goals"
                 ]
             , button
