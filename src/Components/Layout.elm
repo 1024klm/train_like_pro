@@ -1,9 +1,10 @@
-module Components.Layout exposing (view, sidebar, mobileMenu, onPreventDefaultClick)
+module Components.Layout exposing (view, sidebar, mobileMenu)
 
 import Html exposing (Html, div, nav, ul, li, a, button, text, span, i, img, h1, h2, main_, select, option)
 import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title, value, selected, tabindex)
 import Html.Events as Events exposing (onClick, onInput)
 import Json.Decode as Decode
+import Router.Helpers exposing (onPreventDefaultClick)
 import Types exposing (..)
 import Router
 import Theme exposing (darkTheme)
@@ -135,7 +136,7 @@ mainNav model =
     in
     div [ class "flex-1 px-4 py-6 overflow-y-auto" ]
         [ ul [ class "space-y-2" ]
-            [ navItem model t.dashboard Dashboard "fas fa-tachometer-alt" False
+            [ navItemWithId "mobile-first-link" model t.dashboard Dashboard "fas fa-tachometer-alt" False
             , navItem model t.heroes (HeroesRoute Nothing) "fas fa-users" False
             , navItem model t.academies (Academies Nothing) "fas fa-university" False
             , navItem model t.events (Events AllEvents) "fas fa-calendar" False
@@ -145,7 +146,11 @@ mainNav model =
         ]
 
 navItem : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
-navItem model label route iconClass isAccented =
+navItem =
+    navItemWithId ""
+
+navItemWithId : String -> FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
+navItemWithId itemId model label route iconClass isAccented =
     let
         isActive = model.route == route
         baseClasses = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -157,11 +162,12 @@ navItem model label route iconClass isAccented =
             "text-gray-400 hover:bg-gray-800/50 hover:text-white border border-transparent hover:border-gray-700/50"
     in
     li []
-        [ a [ class (baseClasses ++ " " ++ activeClasses)
+        [ a ([ class (baseClasses ++ " " ++ activeClasses)
             , href (Router.toPath route)
             , onPreventDefaultClick (NavigateTo route)
             , if isActive then attribute "aria-current" "page" else class ""
-            ]
+            ] ++ (if String.isEmpty itemId then [] else [ id itemId ])
+            )
             [ i [ class (iconClass ++ " w-5 text-center transition-colors"), attribute "aria-hidden" "true" ] []
             , span [ class "font-medium" ] [ text label ]
             , if isActive then
@@ -255,6 +261,3 @@ escapeKeyDecoder msg =
         )
 
 
-onPreventDefaultClick : FrontendMsg -> Html.Attribute FrontendMsg
-onPreventDefaultClick msg =
-    Events.preventDefaultOn "click" (Decode.succeed ( msg, True ))

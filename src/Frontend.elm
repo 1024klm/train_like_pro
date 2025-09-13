@@ -23,7 +23,8 @@ import Router
 import Data
 import Pages.Dashboard
 import Pages.TrainingSession
-import Components.Layout exposing (onPreventDefaultClick)
+import Components.Layout
+import Router.Helpers exposing (onPreventDefaultClick)
 import Url
 import Time
 import Task
@@ -165,10 +166,10 @@ update msg model =
             let
                 newMenuState = not model.mobileMenuOpen
                 focusCmd =
-                    if not newMenuState then
-                        Task.attempt (\_ -> NoOpFrontendMsg) (Dom.focus "mobile-menu-toggle")
+                    if newMenuState then
+                        Task.attempt (\_ -> NoOpFrontendMsg) (Dom.focus "mobile-first-link")
                     else
-                        Cmd.none
+                        Task.attempt (\_ -> NoOpFrontendMsg) (Dom.focus "mobile-menu-toggle")
             in
             ( { model | mobileMenuOpen = newMenuState }, focusCmd )
 
@@ -1952,7 +1953,7 @@ fighterPathCard : String -> String -> String -> String -> Bool -> Int -> Html Ms
 fighterPathCard name title specialty slug isActive weeks =
     div
         [ onPreventDefaultClick (NavigateTo (StylePath slug))
-        , class ("relative bg-gray-800/50 backdrop-blur-sm rounded-xl p-5 border transition-all duration-300 cursor-pointer group " ++
+        , class ("fighter-path-card relative bg-gray-800/50 backdrop-blur-sm rounded-xl p-5 border transition-all duration-300 cursor-pointer group " ++
                  if isActive then
                     "border-purple-500/50 shadow-lg shadow-purple-500/20"
                  else

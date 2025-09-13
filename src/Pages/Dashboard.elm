@@ -3,7 +3,7 @@ module Pages.Dashboard exposing (view, viewDashboard)
 import Html exposing (..)
 import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title)
 import Html.Events exposing (onClick)
-import Components.Layout exposing (onPreventDefaultClick)
+import Router.Helpers exposing (onPreventDefaultClick)
 import Html.Lazy exposing (lazy, lazy2, lazy3)
 import Types exposing (..)
 import GameMechanics.XP as XP
@@ -142,7 +142,9 @@ viewActiveSessionCard model session =
           div [ class "flex items-center justify-between p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl" ]
             [ div [ class "flex items-center gap-3" ]
                 [ div [ class "w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse" ]
-                    [ i [ class "fas fa-play text-white" ] [] ]
+                    [ i [ class "fas fa-play text-white", attribute "aria-hidden" "true" ] []
+                    , span [ class "sr-only" ] [ text "Training active" ]
+                    ]
                 , div []
                     [ p [ class "text-sm font-medium text-green-400" ] [ text model.userConfig.t.trainingActive ]
                     , p [ class "text-2xl font-bold text-white" ] 
@@ -215,14 +217,17 @@ viewStartSessionPrompt : FrontendModel -> Html FrontendMsg
 viewStartSessionPrompt model =
     div [ class "text-center py-12" ]
         [ div [ class "w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6" ]
-            [ i [ class "fas fa-dumbbell text-white text-2xl" ] [] ]
+            [ i [ class "fas fa-dumbbell text-white text-2xl", attribute "aria-hidden" "true" ] []
+            , span [ class "sr-only" ] [ text "Ready to train" ]
+            ]
         , h3 [ class "text-2xl font-bold text-white mb-3" ] [ text model.userConfig.t.readyToTrain ]
         , p [ class "text-gray-400 mb-6" ] [ text model.userConfig.t.readyToTrainSubtitle ]
         , button 
             [ onClick StartSession
             , class "px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-lg hover:from-blue-600 hover:to-purple-600 transition-all transform hover:scale-105 hover:shadow-2xl"
             ]
-            [ i [ class "fas fa-play mr-3" ] []
+            [ i [ class "fas fa-play mr-3", attribute "aria-hidden" "true" ] []
+            , span [ class "sr-only" ] [ text "Start training session" ]
             , text model.userConfig.t.startTraining
             ]
         ]
