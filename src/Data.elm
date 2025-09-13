@@ -286,6 +286,8 @@ gordonTechniques =
       , videoUrl = Just "https://example.com/gordon-back"
       , xpValue = 200
       , prerequisites = []
+      , masteryLevel = Types.NotStarted
+      , relatedFighters = [ "gordon-ryan" ]
       }
     , { id = "gordon-leg-system"
       , name = "Leg Lock System"
@@ -296,6 +298,8 @@ gordonTechniques =
       , videoUrl = Just "https://example.com/gordon-legs"
       , xpValue = 250
       , prerequisites = []
+      , masteryLevel = Types.NotStarted
+      , relatedFighters = [ "gordon-ryan", "craig-jones" ]
       }
     ]
 
@@ -311,6 +315,8 @@ buchechaTechniques =
       , videoUrl = Nothing
       , xpValue = 150
       , prerequisites = []
+      , masteryLevel = Types.NotStarted
+      , relatedFighters = [ "marcus-buchecha" ]
       }
     ]
 
@@ -326,6 +332,8 @@ rafaTechniques =
       , videoUrl = Just "https://example.com/rafa-berimbolo"
       , xpValue = 300
       , prerequisites = []
+      , masteryLevel = Types.NotStarted
+      , relatedFighters = [ "rafael-mendes", "mikey-galvao" ]
       }
     ]
 
@@ -341,6 +349,8 @@ galvaoTechniques =
       , videoUrl = Nothing
       , xpValue = 150
       , prerequisites = []
+      , masteryLevel = Types.NotStarted
+      , relatedFighters = [ "andre-galvao" ]
       }
     ]
 
@@ -356,6 +366,8 @@ loTechniques =
       , videoUrl = Just "https://example.com/lo-knee-cut"
       , xpValue = 150
       , prerequisites = []
+      , masteryLevel = Types.NotStarted
+      , relatedFighters = [ "leandro-lo" ]
       }
     ]
 

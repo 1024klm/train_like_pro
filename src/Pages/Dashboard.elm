@@ -331,7 +331,7 @@ viewTechniqueProgress model =
         masteredCount = 
             model.userProgress.techniqueMastery
                 |> Dict.values
-                |> List.filter (\t -> t.mastery == MasteryComplete)
+                |> List.filter (\t -> t.mastery == Mastered)
                 |> List.length
         masteryPercentage = if totalTechniques > 0 then
                                toFloat masteredCount / toFloat totalTechniques * 100
@@ -717,8 +717,9 @@ masteryBadge label count colorClass =
 countMastery : TechniqueMastery -> { learning : Int, practicing : Int, proficient : Int, advanced : Int, mastered : Int } -> { learning : Int, practicing : Int, proficient : Int, advanced : Int, mastered : Int }
 countMastery technique counts =
     case technique.mastery of
+        NotStarted -> counts  -- Not started techniques don't count
         Learning -> { counts | learning = counts.learning + 1 }
         Practicing -> { counts | practicing = counts.practicing + 1 }
         Proficient -> { counts | proficient = counts.proficient + 1 }
-        MasteryAdvanced -> { counts | advanced = counts.advanced + 1 }
-        MasteryComplete -> { counts | mastered = counts.mastered + 1 }
+        Advanced -> { counts | advanced = counts.advanced + 1 }
+        Mastered -> { counts | mastered = counts.mastered + 1 }

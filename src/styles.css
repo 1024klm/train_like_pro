@@ -341,21 +341,32 @@
     @apply opacity-0 group-hover:opacity-100 transition-opacity duration-200;
   }
 
-  /* Dark Mode Scrollbar */
-  .dark::-webkit-scrollbar {
-    width: 12px;
+  /* Global Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
   }
 
-  .dark::-webkit-scrollbar-track {
-    @apply bg-gray-800;
+  ::-webkit-scrollbar-track {
+    background: rgba(17, 24, 39, 0.5);
+    border-radius: 5px;
   }
 
-  .dark::-webkit-scrollbar-thumb {
-    @apply bg-gray-600 rounded-full;
+  ::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
   }
 
-  .dark::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500;
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.7);
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(75, 85, 99, 0.5) rgba(17, 24, 39, 0.5);
   }
 
   /* Print Styles */

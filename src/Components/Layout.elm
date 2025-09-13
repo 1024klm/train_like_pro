@@ -10,8 +10,10 @@ import I18n
 
 view : FrontendModel -> Html FrontendMsg -> Html FrontendMsg
 view model content =
-    div [ class "min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" ]
-        [ sidebar model
+    div [ class "min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950" ]
+        [ -- Desktop sidebar
+          div [ class "hidden lg:block" ]
+            [ sidebar model ]
         , main_ model content
         , if model.mobileMenuOpen then mobileMenu model else text ""
         ]
@@ -26,7 +28,7 @@ main_ model content =
 
 topBar : FrontendModel -> Html FrontendMsg
 topBar model =
-    div [ class "sticky top-0 z-40 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700/50" ]
+    div [ class "sticky top-0 z-20 bg-gray-900/90 backdrop-blur-md border-b border-gray-800/50 shadow-lg" ]
         [ div [ class "flex items-center justify-between p-4" ]
             [ div [ class "flex items-center gap-4" ]
                 [ button 
@@ -101,7 +103,7 @@ profileSection model =
 
 sidebar : FrontendModel -> Html FrontendMsg
 sidebar model =
-    nav [ class "fixed left-0 top-0 z-50 w-72 h-full bg-gray-900 border-r border-gray-800 transform transition-transform duration-300 lg:translate-x-0 -translate-x-full" ]
+    nav [ class "fixed left-0 top-0 z-30 w-72 h-full bg-gray-900/95 backdrop-blur-md border-r border-gray-800/50 shadow-2xl" ]
         [ div [ class "flex flex-col h-full" ]
             [ header_ model
             , mainNav model  
@@ -129,11 +131,11 @@ mainNav model =
     let
         t = model.userConfig.t
     in
-    div [ class "flex-1 px-4 py-6" ]
+    div [ class "flex-1 px-4 py-6 overflow-y-auto" ]
         [ ul [ class "space-y-2" ]
             [ navItem model t.dashboard Dashboard "fas fa-tachometer-alt" False
             , navItem model t.heroes (HeroesRoute Nothing) "fas fa-users" False
-            , navItem model t.academies (Academies Nothing) "fas fa-university" False  
+            , navItem model t.academies (Academies Nothing) "fas fa-university" False
             , navItem model t.events (Events AllEvents) "fas fa-calendar" False
             , navItem model t.training Training "fas fa-dumbbell" True
             , navItem model t.profile Profile "fas fa-user" False
@@ -144,13 +146,13 @@ navItem : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
 navItem model label route iconClass isAccented =
     let
         isActive = model.route == route
-        baseClasses = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group"
-        activeClasses = if isActive then 
-            "bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 text-white shadow-lg"
+        baseClasses = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group cursor-pointer"
+        activeClasses = if isActive then
+            "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-blue-500/40 text-white shadow-lg shadow-blue-500/20"
           else if isAccented then
-            "bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 text-orange-300 hover:from-orange-500/20 hover:to-red-500/20 hover:text-orange-200"
+            "bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-transparent hover:border-orange-500/30 text-orange-300 hover:from-orange-500/20 hover:to-red-500/20 hover:text-orange-200"
           else
-            "text-gray-400 hover:bg-gray-800 hover:text-white transition-all duration-200"
+            "text-gray-400 hover:bg-gray-800/50 hover:text-white border border-transparent hover:border-gray-700/50"
     in
     li []
         [ a [ class (baseClasses ++ " " ++ activeClasses)
@@ -204,9 +206,9 @@ supportSection model =
 
 mobileMenu : FrontendModel -> Html FrontendMsg
 mobileMenu model =
-    div [ class "lg:hidden fixed inset-0 z-50" ]
-        [ div [ class "fixed inset-0 bg-black/50", onClick ToggleMobileMenu ] []
-        , nav [ class "fixed left-0 top-0 w-80 h-full bg-gray-900 border-r border-gray-700/50 transform transition-transform duration-300" ]
+    div [ class "lg:hidden fixed inset-0 z-40" ]
+        [ div [ class "fixed inset-0 bg-black/70 backdrop-blur-sm", onClick ToggleMobileMenu ] []
+        , nav [ class "fixed left-0 top-0 w-80 max-w-[85vw] h-full bg-gray-900/95 backdrop-blur-md border-r border-gray-800/50 shadow-2xl transform transition-transform duration-300 translate-x-0" ]
             [ div [ class "flex flex-col h-full" ]
                 [ div [ class "flex items-center justify-between p-4 border-b border-gray-700/50" ]
                     [ h2 [ class "text-lg font-bold text-white" ] [ text model.userConfig.t.navigation ]

@@ -62,8 +62,8 @@ calculateXP activity context =
         
         masteryPenalty =
             case context.currentMastery of
-                MasteryComplete -> 0.5  -- Moins d'XP sur techniques ma\u00eetris\u00e9es
-                MasteryAdvanced -> 0.75
+                Mastered -> 0.5  -- Moins d'XP sur techniques ma\u00eetris\u00e9es
+                Advanced -> 0.75
                 Proficient -> 0.9
                 _ -> 1.0
                 

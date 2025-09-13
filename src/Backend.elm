@@ -228,5 +228,8 @@ routeToAnalyticsKey route =
         Training -> "training"
         TrainingView -> "training-session"
         RoadmapView id -> "roadmap:" ++ id
+        StylePath slug -> "style:" ++ slug
+        TechniqueLibrary -> "techniques"
+        Progress -> "progress"
         Profile -> "profile"
         NotFound -> "404"

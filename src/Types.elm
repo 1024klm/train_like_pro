@@ -36,6 +36,9 @@ type Route
     | Training
     | TrainingView
     | RoadmapView String
+    | StylePath String -- New: Path based on fighter style
+    | TechniqueLibrary
+    | Progress
     | Profile
     | NotFound
 
@@ -127,6 +130,8 @@ type alias Technique =
     , videoUrl : Maybe String
     , xpValue : Int -- XP gagné par pratique
     , prerequisites : List String -- IDs des techniques requises
+    , masteryLevel : MasteryLevel -- Nouveau: niveau de maîtrise
+    , relatedFighters : List String -- Combattants qui utilisent cette technique
     }
 
 
@@ -162,6 +167,15 @@ type Difficulty
     | Intermediate
     | DifficultyAdvanced
     | Expert
+
+
+type MasteryLevel
+    = NotStarted
+    | Learning
+    | Practicing
+    | Proficient
+    | Advanced
+    | Mastered
 
 
 type alias SocialMedia =
@@ -521,12 +535,57 @@ type alias TechniqueMastery =
     }
 
 
-type MasteryLevel
-    = Learning      -- 0-25% (Bronze icon)
-    | Practicing    -- 25-50% (Silver icon)
-    | Proficient    -- 50-75% (Gold icon)
-    | MasteryAdvanced      -- 75-90% (Platinum icon)
-    | MasteryComplete      -- 90-100% (Diamond icon)
+-- Fighter Style Paths (Gordon Ryan, Mikey Galvao, etc.)
+
+type alias FighterStylePath =
+    { id : String
+    , fighterName : String -- "Gordon Ryan", "Mikey Galvao", etc.
+    , styleDescription : String
+    , signature : String -- "King of leg locks", "Berimbolo master"
+    , techniques : List String -- IDs des techniques
+    , roadmap : TechniqueRoadmap
+    , estimatedTime : Int -- Semaines pour maîtriser
+    , difficulty : Difficulty
+    }
+
+
+type alias FighterTrainingPlan =
+    { id : String
+    , userId : String
+    , activePaths : List String -- Fighter style paths actifs
+    , weeklySchedule : WeeklyTrainingSchedule
+    , techniquesToPractice : List PlannedTechnique
+    , completedTechniques : Set String
+    , currentFocus : Maybe String -- Technique ID en focus cette semaine
+    }
+
+
+type alias WeeklyTrainingSchedule =
+    { monday : Maybe TrainingSessionPlan
+    , tuesday : Maybe TrainingSessionPlan
+    , wednesday : Maybe TrainingSessionPlan
+    , thursday : Maybe TrainingSessionPlan
+    , friday : Maybe TrainingSessionPlan
+    , saturday : Maybe TrainingSessionPlan
+    , sunday : Maybe TrainingSessionPlan
+    }
+
+
+type alias TrainingSessionPlan =
+    { techniques : List String -- Technique IDs
+    , duration : Int -- Minutes
+    , type_ : SessionType
+    , notes : String
+    }
+
+
+type alias PlannedTechnique =
+    { techniqueId : String
+    , scheduledDate : Time.Posix
+    , repetitions : Int
+    , completed : Bool
+    , xpEarned : Int
+    }
 
 
 type alias TechniqueNote =

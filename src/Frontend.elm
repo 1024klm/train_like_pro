@@ -11,6 +11,7 @@ import Effect.Subscription as Subscription exposing (Subscription)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Html.Attributes as Attr
 import Html.Keyed as Keyed
 import Html.Lazy exposing (lazy, lazy2, lazy3)
 import I18n
@@ -345,8 +346,8 @@ subscriptions model =
 view : Model -> Browser.Document Msg
 view model =
     { title = viewTitle model
-    , body = 
-        [ div [ class "dark" ]
+    , body =
+        [ div [ class "min-h-screen bg-gray-950" ]
             [ Components.Layout.view model (viewPage model)
             , viewNotifications model.notifications
             , viewModals model
@@ -381,27 +382,17 @@ viewTitle model =
                 |> Maybe.withDefault "Event"
                 |> (\name -> name ++ " - BJJ Heroes")
         Training -> "Training - BJJ Heroes"
+        StylePath slug -> "Fighter Path: " ++ slug ++ " - Train Like Pro"
+        TechniqueLibrary -> "Technique Library - Train Like Pro"
+        Progress -> "Progress Tracking - Train Like Pro"
         Profile -> "Profile - BJJ Heroes"
         NotFound -> "404 - BJJ Heroes"
 
 
+-- Header removed - now using Layout sidebar navigation
 viewHeader : Model -> Html Msg
 viewHeader model =
-    header 
-        [ class "sticky top-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800 shadow-sm" ]
-        [ div [ class "container mx-auto px-4 py-4" ]
-            [ div [ class "flex items-center justify-between" ]
-                [ viewLogo
-                , viewDesktopNav model
-                , viewHeaderActions model
-                , viewMobileMenuButton model
-                ]
-            , if model.mobileMenuOpen then
-                viewMobileMenu model
-              else
-                text ""
-            ]
-        ]
+    text ""
 
 
 viewLogo : Html Msg
@@ -554,7 +545,7 @@ mobileNavLink msg label icon =
 
 viewNotifications : List Notification -> Html Msg
 viewNotifications notifications =
-    div [ class "fixed top-20 right-4 z-50 space-y-2" ]
+    div [ class "fixed top-20 right-4 z-[60] space-y-2" ]
         (List.map viewNotification notifications)
 
 
@@ -617,6 +608,15 @@ viewPage model =
         Training ->
             viewTrainingPage model
 
+        StylePath slug ->
+            viewStylePathPage model slug
+
+        TechniqueLibrary ->
+            viewTechniqueLibraryPage model
+
+        Progress ->
+            viewProgressPage model
+
         Profile ->
             viewProfilePage model
 
@@ -626,67 +626,82 @@ viewPage model =
 
 viewHomePage : Model -> Html Msg
 viewHomePage model =
-    div [ class "animate-fade-in" ]
-        [ viewHeroSection model
-        , viewFeaturedHeroes model
-        , viewUpcomingEvents model
-        , viewTopAcademies model
-        , viewCallToAction model
+    div [ class "animate-fade-in space-y-6" ]
+        [ viewTrainingDashboard model
+        , viewFighterStylePaths model
+        , viewTodaysPlan model
+        , viewProgressStats model
+        , viewWeeklyGoals model
         ]
 
 
-viewHeroSection : Model -> Html Msg
-viewHeroSection model =
-    section [ class "relative h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-900 via-red-900 to-black" ]
-        [ div [ class "absolute inset-0 bg-black/40" ] []
-        , div [ class "relative z-10 text-center px-4 animate-slide-up" ]
-            [ h1 [ class "text-5xl md:text-7xl font-bold text-white mb-6 drop-shadow-2xl" ]
-                [ text "Train Like a "
-                , span [ class "text-red-400 drop-shadow-2xl" ] [ text "Champion" ]
-                ]
-            , p [ class "text-xl md:text-2xl text-gray-100 mb-8 max-w-3xl mx-auto drop-shadow-lg" ]
-                [ text "Learn from the greatest BJJ athletes in history. Master their techniques, follow their training methods, and elevate your game." ]
-            , div [ class "flex flex-col sm:flex-row gap-4 justify-center" ]
-                [ button
-                    [ onClick (NavigateTo (HeroesRoute Nothing))
-                    , class "px-8 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-xl transform hover:scale-105 transition-all duration-200"
+viewTrainingDashboard : Model -> Html Msg
+viewTrainingDashboard model =
+    section [ class "bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-red-600/20 backdrop-blur-sm rounded-2xl p-6 lg:p-8 border border-blue-500/30" ]
+        [ div [ class "flex flex-col lg:flex-row items-center justify-between gap-6" ]
+            [ div [ class "flex-1" ]
+                [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-3" ]
+                    [ text "Welcome back, "
+                    , span [ class "bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent" ]
+                        [ text (Maybe.withDefault "Warrior" (Maybe.map .username model.userProfile)) ]
                     ]
-                    [ text "Explore Heroes" ]
-                , button
-                    [ onClick (NavigateTo Training)
-                    , class "px-8 py-4 bg-white/10 backdrop-blur hover:bg-white/20 text-white font-bold rounded-lg shadow-xl transform hover:scale-105 transition-all duration-200 border border-white/30"
+                , p [ class "text-gray-300 mb-4" ]
+                    [ text "Ready to master new techniques? Your journey continues today." ]
+                , div [ class "flex flex-wrap gap-4" ]
+                    [ button
+                        [ onClick StartSession
+                        , class "px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+                        ]
+                        [ i [ class "fas fa-play mr-2" ] []
+                        , text "Start Today's Training"
+                        ]
+                    , button
+                        [ onClick (OpenModal TechniqueSelectionModal)
+                        , class "px-6 py-3 bg-gray-800/50 backdrop-blur text-white font-medium rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-all duration-200"
+                        ]
+                        [ i [ class "fas fa-plus mr-2" ] []
+                        , text "Add Technique"
+                        ]
                     ]
-                    [ text "Start Training" ]
                 ]
+            , div [ class "text-center" ]
+                [ viewLevelProgress model ]
             ]
-        , div [ class "absolute bottom-10 left-1/2 transform -translate-x-1/2 animate-bounce" ]
-            [ span [ class "text-white text-3xl drop-shadow-lg" ] [ text "↓" ] ]
         ]
 
 
-viewFeaturedHeroes : Model -> Html Msg
-viewFeaturedHeroes model =
-    section [ class "py-20 px-4 bg-gray-50 dark:bg-gray-900" ]
-        [ div [ class "container mx-auto" ]
-            [ h2 [ class "text-4xl font-bold text-center mb-4 text-gray-900 dark:text-white" ] [ text "Featured Heroes" ]
-            , p [ class "text-center text-gray-600 dark:text-gray-400 mb-12" ] [ text "Learn from the legends who shaped the sport" ]
-            , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
-                (model.heroes
-                    |> Dict.values
-                    |> List.take 6
-                    |> List.map (viewHeroCard model)
-                )
+viewFighterStylePaths : Model -> Html Msg
+viewFighterStylePaths model =
+    section [ class "space-y-4" ]
+        [ div [ class "flex items-center justify-between mb-4" ]
+            [ h2 [ class "text-2xl font-bold text-white" ]
+                [ i [ class "fas fa-route mr-2 text-purple-400" ] []
+                , text "Choose Your Path"
+                ]
+            , button
+                [ onClick (NavigateTo (HeroesRoute Nothing))
+                , class "text-purple-400 hover:text-purple-300 text-sm font-medium"
+                ]
+                [ text "View All Fighters →" ]
+            ]
+        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" ]
+            [ fighterPathCard "Gordon Ryan" "The King" "Leg locks & Back attacks" "gordon-ryan" True 28
+            , fighterPathCard "Mikey Galvao" "Berimbolo Master" "Berimbolos & Back takes" "mikey-galvao" False 24
+            , fighterPathCard "Craig Jones" "Z-Guard Specialist" "Z-Guard & Leg entanglements" "craig-jones" False 20
+            , fighterPathCard "Marcelo Garcia" "The GOAT" "Butterfly guard & Guillotines" "marcelo-garcia" False 32
+            , fighterPathCard "Roger Gracie" "Fundamentals King" "Closed guard & Mount" "roger-gracie" False 16
+            , fighterPathCard "Leandro Lo" "Spider Master" "Spider guard & Passing" "leandro-lo" False 24
             ]
         ]
 
 
 viewHeroCard : Model -> Hero -> Html Msg
 viewHeroCard model hero =
-    div 
+    div
         [ onClick (SelectHero hero.id)
         , class "group cursor-pointer transform hover:scale-105 transition-all duration-300"
         ]
-        [ div [ class "relative overflow-hidden rounded-xl shadow-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700" ]
+        [ div [ class "relative overflow-hidden rounded-xl shadow-xl bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 hover:border-blue-500/50 transition-all duration-300" ]
             [ div [ class "h-64 bg-gradient-to-br from-red-500 to-red-700 relative" ]
                 [ div [ class "absolute inset-0 bg-black/40" ] []
                 , div [ class "absolute bottom-4 left-4 text-white z-10" ]
@@ -740,25 +755,40 @@ weightClassToString weight =
         UltraHeavy -> "Ultra Heavy"
 
 
-viewUpcomingEvents : Model -> Html Msg
-viewUpcomingEvents model =
-    section [ class "py-20 px-4 bg-white dark:bg-gray-800" ]
-        [ div [ class "container mx-auto" ]
-            [ h2 [ class "text-4xl font-bold text-center mb-12 text-gray-900 dark:text-white" ] [ text "Upcoming Events" ]
-            , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
-                (model.events
-                    |> Dict.values
-                    |> List.filter (\e -> e.status == EventUpcoming)
-                    |> List.take 3
-                    |> List.map viewEventCard
-                )
+viewTodaysPlan : Model -> Html Msg
+viewTodaysPlan model =
+    section [ class "bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50" ]
+        [ div [ class "flex items-center justify-between mb-6" ]
+            [ h2 [ class "text-xl font-bold text-white" ]
+                [ i [ class "fas fa-calendar-day mr-2 text-green-400" ] []
+                , text "Today's Training Plan"
+                ]
+            , span [ class "text-sm text-gray-400" ] [ text "Tuesday, Nov 12" ]
+            ]
+        , div [ class "space-y-3" ]
+            [ techniqueCheckItem "Heel Hook" "gordon-ryan" False 50
+            , techniqueCheckItem "Back Take from Leg Entanglement" "gordon-ryan" False 75
+            , techniqueCheckItem "RNC Finish Details" "gordon-ryan" True 100
+            ]
+        , div [ class "mt-6 pt-6 border-t border-gray-700/50" ]
+            [ div [ class "flex items-center justify-between" ]
+                [ div [ class "text-sm text-gray-400" ]
+                    [ text "Session Progress: "
+                    , span [ class "text-green-400 font-bold" ] [ text "1/3 completed" ]
+                    ]
+                , button
+                    [ onClick (NavigateTo TrainingView)
+                    , class "px-4 py-2 bg-green-600/20 border border-green-500/30 text-green-400 rounded-lg hover:bg-green-600/30 transition-all"
+                    ]
+                    [ text "View Full Schedule" ]
+                ]
             ]
         ]
 
 
 viewEventCard : Event -> Html Msg
 viewEventCard event =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-700" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-gray-700/50 hover:border-blue-500/50" ]
         [ div [ class "h-48 bg-gradient-to-br from-blue-500 to-blue-700 relative" ]
             [ div [ class "absolute inset-0 flex items-center justify-center" ]
                 [ span [ class "text-6xl drop-shadow-lg" ] [ text "🏆" ] ]
@@ -772,24 +802,19 @@ viewEventCard event =
         ]
 
 
-viewTopAcademies : Model -> Html Msg
-viewTopAcademies model =
-    section [ class "py-20 px-4 bg-gray-50 dark:bg-gray-900" ]
-        [ div [ class "container mx-auto" ]
-            [ h2 [ class "text-4xl font-bold text-center mb-12 text-gray-900 dark:text-white" ] [ text "Top Academies" ]
-            , div [ class "grid grid-cols-1 md:grid-cols-2 gap-6" ]
-                (model.academies
-                    |> Dict.values
-                    |> List.take 2
-                    |> List.map viewAcademyCard
-                )
-            ]
+viewProgressStats : Model -> Html Msg
+viewProgressStats model =
+    section [ class "grid grid-cols-2 lg:grid-cols-4 gap-4" ]
+        [ progressStatCard "Techniques Learned" "12" "/45" "fas fa-brain" "from-blue-500 to-cyan-500"
+        , progressStatCard "Training Streak" (String.fromInt model.userProgress.currentStreak) " days" "fas fa-fire" "from-orange-500 to-red-500"
+        , progressStatCard "This Week XP" "850" "/1000" "fas fa-star" "from-purple-500 to-pink-500"
+        , progressStatCard "Belt Progress" "65" "%" "fas fa-award" "from-green-500 to-emerald-500"
         ]
 
 
 viewAcademyCard : Academy -> Html Msg
 viewAcademyCard academy =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow border border-gray-200 dark:border-gray-700" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border border-gray-700/50 hover:border-purple-500/50" ]
         [ div [ class "flex items-start space-x-4" ]
             [ div [ class "w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center shadow-md" ]
                 [ span [ class "text-3xl drop-shadow-md" ] [ text "🏛️" ] ]
@@ -804,28 +829,50 @@ viewAcademyCard academy =
         ]
 
 
-viewCallToAction : Model -> Html Msg
-viewCallToAction model =
-    section [ class "py-20 px-4 bg-gradient-to-r from-red-600 to-red-800" ]
-        [ div [ class "container mx-auto text-center" ]
-            [ h2 [ class "text-4xl font-bold text-white mb-6 drop-shadow-lg" ] [ text "Ready to Level Up?" ]
-            , p [ class "text-xl text-red-100 mb-8 max-w-2xl mx-auto" ]
-                [ text "Join thousands of practitioners learning from the best in the world" ]
-            , button
-                [ onClick (NavigateTo Training)
-                , class "px-8 py-4 bg-white text-red-600 font-bold rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+viewWeeklyGoals : Model -> Html Msg
+viewWeeklyGoals model =
+    section [ class "bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50" ]
+        [ div [ class "flex items-center justify-between mb-6" ]
+            [ h2 [ class "text-xl font-bold text-white" ]
+                [ i [ class "fas fa-trophy mr-2 text-yellow-400" ] []
+                , text "Weekly Goals"
                 ]
-                [ text "Start Your Journey" ]
+            , button
+                [ onClick (ShowNotification Info "Goal customization coming soon!")
+                , class "text-gray-400 hover:text-white"
+                ]
+                [ i [ class "fas fa-cog" ] [] ]
+            ]
+        , div [ class "space-y-4" ]
+            [ weeklyGoalItem "Complete 5 training sessions" 3 5 "bg-blue-500"
+            , weeklyGoalItem "Master 3 new techniques" 1 3 "bg-purple-500"
+            , weeklyGoalItem "Log 300 minutes of mat time" 180 300 "bg-green-500"
+            , weeklyGoalItem "Review 10 competition videos" 6 10 "bg-orange-500"
+            ]
+        , div [ class "mt-6 p-4 bg-gradient-to-r from-yellow-500/10 to-orange-500/10 rounded-xl border border-yellow-500/20" ]
+            [ div [ class "flex items-center justify-between" ]
+                [ div []
+                    [ p [ class "text-sm text-yellow-400 font-medium" ] [ text "Weekly Bonus XP" ]
+                    , p [ class "text-2xl font-bold text-white" ] [ text "+500 XP" ]
+                    ]
+                , div [ class "text-right" ]
+                    [ p [ class "text-xs text-gray-400" ] [ text "Complete all goals" ]
+                    , p [ class "text-sm text-yellow-400" ] [ text "60% complete" ]
+                    ]
+                ]
             ]
         ]
 
 
 viewHeroesPage : Model -> Maybe HeroFilter -> Html Msg
 viewHeroesPage model filter =
-    div [ class "container mx-auto px-4 py-8" ]
-        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "BJJ Heroes" ]
+    div [ class "space-y-6" ]
+        [ div [ class "bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm rounded-2xl p-8 border border-blue-500/30" ]
+            [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-2" ] [ text "BJJ Heroes" ]
+            , p [ class "text-gray-300" ] [ text "Learn from the legends who shaped the sport" ]
+            ]
         , viewHeroFilters model filter
-        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" ]
+        , div [ class "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6" ]
             (model.heroes
                 |> Dict.values
                 |> filterHeroes filter
@@ -881,14 +928,14 @@ viewHeroDetailPage : Model -> String -> Html Msg
 viewHeroDetailPage model heroId =
     case Dict.get heroId model.heroes of
         Just hero ->
-            div []
+            div [ class "space-y-6" ]
                 [ viewHeroHeader hero model
                 , viewHeroContent hero model
                 ]
 
         Nothing ->
-            div [ class "container mx-auto px-4 py-8" ]
-                [ p [ class "text-center text-gray-500" ] [ text "Hero not found" ] ]
+            div [ class "p-8 text-center" ]
+                [ p [ class "text-gray-400" ] [ text "Hero not found" ] ]
 
 
 viewHeroHeader : Hero -> Model -> Html Msg
@@ -917,8 +964,8 @@ viewHeroHeader hero model =
 
 viewHeroContent : Hero -> Model -> Html Msg
 viewHeroContent hero model =
-    div [ class "container mx-auto px-4 py-8" ]
-        [ div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
+    div [ class "space-y-6 lg:space-y-0" ]
+        [ div [ class "grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" ]
             [ div [ class "lg:col-span-2 space-y-8" ]
                 [ viewHeroBio hero
                 , viewHeroRecord hero
@@ -936,7 +983,7 @@ viewHeroContent hero model =
 
 viewHeroBio : Hero -> Html Msg
 viewHeroBio hero =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Biography" ]
         , p [ class "text-gray-600 dark:text-gray-300 leading-relaxed" ] [ text hero.bio ]
         ]
@@ -944,7 +991,7 @@ viewHeroBio hero =
 
 viewHeroRecord : Hero -> Html Msg
 viewHeroRecord hero =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Competition Record" ]
         , div [ class "grid grid-cols-3 gap-4 mb-6" ]
             [ recordStat "Wins" (String.fromInt hero.record.wins) "text-green-600"
@@ -971,7 +1018,7 @@ recordStat label value colorClass =
 
 viewHeroTechniques : Hero -> Html Msg
 viewHeroTechniques hero =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Signature Techniques" ]
         , div [ class "space-y-4" ]
             (List.map viewTechnique hero.techniques)
@@ -988,7 +1035,7 @@ viewTechnique technique =
 
 viewHeroVideos : Hero -> Html Msg
 viewHeroVideos hero =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Videos" ]
         , div [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
             (List.map viewVideoCard hero.videos)
@@ -997,7 +1044,7 @@ viewHeroVideos hero =
 
 viewVideoCard : Video -> Html Msg
 viewVideoCard video =
-    div [ class "bg-gray-100 dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" ]
+    div [ class "bg-gray-700/50 backdrop-blur-sm rounded-lg p-4 hover:shadow-md transition-all cursor-pointer border border-gray-600/30 hover:border-blue-500/50" ]
         [ h3 [ class "font-medium dark:text-white mb-2" ] [ text video.title ]
         , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text video.date ]
         ]
@@ -1005,7 +1052,7 @@ viewVideoCard video =
 
 viewHeroStats : Hero -> Html Msg
 viewHeroStats hero =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Statistics" ]
         , div [ class "space-y-3" ]
             [ statRow "Win Rate" (String.fromFloat hero.stats.winRate ++ "%")
@@ -1027,7 +1074,7 @@ statRow label value =
 
 viewHeroSocial : Hero -> Html Msg
 viewHeroSocial hero =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Social Media" ]
         , div [ class "space-y-3" ]
             [ case hero.socialMedia.instagram of
@@ -1062,7 +1109,7 @@ socialLink platform handle icon =
 
 viewHeroAchievements : Hero -> Html Msg
 viewHeroAchievements hero =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Achievements" ]
         , div [ class "space-y-3" ]
             (List.map viewAchievement hero.achievements)
@@ -1082,9 +1129,12 @@ viewAchievement achievement =
 
 viewAcademiesPage : Model -> Maybe String -> Html Msg
 viewAcademiesPage model location =
-    div [ class "container mx-auto px-4 py-8" ]
-        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "BJJ Academies" ]
-        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
+    div [ class "space-y-6" ]
+        [ div [ class "bg-gradient-to-r from-purple-600/20 to-pink-600/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/30" ]
+            [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-2" ] [ text "BJJ Academies" ]
+            , p [ class "text-gray-300" ] [ text "Find the best training facilities worldwide" ]
+            ]
+        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6" ]
             (model.academies
                 |> Dict.values
                 |> List.map (viewAcademyListCard model)
@@ -1094,9 +1144,9 @@ viewAcademiesPage model location =
 
 viewAcademyListCard : Model -> Academy -> Html Msg
 viewAcademyListCard model academy =
-    div 
+    div
         [ onClick (NavigateTo (AcademyDetail academy.id))
-        , class "bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer"
+        , class "bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer border border-gray-700/50 hover:border-purple-500/50"
         ]
         [ h3 [ class "text-xl font-bold mb-2 dark:text-white" ] [ text academy.name ]
         , p [ class "text-gray-600 dark:text-gray-400 mb-2" ] 
@@ -1230,10 +1280,13 @@ viewAcademyMembers academy =
 
 viewEventsPage : Model -> EventsFilter -> Html Msg
 viewEventsPage model filter =
-    div [ class "container mx-auto px-4 py-8" ]
-        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "BJJ Events" ]
+    div [ class "space-y-6" ]
+        [ div [ class "bg-gradient-to-r from-green-600/20 to-teal-600/20 backdrop-blur-sm rounded-2xl p-8 border border-green-500/30" ]
+            [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-2" ] [ text "BJJ Events" ]
+            , p [ class "text-gray-300" ] [ text "Tournaments, seminars, and training camps" ]
+            ]
         , viewEventFilters filter
-        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" ]
+        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6" ]
             (model.events
                 |> Dict.values
                 |> filterEvents filter
@@ -1279,9 +1332,9 @@ filterEvents filter events =
 
 viewEventListCard : Model -> Event -> Html Msg
 viewEventListCard model event =
-    div 
+    div
         [ onClick (NavigateTo (EventDetail event.id))
-        , class "bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer"
+        , class "bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer border border-gray-700/50 hover:border-green-500/50"
         ]
         [ div [ class "h-32 bg-gradient-to-br from-blue-400 to-blue-600 relative" ]
             [ div [ class "absolute inset-0 flex items-center justify-center" ]
@@ -1468,9 +1521,9 @@ linkButton label icon =
 
 viewTrainingPage : Model -> Html Msg
 viewTrainingPage model =
-    div [ class "container mx-auto px-4 py-8" ]
-        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "Training Plans" ]
-        , div [ class "bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-8 text-white mb-8" ]
+    div [ class "space-y-6" ]
+        [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-8" ] [ text "Training Plans" ]
+        , div [ class "bg-gradient-to-r from-blue-600/30 to-purple-600/30 backdrop-blur-sm rounded-2xl p-6 lg:p-8 text-white border border-blue-500/30" ]
             [ h2 [ class "text-3xl font-bold mb-4" ] [ text "Start Your Journey" ]
             , p [ class "text-lg mb-6 opacity-90" ] [ text "Choose a hero and follow their training methodology" ]
             , button 
@@ -1497,7 +1550,7 @@ viewTrainingStats model =
 
 statCard : String -> String -> String -> String -> Html Msg
 statCard label value icon bgColor =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ div [ class "flex items-center justify-between mb-2" ]
             [ span [ class ("text-3xl p-2 rounded-lg " ++ bgColor ++ " bg-opacity-20") ] [ text icon ]
             , p [ class "text-2xl font-bold dark:text-white" ] [ text value ]
@@ -1508,7 +1561,7 @@ statCard label value icon bgColor =
 
 viewRecentSessions : Model -> Html Msg
 viewRecentSessions model =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Recent Sessions" ]
         , if List.isEmpty model.trainingSessions then
             div [ class "text-center py-8" ]
@@ -1553,8 +1606,8 @@ sessionTypeToString sessionType =
 
 viewProfilePage : Model -> Html Msg
 viewProfilePage model =
-    div [ class "container mx-auto px-4 py-8" ]
-        [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text "Profile" ]
+    div [ class "space-y-6" ]
+        [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-8" ] [ text "Profile" ]
         , case model.userProfile of
             Just profile ->
                 viewUserProfile profile model
@@ -1700,10 +1753,10 @@ viewProfileGoals profile =
 
 viewGuestProfile : Model -> Html Msg
 viewGuestProfile model =
-    div [ class "flex-1 flex items-center justify-center bg-gray-950 p-8" ]
+    div [ class "flex-1 flex items-center justify-center p-4 lg:p-8" ]
         [ div [ class "max-w-md w-full" ]
             [ -- Card container with better contrast
-              div [ class "bg-gray-900 rounded-2xl border border-gray-800 p-8 shadow-2xl" ]
+              div [ class "bg-gray-900/50 backdrop-blur-md rounded-2xl border border-gray-800/50 p-6 lg:p-8 shadow-2xl" ]
                 [ -- Icon
                   div [ class "flex justify-center mb-6" ]
                     [ div [ class "w-24 h-24 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center" ]
@@ -1737,6 +1790,42 @@ viewGuestProfile model =
         ]
 
 
+viewStylePathPage : Model -> String -> Html Msg
+viewStylePathPage model slug =
+    div [ class "space-y-6 p-6" ]
+        [ h1 [ class "text-3xl font-bold text-white" ]
+            [ text ("Fighter Path: " ++ slug) ]
+        , p [ class "text-gray-400" ]
+            [ text "Learn the complete system and techniques of this fighter." ]
+        , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
+            [ text "Fighter path system coming soon!" ]
+        ]
+
+
+viewTechniqueLibraryPage : Model -> Html Msg
+viewTechniqueLibraryPage model =
+    div [ class "space-y-6 p-6" ]
+        [ h1 [ class "text-3xl font-bold text-white" ]
+            [ text "Technique Library" ]
+        , p [ class "text-gray-400" ]
+            [ text "Browse and learn all available techniques." ]
+        , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
+            [ text "Technique library coming soon!" ]
+        ]
+
+
+viewProgressPage : Model -> Html Msg
+viewProgressPage model =
+    div [ class "space-y-6 p-6" ]
+        [ h1 [ class "text-3xl font-bold text-white" ]
+            [ text "Your Progress" ]
+        , p [ class "text-gray-400" ]
+            [ text "Track your journey and achievements." ]
+        , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
+            [ text "Progress tracking coming soon!" ]
+        ]
+
+
 viewNotFoundPage : Model -> Html Msg
 viewNotFoundPage model =
     div [ class "container mx-auto px-4 py-16 text-center" ]
@@ -1754,7 +1843,7 @@ viewNotFoundPage model =
 
 viewModals : Model -> Html Msg
 viewModals model =
-    div []
+    div [ class "relative z-[70]" ]
         [ if model.modals.sessionModal then
             viewSessionModal model
           else
@@ -1769,8 +1858,8 @@ viewModals model =
 
 viewSessionModal : Model -> Html Msg
 viewSessionModal model =
-    div [ class "fixed inset-0 bg-black/50 flex items-center justify-center z-50" ]
-        [ div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4" ]
+    div [ class "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70]" ]
+        [ div [ class "bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl" ]
             [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Log Training Session" ]
             , p [ class "text-gray-600 dark:text-gray-400" ] [ text "Session logging coming soon!" ]
             , button 
@@ -1786,8 +1875,8 @@ viewHeroQuickView : Model -> String -> Html Msg
 viewHeroQuickView model heroId =
     case Dict.get heroId model.heroes of
         Just hero ->
-            div [ class "fixed inset-0 bg-black/50 flex items-center justify-center z-50" ]
-                [ div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto" ]
+            div [ class "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70]" ]
+                [ div [ class "bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl" ]
                     [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text hero.name ]
                     , p [ class "text-gray-600 dark:text-gray-400 mb-4" ] [ text hero.bio ]
                     , button 
@@ -1800,6 +1889,188 @@ viewHeroQuickView model heroId =
 
         Nothing ->
             text ""
+
+
+-- NEW HELPER FUNCTIONS FOR TRAINING DASHBOARD
+
+viewLevelProgress : Model -> Html Msg
+viewLevelProgress model =
+    let
+        progress = model.userProgress
+        currentBelt = getBeltFromLevel progress.currentLevel
+        nextBelt = getNextBelt currentBelt
+        beltProgress = calculateBeltProgress progress.currentLevel
+    in
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
+        [ div [ class "flex items-center justify-between mb-3" ]
+            [ div [ class "flex items-center gap-2" ]
+                [ span [ class (getBeltColorClass currentBelt ++ " px-3 py-1 rounded-full text-sm font-bold") ]
+                    [ text (beltToString currentBelt ++ " Belt") ]
+                , span [ class "text-gray-400 text-sm" ] [ text "→" ]
+                , span [ class "text-gray-500 text-sm" ] [ text (beltToString nextBelt) ]
+                ]
+            , span [ class "text-2xl font-bold text-white" ]
+                [ text ("Lvl " ++ String.fromInt progress.currentLevel) ]
+            ]
+        , div [ class "mb-2" ]
+            [ div [ class "h-3 bg-gray-700/50 rounded-full overflow-hidden" ]
+                [ div
+                    [ class "h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-500"
+                    , Attr.style "width" (String.fromFloat beltProgress ++ "%")
+                    ] []
+                ]
+            ]
+        , div [ class "flex justify-between text-xs text-gray-400" ]
+            [ span [] [ text (String.fromInt progress.totalXP ++ " XP") ]
+            , span [] [ text (String.fromFloat beltProgress ++ "% to " ++ beltToString nextBelt) ]
+            ]
+        ]
+
+
+fighterPathCard : String -> String -> String -> String -> Bool -> Int -> Html Msg
+fighterPathCard name title specialty slug isActive weeks =
+    div
+        [ onClick (NavigateTo (StylePath slug))
+        , class ("relative bg-gray-800/50 backdrop-blur-sm rounded-xl p-5 border transition-all duration-300 cursor-pointer group " ++
+                 if isActive then
+                    "border-purple-500/50 shadow-lg shadow-purple-500/20"
+                 else
+                    "border-gray-700/50 hover:border-purple-500/30 hover:shadow-lg")
+        ]
+        [ if isActive then
+            div [ class "absolute top-2 right-2" ]
+                [ span [ class "px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full font-medium" ]
+                    [ text "ACTIVE" ]
+                ]
+          else
+            text ""
+        , div [ class "mb-3" ]
+            [ h3 [ class "text-lg font-bold text-white group-hover:text-purple-400 transition-colors" ]
+                [ text name ]
+            , p [ class "text-sm text-gray-500" ] [ text title ]
+            ]
+        , p [ class "text-sm text-gray-400 mb-3" ] [ text specialty ]
+        , div [ class "flex items-center justify-between" ]
+            [ span [ class "text-xs text-gray-500" ]
+                [ i [ class "fas fa-clock mr-1" ] []
+                , text (String.fromInt weeks ++ " weeks")
+                ]
+            , if isActive then
+                div [ class "text-xs text-purple-400" ]
+                    [ text "28% complete" ]
+              else
+                button [ class "text-xs text-gray-400 hover:text-purple-400 transition-colors" ]
+                    [ text "Start Path →" ]
+            ]
+        ]
+
+
+techniqueCheckItem : String -> String -> Bool -> Int -> Html Msg
+techniqueCheckItem name style completed xp =
+    div [ class "flex items-center gap-3 p-3 bg-gray-800/30 rounded-lg hover:bg-gray-800/50 transition-all cursor-pointer group" ]
+        [ button
+            [ onClick (ShowNotification Success ("+" ++ String.fromInt xp ++ " XP earned!"))
+            , class ("w-6 h-6 rounded border-2 flex items-center justify-center transition-all " ++
+                     if completed then
+                        "bg-green-500 border-green-500"
+                     else
+                        "border-gray-600 hover:border-green-500")
+            ]
+            [ if completed then
+                i [ class "fas fa-check text-white text-xs" ] []
+              else
+                text ""
+            ]
+        , div [ class "flex-1" ]
+            [ p [ class ("font-medium transition-all " ++
+                        if completed then "text-gray-500 line-through" else "text-white group-hover:text-green-400") ]
+                [ text name ]
+            , p [ class "text-xs text-gray-500" ]
+                [ text ("From " ++ style ++ " system") ]
+            ]
+        , div [ class "text-right" ]
+            [ p [ class ("text-sm font-bold " ++ if completed then "text-green-400" else "text-gray-400") ]
+                [ text ("+" ++ String.fromInt xp ++ " XP") ]
+            ]
+        ]
+
+
+progressStatCard : String -> String -> String -> String -> String -> Html Msg
+progressStatCard label value suffix icon gradient =
+    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50 hover:border-gray-600/50 transition-all" ]
+        [ div [ class "flex items-center justify-between mb-2" ]
+            [ div [ class ("w-10 h-10 rounded-lg bg-gradient-to-br " ++ gradient ++ " flex items-center justify-center") ]
+                [ i [ class (icon ++ " text-white text-lg") ] [] ]
+            , div [ class "text-right" ]
+                [ span [ class "text-2xl font-bold text-white" ] [ text value ]
+                , span [ class "text-sm text-gray-400" ] [ text suffix ]
+                ]
+            ]
+        , p [ class "text-xs text-gray-500" ] [ text label ]
+        ]
+
+
+weeklyGoalItem : String -> Int -> Int -> String -> Html Msg
+weeklyGoalItem description current target color =
+    let
+        percentage = toFloat current / toFloat target * 100
+    in
+    div [ class "space-y-2" ]
+        [ div [ class "flex items-center justify-between" ]
+            [ p [ class "text-sm text-gray-300" ] [ text description ]
+            , span [ class "text-xs text-gray-500" ]
+                [ text (String.fromInt current ++ "/" ++ String.fromInt target) ]
+            ]
+        , div [ class "h-2 bg-gray-700/50 rounded-full overflow-hidden" ]
+            [ div
+                [ class ("h-full transition-all duration-500 " ++ color)
+                , Attr.style "width" (String.fromFloat percentage ++ "%")
+                ] []
+            ]
+        ]
+
+
+getBeltFromLevel : Int -> BeltLevel
+getBeltFromLevel level =
+    if level <= 20 then White
+    else if level <= 40 then Blue
+    else if level <= 65 then Purple
+    else if level <= 85 then Brown
+    else Black
+
+
+getNextBelt : BeltLevel -> BeltLevel
+getNextBelt current =
+    case current of
+        White -> Blue
+        Blue -> Purple
+        Purple -> Brown
+        Brown -> Black
+        Black -> Black
+
+
+calculateBeltProgress : Int -> Float
+calculateBeltProgress level =
+    if level <= 20 then
+        toFloat level / 20 * 100
+    else if level <= 40 then
+        toFloat (level - 20) / 20 * 100
+    else if level <= 65 then
+        toFloat (level - 40) / 25 * 100
+    else if level <= 85 then
+        toFloat (level - 65) / 20 * 100
+    else
+        100
+
+
+getBeltColorClass : BeltLevel -> String
+getBeltColorClass belt =
+    case belt of
+        White -> "bg-gray-100 text-gray-800"
+        Blue -> "bg-blue-500 text-white"
+        Purple -> "bg-purple-500 text-white"
+        Brown -> "bg-amber-700 text-white"
+        Black -> "bg-gray-900 text-white"
 
 
 viewFooter : Model -> Html Msg

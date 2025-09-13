@@ -25,6 +25,9 @@ routeParser =
         , Parser.map Training (s "training")
         , Parser.map TrainingView (s "session")
         , Parser.map RoadmapView (s "roadmap" </> string)
+        , Parser.map StylePath (s "style" </> string)
+        , Parser.map TechniqueLibrary (s "techniques")
+        , Parser.map Progress (s "progress")
         , Parser.map Profile (s "profile")
         ]
 
@@ -153,15 +156,24 @@ toPath route =
 
         Training ->
             "/training"
-            
+
         TrainingView ->
             "/session"
-            
+
         Dashboard ->
             "/dashboard"
-            
+
         RoadmapView id ->
             "/roadmap/" ++ id
+
+        StylePath slug ->
+            "/style/" ++ slug
+
+        TechniqueLibrary ->
+            "/techniques"
+
+        Progress ->
+            "/progress"
 
         Profile ->
             "/profile"
