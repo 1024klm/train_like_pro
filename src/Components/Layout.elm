@@ -15,7 +15,7 @@ view model content =
     div [ class "min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950" ]
         [ -- Skip to content link
           a [ href "#main"
-            , class "sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:bg-gray-900 focus:text-white focus:px-3 focus:py-2 focus:rounded focus:z-critical"
+            , class "sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:bg-gray-900 focus:text-white focus:px-3 focus:py-2 focus:rounded focus:z-nav"
             ]
             [ text model.userConfig.t.skipToContent ]
         , -- Desktop sidebar
@@ -288,16 +288,24 @@ beltToString belt =
 
 onKeyTabTrap : { firstId : String, lastId : String } -> FrontendMsg -> Html.Attribute FrontendMsg
 onKeyTabTrap ids noOp =
-    Events.on "keydown"
-        (Decode.field "key" Decode.string
-            |> Decode.andThen (\key ->
-                if key == "Tab" then
-                    Decode.succeed (TrapFocus ids)
-                else if key == "Escape" then
-                    Decode.succeed ToggleMobileMenu
-                else
-                    Decode.succeed noOp
-            )
+    Events.preventDefaultOn "keydown"
+        (Decode.map2 (\key shift ->
+            if key == "Tab" then
+                ( TrapFocus
+                    (if shift then
+                        { firstId = ids.lastId, lastId = ids.firstId }
+                     else
+                        { firstId = ids.firstId, lastId = ids.lastId }
+                    )
+                , True
+                )
+            else if key == "Escape" then
+                ( ToggleMobileMenu, True )
+            else
+                ( noOp, False )
+        )
+            (Decode.field "key" Decode.string)
+            (Decode.field "shiftKey" Decode.bool)
         )
 
 escapeKeyDecoder : FrontendMsg -> Decode.Decoder FrontendMsg

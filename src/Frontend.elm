@@ -569,6 +569,7 @@ viewNotifications notifications =
     div [ class "fixed top-20 right-4 z-notification space-y-2"
         , attribute "role" "status"
         , attribute "aria-live" ariaLive
+        , attribute "aria-atomic" "true"
         ]
         (List.map viewNotification notifications)
 
