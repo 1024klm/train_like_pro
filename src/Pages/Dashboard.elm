@@ -3,6 +3,7 @@ module Pages.Dashboard exposing (view, viewDashboard)
 import Html exposing (..)
 import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title)
 import Html.Events exposing (onClick)
+import Components.Layout exposing (onPreventDefaultClick)
 import Html.Lazy exposing (lazy, lazy2, lazy3)
 import Types exposing (..)
 import GameMechanics.XP as XP
@@ -438,7 +439,7 @@ viewActiveRoadmaps model =
                         [ i [ class "fas fa-map text-gray-400 text-2xl" ] [] ]
                     , p [ class "text-gray-400 mb-6" ] [ text "No active roadmaps. Start your learning journey!" ]
                     , button 
-                        [ onClick (NavigateTo (HeroesRoute Nothing))
+                        [ onPreventDefaultClick (NavigateTo (HeroesRoute Nothing))
                         , class "px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl font-bold hover:from-green-600 hover:to-blue-600 transition-all hover:scale-105"
                         ]
                         [ i [ class "fas fa-plus mr-2" ] []

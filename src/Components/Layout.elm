@@ -1,4 +1,4 @@
-module Components.Layout exposing (view, sidebar, mobileMenu)
+module Components.Layout exposing (view, sidebar, mobileMenu, onPreventDefaultClick)
 
 import Html exposing (Html, div, nav, ul, li, a, button, text, span, i, img, h1, h2, main_, select, option)
 import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title, value, selected, tabindex)

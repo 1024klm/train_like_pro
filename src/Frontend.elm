@@ -2,6 +2,7 @@ module Frontend exposing (..)
 
 import Browser exposing (UrlRequest(..))
 import Browser.Navigation as Nav
+import Browser.Dom as Dom
 import Dict exposing (Dict)
 import Set exposing (Set)
 import Effect.Command as Command exposing (Command, FrontendOnly)
@@ -22,7 +23,7 @@ import Router
 import Data
 import Pages.Dashboard
 import Pages.TrainingSession
-import Components.Layout
+import Components.Layout exposing (onPreventDefaultClick)
 import Url
 import Time
 import Task
@@ -161,7 +162,18 @@ update msg model =
             ( model, Router.navigateTo model.key route )
 
         ToggleMobileMenu ->
-            ( { model | mobileMenuOpen = not model.mobileMenuOpen }, Cmd.none )
+            let
+                newMenuState = not model.mobileMenuOpen
+                focusCmd =
+                    if not newMenuState then
+                        Task.attempt (\_ -> NoOpFrontendMsg) (Dom.focus "mobile-menu-toggle")
+                    else
+                        Cmd.none
+            in
+            ( { model | mobileMenuOpen = newMenuState }, focusCmd )
+
+        FocusMobileToggle ->
+            ( model, Task.attempt (\_ -> NoOpFrontendMsg) (Dom.focus "mobile-menu-toggle") )
 
         UpdateSearchQuery query ->
             ( { model | searchQuery = query }, Cmd.none )
@@ -398,7 +410,7 @@ viewHeader model =
 viewLogo : Html Msg
 viewLogo =
     button 
-        [ onClick (NavigateTo Home)
+        [ onPreventDefaultClick (NavigateTo Home)
         , class "flex items-center space-x-3 hover:opacity-80 transition-opacity"
         ]
         [ div [ class "w-10 h-10 bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center shadow-lg" ]
@@ -442,7 +454,7 @@ navLink model route label icon =
                 _ -> False
     in
     button
-        [ onClick (NavigateTo route)
+        [ onPreventDefaultClick (NavigateTo route)
         , class "flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200"
         , classList
             [ ("bg-red-600 text-white shadow-md", isActive)
@@ -501,7 +513,7 @@ viewLanguageSelector model =
 viewProfileButton : Model -> Html Msg
 viewProfileButton model =
     button
-        [ onClick (NavigateTo Profile)
+        [ onPreventDefaultClick (NavigateTo Profile)
         , class "p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
         ]
         [ text "👤" ]
@@ -679,7 +691,7 @@ viewFighterStylePaths model =
                 , text "Choose Your Path"
                 ]
             , button
-                [ onClick (NavigateTo (HeroesRoute Nothing))
+                [ onPreventDefaultClick (NavigateTo (HeroesRoute Nothing))
                 , class "text-purple-400 hover:text-purple-300 text-sm font-medium"
                 ]
                 [ text "View All Fighters →" ]
@@ -777,7 +789,7 @@ viewTodaysPlan model =
                     , span [ class "text-green-400 font-bold" ] [ text "1/3 completed" ]
                     ]
                 , button
-                    [ onClick (NavigateTo TrainingView)
+                    [ onPreventDefaultClick (NavigateTo TrainingView)
                     , class "px-4 py-2 bg-green-600/20 border border-green-500/30 text-green-400 rounded-lg hover:bg-green-600/30 transition-all"
                     ]
                     [ text "View Full Schedule" ]
@@ -1023,8 +1035,8 @@ viewHeroTechniques : Hero -> Html Msg
 viewHeroTechniques hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Signature Techniques" ]
-        , div [ class "space-y-4" ]
-            (List.map viewTechnique hero.techniques)
+        , Keyed.node "div" [ class "space-y-4" ]
+            (hero.techniques |> List.sortBy .name |> List.map (\t -> (t.id, viewTechnique t)))
         ]
 
 
@@ -1040,8 +1052,8 @@ viewHeroVideos : Hero -> Html Msg
 viewHeroVideos hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Videos" ]
-        , div [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
-            (List.map viewVideoCard hero.videos)
+        , Keyed.node "div" [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
+            (hero.videos |> List.sortBy .date |> List.map (\v -> (v.id, viewVideoCard v)))
         ]
 
 
@@ -1151,7 +1163,7 @@ viewAcademiesPage model location =
 viewAcademyListCard : Model -> Academy -> Html Msg
 viewAcademyListCard model academy =
     div
-        [ onClick (NavigateTo (AcademyDetail academy.id))
+        [ onPreventDefaultClick (NavigateTo (AcademyDetail academy.id))
         , class "bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer border border-gray-700/50 hover:border-purple-500/50"
         ]
         [ h3 [ class "text-xl font-bold mb-2 dark:text-white" ] [ text academy.name ]
@@ -1342,7 +1354,7 @@ filterEvents filter events =
 viewEventListCard : Model -> Event -> Html Msg
 viewEventListCard model event =
     div
-        [ onClick (NavigateTo (EventDetail event.id))
+        [ onPreventDefaultClick (NavigateTo (EventDetail event.id))
         , class "bg-gray-800/50 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all cursor-pointer border border-gray-700/50 hover:border-green-500/50"
         ]
         [ div [ class "h-32 bg-gradient-to-br from-blue-400 to-blue-600 relative" ]
@@ -1583,8 +1595,8 @@ viewRecentSessions model =
                     [ text "Log Your First Session" ]
                 ]
           else
-            div [ class "space-y-4" ]
-                (List.map viewSessionCard model.trainingSessions)
+            Keyed.node "div" [ class "space-y-4" ]
+                (model.trainingSessions |> List.sortBy (\s -> Time.posixToMillis s.date |> negate) |> List.map (\s -> (s.id, viewSessionCard s)))
         ]
 
 
@@ -1843,7 +1855,7 @@ viewNotFoundPage model =
         , p [ class "text-gray-600 dark:text-gray-400 mb-8" ] 
             [ text "The page you're looking for doesn't exist." ]
         , button 
-            [ onClick (NavigateTo Home)
+            [ onPreventDefaultClick (NavigateTo Home)
             , class "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
             ]
             [ text "Go Home" ]
@@ -1939,7 +1951,7 @@ viewLevelProgress model =
 fighterPathCard : String -> String -> String -> String -> Bool -> Int -> Html Msg
 fighterPathCard name title specialty slug isActive weeks =
     div
-        [ onClick (NavigateTo (StylePath slug))
+        [ onPreventDefaultClick (NavigateTo (StylePath slug))
         , class ("relative bg-gray-800/50 backdrop-blur-sm rounded-xl p-5 border transition-all duration-300 cursor-pointer group " ++
                  if isActive then
                     "border-purple-500/50 shadow-lg shadow-purple-500/20"

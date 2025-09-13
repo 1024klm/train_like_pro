@@ -890,6 +890,7 @@ type FrontendMsg
     -- Navigation
     | NavigateTo Route
     | ToggleMobileMenu
+    | FocusMobileToggle
     | UpdateSearchQuery String
     | ApplyFilter HeroFilter
     | ClearFilters
