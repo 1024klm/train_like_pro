@@ -4,6 +4,8 @@ module I18n exposing (..)
 Supports English and French languages
 -}
 
+import Time
+
 
 -- TYPES
 
@@ -137,6 +139,15 @@ type alias Translations =
     , trainingStreak : String
     , totalXP : String
     , sessions : String
+
+    -- New training focused strings
+    , chooseYourPath : String
+    , viewAllFighters : String
+    , todaysTraining : String
+    , readyToMaster : String
+    , techniquesLearned : String
+    , weeklyBonus : String
+    , completeAllGoals : String
     , rank : String
     , nextGoal : String
     , thisWeek : String
@@ -318,6 +329,15 @@ en =
     , rank = "RANK"
     , nextGoal = "Next Goal"
     , thisWeek = "This Week"
+
+    -- New training focused strings
+    , chooseYourPath = "Choose Your Path"
+    , viewAllFighters = "View All Fighters →"
+    , todaysTraining = "Today's Training Plan"
+    , readyToMaster = "Ready to master new techniques? Your journey continues today."
+    , techniquesLearned = "Techniques Learned"
+    , weeklyBonus = "Weekly Bonus XP"
+    , completeAllGoals = "Complete all goals"
     
     -- Time
     , today = "Today"
@@ -494,6 +514,15 @@ fr =
     , rank = "RANG"
     , nextGoal = "Prochain Objectif"
     , thisWeek = "Cette Semaine"
+
+    -- New training focused strings
+    , chooseYourPath = "Choisissez Votre Voie"
+    , viewAllFighters = "Voir Tous les Combattants →"
+    , todaysTraining = "Programme d'Entraînement du Jour"
+    , readyToMaster = "Prêt à maîtriser de nouvelles techniques ? Votre voyage continue aujourd'hui."
+    , techniquesLearned = "Techniques Apprises"
+    , weeklyBonus = "Bonus XP Hebdomadaire"
+    , completeAllGoals = "Compléter tous les objectifs"
     
     -- Time
     , today = "Aujourd'hui"
@@ -612,3 +641,41 @@ formatWeeks lang count =
         String.fromInt count ++ " " ++ trans.week
     else
         String.fromInt count ++ " " ++ trans.weeks
+
+
+formatDate : Language -> Time.Posix -> String
+formatDate lang posix =
+    let
+        zone = Time.utc
+        y = Time.toYear zone posix
+        m = Time.toMonth zone posix
+        d = Time.toDay zone posix
+
+        monthName =
+            case ( lang, m ) of
+                ( FR, Time.Jan ) -> "janv."
+                ( FR, Time.Feb ) -> "févr."
+                ( FR, Time.Mar ) -> "mars"
+                ( FR, Time.Apr ) -> "avr."
+                ( FR, Time.May ) -> "mai"
+                ( FR, Time.Jun ) -> "juin"
+                ( FR, Time.Jul ) -> "juil."
+                ( FR, Time.Aug ) -> "août"
+                ( FR, Time.Sep ) -> "sept."
+                ( FR, Time.Oct ) -> "oct."
+                ( FR, Time.Nov ) -> "nov."
+                ( FR, Time.Dec ) -> "déc."
+                ( EN, Time.Jan ) -> "Jan"
+                ( EN, Time.Feb ) -> "Feb"
+                ( EN, Time.Mar ) -> "Mar"
+                ( EN, Time.Apr ) -> "Apr"
+                ( EN, Time.May ) -> "May"
+                ( EN, Time.Jun ) -> "Jun"
+                ( EN, Time.Jul ) -> "Jul"
+                ( EN, Time.Aug ) -> "Aug"
+                ( EN, Time.Sep ) -> "Sep"
+                ( EN, Time.Oct ) -> "Oct"
+                ( EN, Time.Nov ) -> "Nov"
+                ( EN, Time.Dec ) -> "Dec"
+    in
+    String.fromInt d ++ " " ++ monthName ++ " " ++ String.fromInt y

@@ -1,8 +1,9 @@
 module Components.Layout exposing (view, sidebar, mobileMenu)
 
 import Html exposing (Html, div, nav, ul, li, a, button, text, span, i, img, h1, h2, main_, select, option)
-import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title, value, selected)
-import Html.Events exposing (onClick, onInput)
+import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title, value, selected, tabindex)
+import Html.Events as Events exposing (onClick, onInput)
+import Json.Decode as Decode
 import Types exposing (..)
 import Router
 import Theme exposing (darkTheme)
@@ -28,14 +29,15 @@ main_ model content =
 
 topBar : FrontendModel -> Html FrontendMsg
 topBar model =
-    div [ class "sticky top-0 z-20 bg-gray-900/90 backdrop-blur-md border-b border-gray-800/50 shadow-lg" ]
+    div [ class "sticky top-0 z-nav glass border-b border-gray-700 shadow-lg" ]
         [ div [ class "flex items-center justify-between p-4" ]
             [ div [ class "flex items-center gap-4" ]
-                [ button 
+                [ button
                     [ class "lg:hidden p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
                     , onClick ToggleMobileMenu
+                    , id "mobile-menu-toggle"
                     ]
-                    [ i [ class "fas fa-bars text-gray-300" ] [] ]
+                    [ i [ class "fas fa-bars text-gray-300", attribute "aria-hidden" "true" ] [] ]
                 , div [ class "flex items-center gap-3" ]
                     [ xpBar model
                     , streakIndicator model
@@ -70,7 +72,7 @@ xpBar model =
 streakIndicator : FrontendModel -> Html FrontendMsg
 streakIndicator model =
     div [ class "hidden sm:flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 rounded-lg px-2 py-1" ]
-        [ i [ class "fas fa-fire text-orange-500 text-sm" ] []
+        [ i [ class "fas fa-fire text-orange-500 text-sm", attribute "aria-hidden" "true" ] []
         , span [ class "text-xs font-medium text-orange-400" ] 
             [ text (I18n.formatStreak model.userConfig.language model.userProgress.currentStreak) ]
         ]
@@ -103,7 +105,7 @@ profileSection model =
 
 sidebar : FrontendModel -> Html FrontendMsg
 sidebar model =
-    nav [ class "fixed left-0 top-0 z-30 w-72 h-full bg-gray-900/95 backdrop-blur-md border-r border-gray-800/50 shadow-2xl" ]
+    nav [ class "fixed left-0 top-0 z-sidebar w-72 h-full glass border-r border-gray-700 shadow-2xl" ]
         [ div [ class "flex flex-col h-full" ]
             [ header_ model
             , mainNav model  
@@ -118,7 +120,7 @@ header_ model =
     div [ class "p-6 border-b border-gray-800" ]
         [ div [ class "flex items-center gap-3" ]
             [ div [ class "w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg" ]
-                [ i [ class "fas fa-fist-raised text-white text-lg" ] [] ]
+                [ i [ class "fas fa-fist-raised text-white text-lg", attribute "aria-hidden" "true" ] [] ]
             , div []
                 [ h1 [ class "text-lg font-bold text-white" ] [ text model.userConfig.t.appTitle ]
                 , div [ class "text-xs text-gray-500" ] [ text model.userConfig.t.appSubtitle ]
@@ -146,7 +148,7 @@ navItem : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
 navItem model label route iconClass isAccented =
     let
         isActive = model.route == route
-        baseClasses = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group cursor-pointer"
+        baseClasses = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
         activeClasses = if isActive then
             "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-blue-500/40 text-white shadow-lg shadow-blue-500/20"
           else if isAccented then
@@ -156,9 +158,11 @@ navItem model label route iconClass isAccented =
     in
     li []
         [ a [ class (baseClasses ++ " " ++ activeClasses)
-            , onClick (NavigateTo route)
+            , href (Router.toPath route)
+            , onPreventDefaultClick (NavigateTo route)
+            , if isActive then attribute "aria-current" "page" else class ""
             ]
-            [ i [ class (iconClass ++ " w-5 text-center transition-colors") ] []
+            [ i [ class (iconClass ++ " w-5 text-center transition-colors"), attribute "aria-hidden" "true" ] []
             , span [ class "font-medium" ] [ text label ]
             , if isActive then
                 span [ class "ml-auto w-2 h-2 bg-blue-400 rounded-full animate-pulse" ] []
@@ -199,21 +203,28 @@ supportSection model =
             , class "w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl text-purple-200 hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-200 cursor-pointer"
             , type_ "button"
             ]
-            [ i [ class "fas fa-question-circle" ] []
+            [ i [ class "fas fa-question-circle", attribute "aria-hidden" "true" ] []
             , span [ class "font-medium" ] [ text model.userConfig.t.helpSupport ]
             ]
         ]
 
 mobileMenu : FrontendModel -> Html FrontendMsg
 mobileMenu model =
-    div [ class "lg:hidden fixed inset-0 z-40" ]
-        [ div [ class "fixed inset-0 bg-black/70 backdrop-blur-sm", onClick ToggleMobileMenu ] []
-        , nav [ class "fixed left-0 top-0 w-80 max-w-[85vw] h-full bg-gray-900/95 backdrop-blur-md border-r border-gray-800/50 shadow-2xl transform transition-transform duration-300 translate-x-0" ]
+    div [ class "lg:hidden fixed inset-0 z-mobile-menu" ]
+        [ div [ class "fixed inset-0 bg-black/70", onClick ToggleMobileMenu ] []
+        , nav [ class "fixed left-0 top-0 w-80 max-w-[85vw] h-full glass border-r border-gray-700 shadow-2xl transform transition-transform duration-300 translate-x-0"
+              , attribute "role" "dialog"
+              , attribute "aria-modal" "true"
+              , attribute "aria-label" model.userConfig.t.navigation
+              , tabindex 0
+              , Events.on "keydown" (escapeKeyDecoder ToggleMobileMenu)
+              , id "mobile-menu-dialog"
+              ]
             [ div [ class "flex flex-col h-full" ]
                 [ div [ class "flex items-center justify-between p-4 border-b border-gray-700/50" ]
-                    [ h2 [ class "text-lg font-bold text-white" ] [ text model.userConfig.t.navigation ]
-                    , button [ class "p-2 text-gray-400 hover:text-white", onClick ToggleMobileMenu ]
-                        [ i [ class "fas fa-times" ] [] ]
+                    [ h2 [ class "text-lg font-bold text-white", id "mobile-menu-title", tabindex -1 ] [ text model.userConfig.t.navigation ]
+                    , button [ class "p-2 text-gray-400 hover:text-white", onClick ToggleMobileMenu, attribute "aria-label" "Close menu" ]
+                        [ i [ class "fas fa-times", attribute "aria-hidden" "true" ] [] ]
                     ]
                 , div [ class "flex-1 overflow-y-auto" ]
                     [ mainNav model
@@ -227,7 +238,23 @@ beltToString : BeltLevel -> String
 beltToString belt =
     case belt of
         White -> "White"
-        Blue -> "Blue" 
+        Blue -> "Blue"
         Purple -> "Purple"
         Brown -> "Brown"
         Black -> "Black"
+
+
+escapeKeyDecoder : FrontendMsg -> Decode.Decoder FrontendMsg
+escapeKeyDecoder msg =
+    Decode.field "key" Decode.string
+        |> Decode.andThen (\key ->
+            if key == "Escape" then
+                Decode.succeed msg
+            else
+                Decode.fail "Not escape key"
+        )
+
+
+onPreventDefaultClick : FrontendMsg -> Html.Attribute FrontendMsg
+onPreventDefaultClick msg =
+    Events.preventDefaultOn "click" (Decode.succeed ( msg, True ))

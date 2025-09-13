@@ -545,7 +545,7 @@ mobileNavLink msg label icon =
 
 viewNotifications : List Notification -> Html Msg
 viewNotifications notifications =
-    div [ class "fixed top-20 right-4 z-[60] space-y-2" ]
+    div [ class "fixed top-20 right-4 z-notification space-y-2" ]
         (List.map viewNotification notifications)
 
 
@@ -637,7 +637,7 @@ viewHomePage model =
 
 viewTrainingDashboard : Model -> Html Msg
 viewTrainingDashboard model =
-    section [ class "bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-red-600/20 backdrop-blur-sm rounded-2xl p-6 lg:p-8 border border-blue-500/30" ]
+    section [ class "glass rounded-2xl p-6 lg:p-8" ]
         [ div [ class "flex flex-col lg:flex-row items-center justify-between gap-6" ]
             [ div [ class "flex-1" ]
                 [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-3" ]
@@ -645,21 +645,21 @@ viewTrainingDashboard model =
                     , span [ class "bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent" ]
                         [ text (Maybe.withDefault "Warrior" (Maybe.map .username model.userProfile)) ]
                     ]
-                , p [ class "text-gray-300 mb-4" ]
+                , p [ class "text-gray-200 mb-4" ]
                     [ text "Ready to master new techniques? Your journey continues today." ]
                 , div [ class "flex flex-wrap gap-4" ]
                     [ button
                         [ onClick StartSession
                         , class "px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
                         ]
-                        [ i [ class "fas fa-play mr-2" ] []
+                        [ i [ class "fas fa-play mr-2", attribute "aria-hidden" "true" ] []
                         , text "Start Today's Training"
                         ]
                     , button
                         [ onClick (OpenModal TechniqueSelectionModal)
                         , class "px-6 py-3 bg-gray-800/50 backdrop-blur text-white font-medium rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-all duration-200"
                         ]
-                        [ i [ class "fas fa-plus mr-2" ] []
+                        [ i [ class "fas fa-plus mr-2", attribute "aria-hidden" "true" ] []
                         , text "Add Technique"
                         ]
                     ]
@@ -757,10 +757,10 @@ weightClassToString weight =
 
 viewTodaysPlan : Model -> Html Msg
 viewTodaysPlan model =
-    section [ class "bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50" ]
+    section [ class "glass rounded-2xl p-6" ]
         [ div [ class "flex items-center justify-between mb-6" ]
             [ h2 [ class "text-xl font-bold text-white" ]
-                [ i [ class "fas fa-calendar-day mr-2 text-green-400" ] []
+                [ i [ class "fas fa-calendar-day mr-2 text-green-400", attribute "aria-hidden" "true" ] []
                 , text "Today's Training Plan"
                 ]
             , span [ class "text-sm text-gray-400" ] [ text "Tuesday, Nov 12" ]
@@ -831,17 +831,17 @@ viewAcademyCard academy =
 
 viewWeeklyGoals : Model -> Html Msg
 viewWeeklyGoals model =
-    section [ class "bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-800/50" ]
+    section [ class "glass rounded-2xl p-6" ]
         [ div [ class "flex items-center justify-between mb-6" ]
             [ h2 [ class "text-xl font-bold text-white" ]
-                [ i [ class "fas fa-trophy mr-2 text-yellow-400" ] []
+                [ i [ class "fas fa-trophy mr-2 text-yellow-400", attribute "aria-hidden" "true" ] []
                 , text "Weekly Goals"
                 ]
             , button
                 [ onClick (ShowNotification Info "Goal customization coming soon!")
                 , class "text-gray-400 hover:text-white"
                 ]
-                [ i [ class "fas fa-cog" ] [] ]
+                [ i [ class "fas fa-cog", attribute "aria-hidden" "true" ] [] ]
             ]
         , div [ class "space-y-4" ]
             [ weeklyGoalItem "Complete 5 training sessions" 3 5 "bg-blue-500"
@@ -872,12 +872,15 @@ viewHeroesPage model filter =
             , p [ class "text-gray-300" ] [ text "Learn from the legends who shaped the sport" ]
             ]
         , viewHeroFilters model filter
-        , div [ class "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6" ]
-            (model.heroes
-                |> Dict.values
-                |> filterHeroes filter
-                |> List.map (viewHeroCard model)
-            )
+        , let
+            heroesList =
+                model.heroes
+                    |> Dict.values
+                    |> filterHeroes filter
+                    |> List.sortBy .name
+          in
+          Keyed.node "div" [ class "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6" ]
+            (heroesList |> List.map (\h -> ( h.id, viewHeroCard model h )))
         ]
 
 
@@ -1134,11 +1137,14 @@ viewAcademiesPage model location =
             [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-2" ] [ text "BJJ Academies" ]
             , p [ class "text-gray-300" ] [ text "Find the best training facilities worldwide" ]
             ]
-        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6" ]
-            (model.academies
-                |> Dict.values
-                |> List.map (viewAcademyListCard model)
-            )
+        , let
+            academiesList =
+                model.academies
+                    |> Dict.values
+                    |> List.sortBy .name
+          in
+          Keyed.node "div" [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6" ]
+            (academiesList |> List.map (\a -> ( a.id, viewAcademyListCard model a )))
         ]
 
 
@@ -1286,12 +1292,15 @@ viewEventsPage model filter =
             , p [ class "text-gray-300" ] [ text "Tournaments, seminars, and training camps" ]
             ]
         , viewEventFilters filter
-        , div [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6" ]
-            (model.events
-                |> Dict.values
-                |> filterEvents filter
-                |> List.map (viewEventListCard model)
-            )
+        , let
+            eventsList =
+                model.events
+                    |> Dict.values
+                    |> filterEvents filter
+                    |> List.sortBy .date
+          in
+          Keyed.node "div" [ class "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6" ]
+            (eventsList |> List.map (\e -> ( e.id, viewEventListCard model e )))
         ]
 
 
@@ -1843,7 +1852,7 @@ viewNotFoundPage model =
 
 viewModals : Model -> Html Msg
 viewModals model =
-    div [ class "relative z-[70]" ]
+    div [ class "relative z-modal" ]
         [ if model.modals.sessionModal then
             viewSessionModal model
           else
@@ -1858,7 +1867,7 @@ viewModals model =
 
 viewSessionModal : Model -> Html Msg
 viewSessionModal model =
-    div [ class "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70]" ]
+    div [ class "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-modal" ]
         [ div [ class "bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl" ]
             [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Log Training Session" ]
             , p [ class "text-gray-600 dark:text-gray-400" ] [ text "Session logging coming soon!" ]
@@ -1875,7 +1884,7 @@ viewHeroQuickView : Model -> String -> Html Msg
 viewHeroQuickView model heroId =
     case Dict.get heroId model.heroes of
         Just hero ->
-            div [ class "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[70]" ]
+            div [ class "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-modal" ]
                 [ div [ class "bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl" ]
                     [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text hero.name ]
                     , p [ class "text-gray-600 dark:text-gray-400 mb-4" ] [ text hero.bio ]
@@ -1997,7 +2006,7 @@ techniqueCheckItem name style completed xp =
 
 progressStatCard : String -> String -> String -> String -> String -> Html Msg
 progressStatCard label value suffix icon gradient =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700/50 hover:border-gray-600/50 transition-all" ]
+    div [ class "glass rounded-xl p-4 hover:opacity-95 transition-all" ]
         [ div [ class "flex items-center justify-between mb-2" ]
             [ div [ class ("w-10 h-10 rounded-lg bg-gradient-to-br " ++ gradient ++ " flex items-center justify-center") ]
                 [ i [ class (icon ++ " text-white text-lg") ] [] ]

@@ -17,6 +17,36 @@
 }
 
 @layer components {
+  /* Glass morphism with fallback for performance */
+  .glass {
+    background-color: rgba(17, 24, 39, 0.85);
+    border: 1px solid rgba(55, 65, 81, 0.5);
+  }
+
+  @supports (backdrop-filter: blur(4px)) {
+    .glass {
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      background-color: rgba(17, 24, 39, 0.5);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .glass {
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      background-color: rgba(17, 24, 39, 0.9);
+    }
+  }
+
+  @media (prefers-reduced-transparency: reduce) {
+    .glass {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background-color: rgba(17, 24, 39, 0.95) !important;
+    }
+  }
+
   /* Hero Section Animations */
   .hero-gradient {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -475,6 +505,31 @@
        local('Roboto'), local('Helvetica Neue'), local('Arial');
   font-display: swap;
 }
+
+/* Z-index Hierarchy System - Centralized scale
+   =========================================
+   Base content:        0-99
+   Cards/overlaps:      100-199
+   Navigation:          200-299
+   Dropdowns:           300-399
+   Sidebar:             400-499
+   Mobile menu:         500-599
+   Tooltips:            600-699
+   Notifications:       700-799
+   Modals:              800-899
+   Critical/debug:      900-999
+   ========================================= */
+
+.z-base { z-index: 1; }
+.z-card { z-index: 100; }
+.z-nav { z-index: 200; }
+.z-dropdown { z-index: 300; }
+.z-sidebar { z-index: 400; }
+.z-mobile-menu { z-index: 500; }
+.z-tooltip { z-index: 600; }
+.z-notification { z-index: 700; }
+.z-modal { z-index: 800; }
+.z-critical { z-index: 900; }
 
 /* Critical Button Fixes for Clickability */
 button {
