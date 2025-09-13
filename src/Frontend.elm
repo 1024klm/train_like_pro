@@ -558,7 +558,10 @@ mobileNavLink msg label icon =
 
 viewNotifications : List Notification -> Html Msg
 viewNotifications notifications =
-    div [ class "fixed top-20 right-4 z-notification space-y-2" ]
+    div [ class "fixed top-20 right-4 z-notification space-y-2"
+        , attribute "role" "status"
+        , attribute "aria-live" "polite"
+        ]
         (List.map viewNotification notifications)
 
 
@@ -1951,9 +1954,10 @@ viewLevelProgress model =
 
 fighterPathCard : String -> String -> String -> String -> Bool -> Int -> Html Msg
 fighterPathCard name title specialty slug isActive weeks =
-    div
-        [ onPreventDefaultClick (NavigateTo (StylePath slug))
-        , class ("fighter-path-card relative bg-gray-800/50 backdrop-blur-sm rounded-xl p-5 border transition-all duration-300 cursor-pointer group " ++
+    a
+        [ href (Router.toPath (StylePath slug))
+        , onPreventDefaultClick (NavigateTo (StylePath slug))
+        , class ("fighter-path-card relative bg-gray-800/50 backdrop-blur-sm rounded-xl p-5 border transition-all duration-300 cursor-pointer group block " ++
                  if isActive then
                     "border-purple-500/50 shadow-lg shadow-purple-500/20"
                  else

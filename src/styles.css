@@ -60,6 +60,14 @@
     }
   }
 
+  @media (prefers-contrast: more) {
+    .glass {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background-color: rgba(17, 24, 39, 0.95) !important;
+    }
+  }
+
   /* Hero Section Animations */
   .hero-gradient {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

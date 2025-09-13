@@ -106,7 +106,10 @@ profileSection model =
 
 sidebar : FrontendModel -> Html FrontendMsg
 sidebar model =
-    nav [ class "fixed left-0 top-0 z-sidebar w-72 h-full glass border-r border-gray-700 shadow-2xl" ]
+    nav [ class "fixed left-0 top-0 z-sidebar w-72 h-full glass border-r border-gray-700 shadow-2xl"
+        , attribute "role" "navigation"
+        , attribute "aria-label" model.userConfig.t.navigation
+        ]
         [ div [ class "flex flex-col h-full" ]
             [ header_ model
             , mainNav model  
