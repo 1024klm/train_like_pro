@@ -163,7 +163,7 @@ mobileMainNav model =
             , navItem model t.academies (Academies Nothing) "fas fa-university" False
             , navItem model t.events (Events AllEvents) "fas fa-calendar" False
             , navItem model t.training Training "fas fa-dumbbell" True
-            , navItem model t.profile Profile "fas fa-user" False
+            , navItemMobileLast model t.profile Profile "fas fa-user" False
             ]
         ]
 
@@ -174,6 +174,10 @@ navItem =
 navItemMobileFirst : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
 navItemMobileFirst =
     navItemWithId "mobile-first-link"
+
+navItemMobileLast : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
+navItemMobileLast =
+    navItemWithId "mobile-last-link"
 
 navItemWithId : String -> FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
 navItemWithId itemId model label route iconClass isAccented =
@@ -250,7 +254,7 @@ mobileMenu model =
               , attribute "aria-modal" "true"
               , attribute "aria-label" model.userConfig.t.navigation
               , tabindex 0
-              , Events.on "keydown" (escapeKeyDecoder ToggleMobileMenu)
+              , onKeyTabTrap { firstId = "mobile-first-link", lastId = "mobile-last-link" } NoOpFrontendMsg
               , id "mobile-menu-dialog"
               ]
             [ div [ class "flex flex-col h-full" ]
@@ -276,6 +280,20 @@ beltToString belt =
         Brown -> "Brown"
         Black -> "Black"
 
+
+onKeyTabTrap : { firstId : String, lastId : String } -> FrontendMsg -> Html.Attribute FrontendMsg
+onKeyTabTrap ids noOp =
+    Events.on "keydown"
+        (Decode.field "key" Decode.string
+            |> Decode.andThen (\key ->
+                if key == "Tab" then
+                    Decode.succeed (TrapFocus ids)
+                else if key == "Escape" then
+                    Decode.succeed ToggleMobileMenu
+                else
+                    Decode.succeed noOp
+            )
+        )
 
 escapeKeyDecoder : FrontendMsg -> Decode.Decoder FrontendMsg
 escapeKeyDecoder msg =

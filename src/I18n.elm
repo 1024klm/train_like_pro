@@ -217,6 +217,7 @@ en =
     , profile = "Profile"
     , helpSupport = "Help & Support"
     , navigation = "Navigation"
+    , skipToContent = "Skip to main content"
     , helpComingSoon = "Help documentation coming soon! For now, explore the app to learn."
     
     -- Dashboard
@@ -402,6 +403,7 @@ fr =
     , profile = "Profil"
     , helpSupport = "Aide et Support"
     , navigation = "Navigation"
+    , skipToContent = "Aller au contenu principal"
     , helpComingSoon = "La documentation d'aide arrive bientôt! Pour l'instant, explorez l'application pour apprendre."
     
     -- Dashboard

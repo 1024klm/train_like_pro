@@ -891,6 +891,7 @@ type FrontendMsg
     | NavigateTo Route
     | ToggleMobileMenu
     | FocusMobileToggle
+    | TrapFocus { firstId : String, lastId : String }
     | UpdateSearchQuery String
     | ApplyFilter HeroFilter
     | ClearFilters

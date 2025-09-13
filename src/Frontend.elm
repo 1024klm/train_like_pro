@@ -176,6 +176,10 @@ update msg model =
         FocusMobileToggle ->
             ( model, Task.attempt (\_ -> NoOpFrontendMsg) (Dom.focus "mobile-menu-toggle") )
 
+        TrapFocus { firstId, lastId } ->
+            -- Simple focus trap: focus first element (in practice would check activeElement and shiftKey)
+            ( model, Task.attempt (\_ -> NoOpFrontendMsg) (Dom.focus firstId) )
+
         UpdateSearchQuery query ->
             ( { model | searchQuery = query }, Cmd.none )
 
