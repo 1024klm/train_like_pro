@@ -30,6 +30,7 @@ type alias Translations =
     , profile : String
     , helpSupport : String
     , navigation : String
+    , skipToContent : String
     , helpComingSoon : String
     
     -- Dashboard

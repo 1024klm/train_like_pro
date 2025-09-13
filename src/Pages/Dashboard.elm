@@ -224,7 +224,7 @@ viewStartSessionPrompt model =
         , p [ class "text-gray-400 mb-6" ] [ text model.userConfig.t.readyToTrainSubtitle ]
         , button 
             [ onClick StartSession
-            , class "px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-lg hover:from-blue-600 hover:to-purple-600 transition-all transform hover:scale-105 hover:shadow-2xl"
+            , class "px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl font-bold text-lg hover:from-blue-600 hover:to-purple-600 transition-all transform hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900"
             ]
             [ i [ class "fas fa-play mr-3", attribute "aria-hidden" "true" ] []
             , span [ class "sr-only" ] [ text "Start training session" ]

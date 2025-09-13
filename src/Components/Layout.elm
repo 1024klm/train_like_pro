@@ -13,7 +13,12 @@ import I18n
 view : FrontendModel -> Html FrontendMsg -> Html FrontendMsg
 view model content =
     div [ class "min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950" ]
-        [ -- Desktop sidebar
+        [ -- Skip to content link
+          a [ href "#main"
+            , class "sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:bg-gray-900 focus:text-white focus:px-3 focus:py-2 focus:rounded focus:z-critical"
+            ]
+            [ text model.userConfig.t.skipToContent ]
+        , -- Desktop sidebar
           div [ class "hidden lg:block" ]
             [ sidebar model ]
         , main_ model content
@@ -22,7 +27,7 @@ view model content =
 
 main_ : FrontendModel -> Html FrontendMsg -> Html FrontendMsg
 main_ model content =
-    div ([ class "lg:ml-72" ] ++ (if model.mobileMenuOpen then [ attribute "aria-hidden" "true" ] else []))
+    div ([ class "lg:ml-72", id "main" ] ++ (if model.mobileMenuOpen then [ attribute "inert" "", attribute "aria-hidden" "true" ] else []))
         [ topBar model
         , div [ class "p-4 lg:p-6" ]
             [ content ]

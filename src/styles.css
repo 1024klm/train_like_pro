@@ -68,6 +68,13 @@
     }
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
   /* Hero Section Animations */
   .hero-gradient {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
