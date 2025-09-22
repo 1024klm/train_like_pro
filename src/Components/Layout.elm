@@ -1,321 +1,454 @@
-module Components.Layout exposing (view, sidebar, mobileMenu)
+module Components.Layout exposing (mobileMenu, onModalEscapeKeyDown, sidebar, view)
 
-import Html exposing (Html, div, nav, ul, li, a, button, text, span, i, img, h1, h2, main_, select, option)
-import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title, value, selected, tabindex)
+import Html exposing (Html, a, button, div, footer, h1, h2, h3, header, input, li, nav, option, p, select, span, text, ul)
+import Html.Attributes exposing (attribute, class, classList, href, id, placeholder, selected, tabindex, type_, value)
 import Html.Events as Events exposing (onClick, onInput)
-import Json.Decode as Decode
-import Router.Helpers exposing (onPreventDefaultClick, isInternalHref)
-import Types exposing (..)
-import Router
-import Theme exposing (darkTheme)
 import I18n
+import Json.Decode as Decode
+import List exposing (indexedMap, length, map)
+import Router
+import Router.Helpers exposing (isInternalHrefWithUrl, onPreventDefaultClick)
+import String
+import Types exposing (..)
+
+
+
+-- VIEW -----------------------------------------------------------------------
+
 
 view : FrontendModel -> Html FrontendMsg -> Html FrontendMsg
 view model content =
-    div [ class "min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950" ]
-        [ -- Skip to content link
-          a [ href "#main"
-            , class "sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:bg-gray-900 focus:text-white focus:px-3 focus:py-2 focus:rounded focus:z-nav"
-            ]
-            [ text model.userConfig.t.skipToContent ]
-        , -- Desktop sidebar
-          div [ class "hidden lg:block" ]
-            [ sidebar model ]
-        , main_ model content
-        , if model.mobileMenuOpen then mobileMenu model else text ""
+    let
+        hasOverlayOpen =
+            model.mobileMenuOpen
+                || model.modals.sessionModal
+                || (model.modals.heroDetailModal /= Nothing)
+                || (model.modals.shareModal /= Nothing)
+                || model.modals.filterModal
+
+        skipLinkClass =
+            if hasOverlayOpen then
+                "sr-only"
+
+            else
+                "sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:rounded-full focus:bg-violet-700 focus:text-white focus:shadow-lg"
+    in
+    div [ class "min-h-screen bg-gray-50 dark:bg-gray-900" ]
+        [ a [ href "#main", class skipLinkClass ] [ text model.userConfig.t.skipToContent ]
+        , headerBar model
+        , mainArea model content hasOverlayOpen
+        , if model.mobileMenuOpen then
+            mobileMenu model
+
+          else
+            text ""
         ]
 
-main_ : FrontendModel -> Html FrontendMsg -> Html FrontendMsg
-main_ model content =
-    div ([ class "lg:ml-72", id "main" ] ++ (if model.mobileMenuOpen then [ attribute "inert" "", attribute "aria-hidden" "true" ] else []))
-        [ topBar model
-        , div [ class "p-4 lg:p-6" ]
-            [ content ]
-        ]
 
-topBar : FrontendModel -> Html FrontendMsg
-topBar model =
-    div [ class "sticky top-0 z-nav glass border-b border-gray-700 shadow-lg" ]
-        [ div [ class "flex items-center justify-between p-4" ]
-            [ div [ class "flex items-center gap-4" ]
-                [ button
-                    [ class "lg:hidden p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
-                    , onClick ToggleMobileMenu
+
+-- HEADER ---------------------------------------------------------------------
+
+
+headerBar : FrontendModel -> Html FrontendMsg
+headerBar model =
+    let
+        navItems =
+            primaryNavigationItems
+
+        t =
+            model.userConfig.t
+    in
+    header [ class "navbar-modern" ]
+        [ div [ class "navbar-container" ]
+            [ brandButton t
+            , nav [ class "nav-links-modern hidden lg:flex" ]
+                (map (viewDesktopNavItem model) navItems)
+            , div [ class "flex items-center gap-4" ]
+                [ languageSelector model
+                , profileSummary model
+                , button
+                    [ onClick StartSession
+                    , class "hidden lg:inline-flex btn btn-primary"
+                    ]
+                    [ text t.startSession ]
+                , button
+                    [ onClick ToggleMobileMenu
+                    , class "mobile-menu-button lg:hidden"
                     , id "mobile-menu-toggle"
                     , attribute "aria-controls" "mobile-menu-dialog"
-                    , attribute "aria-expanded" (if model.mobileMenuOpen then "true" else "false")
-                    , attribute "aria-label" model.userConfig.t.navigation
+                    , attribute "aria-expanded"
+                        (if model.mobileMenuOpen then
+                            "true"
+
+                         else
+                            "false"
+                        )
+                    , attribute "aria-label" t.navigation
                     ]
-                    [ i [ class "fas fa-bars text-gray-300", attribute "aria-hidden" "true" ] [] ]
-                , div [ class "flex items-center gap-3" ]
-                    [ xpBar model
-                    , streakIndicator model
-                    ]
-                ]
-            , div [ class "flex items-center gap-3" ]
-                [ languageSelector model
-                , profileSection model
+                    [ text "☰" ]
                 ]
             ]
         ]
 
-xpBar : FrontendModel -> Html FrontendMsg
-xpBar model =
+
+brandButton : I18n.Translations -> Html FrontendMsg
+brandButton t =
+    button
+        [ onPreventDefaultClick (NavigateTo Home)
+        , class "logo-modern"
+        ]
+        [ div [ class "logo-icon" ] [ text "TL" ]
+        , div []
+            [ h1 [ class "logo-text" ] [ text t.appTitle ]
+            ]
+        ]
+
+
+viewDesktopNavItem : FrontendModel -> NavItem -> Html FrontendMsg
+viewDesktopNavItem model item =
     let
-        progress = model.userProgress
-        currentLevelXP = progress.totalXP
-        nextLevelXP = (progress.currentLevel + 1) * 1000
-        percentage = min 100 (toFloat currentLevelXP / toFloat nextLevelXP * 100)
-    in
-    div [ class "hidden sm:flex items-center gap-2 bg-gray-800/50 rounded-full px-3 py-2" ]
-        [ span [ class "text-xs font-medium text-gray-300" ] [ text (I18n.formatLevel model.userConfig.language progress.currentLevel) ]
-        , div [ class "w-24 h-2 bg-gray-700 rounded-full overflow-hidden" ]
-            [ div 
-                [ class "h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
-                , attribute "style" ("width: " ++ String.fromFloat percentage ++ "%")
-                ] []
-            ]
-        , span [ class "text-xs text-gray-400" ] [ text (String.fromInt currentLevelXP ++ " XP") ]
-        ]
+        label =
+            navLabel model item
 
-streakIndicator : FrontendModel -> Html FrontendMsg
-streakIndicator model =
-    div [ class "hidden sm:flex items-center gap-1 bg-orange-500/10 border border-orange-500/20 rounded-lg px-2 py-1" ]
-        [ i [ class "fas fa-fire text-orange-500 text-sm", attribute "aria-hidden" "true" ] []
-        , span [ class "text-xs font-medium text-orange-400" ] 
-            [ text (I18n.formatStreak model.userConfig.language model.userProgress.currentStreak) ]
-        ]
+        isActive =
+            isRouteActive model item.route
+
+        href_ =
+            Router.toPath item.route
+
+        spaHandlers =
+            if isInternalHrefWithUrl model.url href_ then
+                [ onPreventDefaultClick (NavigateTo item.route) ]
+
+            else
+                []
+
+        classes =
+            if isActive then
+                "nav-link-modern nav-link-active"
+
+            else
+                "nav-link-modern"
+    in
+    button
+        ([ class classes ] ++ spaHandlers)
+        [ text label ]
+
+
+mainArea : FrontendModel -> Html FrontendMsg -> Bool -> Html FrontendMsg
+mainArea model content hasOverlayOpen =
+    let
+        inertAttrs =
+            if hasOverlayOpen then
+                [ attribute "inert" "", attribute "aria-hidden" "true" ]
+
+            else
+                []
+    in
+    Html.main_ ([ class "py-16", id "main" ] ++ inertAttrs)
+        [ div [ class "container-wide" ] [ content ] ]
+
 
 languageSelector : FrontendModel -> Html FrontendMsg
 languageSelector model =
-    select 
-        [ class "bg-gray-800 text-gray-300 border border-gray-700 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-blue-500 transition-colors cursor-pointer hover:bg-gray-700"
-        , value (I18n.languageToString model.userConfig.language)
+    let
+        currentLanguage =
+            I18n.languageToString model.userConfig.language
+    in
+    select
+        [ class "hidden lg:inline-flex rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-gray-600 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+        , value currentLanguage
         , onInput (\val -> ChangeLanguage (I18n.languageFromString val))
         ]
-        [ option [ value "EN", selected (model.userConfig.language == I18n.EN) ] 
-            [ text "🇬🇧 English" ]
-        , option [ value "FR", selected (model.userConfig.language == I18n.FR) ] 
-            [ text "🇫🇷 Français" ]
+        [ option [ value "EN", selected (currentLanguage == "EN") ] [ text "EN" ]
+        , option [ value "FR", selected (currentLanguage == "FR") ] [ text "FR" ]
         ]
 
-profileSection : FrontendModel -> Html FrontendMsg
-profileSection model =
-    div [ class "flex items-center gap-3" ]
-        [ div [ class "hidden sm:block text-right" ]
-            [ div [ class "text-sm font-medium text-gray-200" ] [ text (Maybe.withDefault "Guest" (Maybe.map .username model.userProfile)) ]
-            , div [ class "text-xs text-gray-400" ] [ text (Maybe.withDefault "White Belt" (Maybe.map (\p -> beltToString p.beltLevel ++ " Belt") model.userProfile)) ]
-            ]
-        , div [ class "w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center" ]
-            [ span [ class "text-sm font-bold text-white" ] 
-                [ text (String.left 1 (Maybe.withDefault "G" (Maybe.map .username model.userProfile))) ]
+
+profileSummary : FrontendModel -> Html FrontendMsg
+profileSummary model =
+    let
+        username =
+            Maybe.withDefault model.userConfig.t.guest (Maybe.map .username model.userProfile)
+
+        initial =
+            String.left 1 username |> String.toUpper
+
+        beltLabel =
+            Maybe.withDefault "White Belt" (Maybe.map (.beltLevel >> beltToString) model.userProfile)
+    in
+    button
+        [ onPreventDefaultClick (NavigateTo Profile)
+        , class "hidden lg:inline-flex items-center gap-3"
+        ]
+        [ div [ class "navbar-avatar" ] [ text initial ]
+        , div [ class "hidden xl:grid gap-1 text-left" ]
+            [ span [ class "text-sm font-semibold" ] [ text username ]
+            , span [ class "text-xs text-gray-500" ] [ text beltLabel ]
             ]
         ]
+
 
 sidebar : FrontendModel -> Html FrontendMsg
-sidebar model =
-    nav [ class "fixed left-0 top-0 z-sidebar w-72 h-full glass border-r border-gray-700 shadow-2xl"
-        , attribute "role" "navigation"
-        , attribute "aria-label" model.userConfig.t.navigation
-        ]
-        [ div [ class "flex flex-col h-full" ]
-            [ header_ model
-            , mainNav model  
-            , progressSection model
-            , div [ class "mt-auto" ]
-                [ supportSection model ]
-            ]
-        ]
+sidebar _ =
+    text ""
 
-header_ : FrontendModel -> Html FrontendMsg
-header_ model =
-    div [ class "p-6 border-b border-gray-800" ]
-        [ div [ class "flex items-center gap-3" ]
-            [ div [ class "w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg" ]
-                [ i [ class "fas fa-fist-raised text-white text-lg", attribute "aria-hidden" "true" ] [] ]
-            , div []
-                [ h1 [ class "text-lg font-bold text-white" ] [ text model.userConfig.t.appTitle ]
-                , div [ class "text-xs text-gray-500" ] [ text model.userConfig.t.appSubtitle ]
-                ]
-            ]
-        ]
-
-mainNav : FrontendModel -> Html FrontendMsg
-mainNav model =
-    let
-        t = model.userConfig.t
-    in
-    div [ class "flex-1 px-4 py-6 overflow-y-auto" ]
-        [ ul [ class "space-y-2" ]
-            [ navItem model t.dashboard Dashboard "fas fa-tachometer-alt" False
-            , navItem model t.heroes (HeroesRoute Nothing) "fas fa-users" False
-            , navItem model t.academies (Academies Nothing) "fas fa-university" False
-            , navItem model t.events (Events AllEvents) "fas fa-calendar" False
-            , navItem model t.training Training "fas fa-dumbbell" True
-            , navItem model t.profile Profile "fas fa-user" False
-            ]
-        ]
-
-mobileMainNav : FrontendModel -> Html FrontendMsg
-mobileMainNav model =
-    let
-        t = model.userConfig.t
-    in
-    div [ class "flex-1 px-4 py-6 overflow-y-auto" ]
-        [ ul [ class "space-y-2" ]
-            [ navItemMobileFirst model t.dashboard Dashboard "fas fa-tachometer-alt" False
-            , navItem model t.heroes (HeroesRoute Nothing) "fas fa-users" False
-            , navItem model t.academies (Academies Nothing) "fas fa-university" False
-            , navItem model t.events (Events AllEvents) "fas fa-calendar" False
-            , navItem model t.training Training "fas fa-dumbbell" True
-            , navItemMobileLast model t.profile Profile "fas fa-user" False
-            ]
-        ]
-
-navItem : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
-navItem =
-    navItemWithId ""
-
-navItemMobileFirst : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
-navItemMobileFirst =
-    navItemWithId "mobile-first-link"
-
-navItemMobileLast : FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
-navItemMobileLast =
-    navItemWithId "mobile-last-link"
-
-navItemWithId : String -> FrontendModel -> String -> Route -> String -> Bool -> Html FrontendMsg
-navItemWithId itemId model label route iconClass isAccented =
-    let
-        isActive = model.route == route
-        baseClasses = "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
-        activeClasses = if isActive then
-            "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border border-blue-500/40 text-white shadow-lg shadow-blue-500/20"
-          else if isAccented then
-            "bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-transparent hover:border-orange-500/30 text-orange-300 hover:from-orange-500/20 hover:to-red-500/20 hover:text-orange-200"
-          else
-            "text-gray-400 hover:bg-gray-800/50 hover:text-white border border-transparent hover:border-gray-700/50"
-        href_ = Router.toPath route
-        spaHandlers = if isInternalHref href_ then [ onPreventDefaultClick (NavigateTo route) ] else []
-    in
-    li []
-        [ a ([ class (baseClasses ++ " " ++ activeClasses)
-            , href href_
-            , if isActive then attribute "aria-current" "page" else class ""
-            ] ++ (if String.isEmpty itemId then [] else [ id itemId ]) ++ spaHandlers
-            )
-            [ i [ class (iconClass ++ " w-5 text-center transition-colors"), attribute "aria-hidden" "true" ] []
-            , span [ class "font-medium" ] [ text label ]
-            , if isActive then
-                span [ class "ml-auto w-2 h-2 bg-blue-400 rounded-full animate-pulse" ] []
-              else
-                text ""
-            ]
-        ]
-
-progressSection : FrontendModel -> Html FrontendMsg
-progressSection model =
-    div [ class "px-6 py-4 bg-gray-800/50 border-t border-gray-800" ]
-        [ div [ class "mb-4" ]
-            [ div [ class "flex items-center justify-between mb-2" ]
-                [ span [ class "text-sm font-medium text-gray-300" ] [ text model.userConfig.t.dailyProgress ]
-                , span [ class "text-xs text-gray-500" ] [ text "3/5 " ] -- TODO: Translate quests count
-                ]
-            , div [ class "w-full h-2 bg-gray-700/50 rounded-full overflow-hidden" ]
-                [ div [ class "w-3/5 h-full bg-gradient-to-r from-green-500 to-blue-500 transition-all duration-500" ] [] ]
-            ]
-        , div [ class "grid grid-cols-2 gap-3 text-center" ]
-            [ statCard model.userConfig.t.xpToday "245" "text-blue-400"
-            , statCard model.userConfig.t.streak (I18n.formatStreak model.userConfig.language model.userProgress.currentStreak) "text-orange-400"
-            ]
-        ]
-
-statCard : String -> String -> String -> Html FrontendMsg
-statCard label value colorClass =
-    div [ class "bg-gray-800/50 rounded-lg p-3" ]
-        [ div [ class ("text-lg font-bold " ++ colorClass) ] [ text value ]
-        , div [ class "text-xs text-gray-400" ] [ text label ]
-        ]
-
-supportSection : FrontendModel -> Html FrontendMsg  
-supportSection model =
-    div [ class "p-6 border-t border-gray-700/50" ]
-        [ button 
-            [ onClick (ShowNotification Info model.userConfig.t.helpComingSoon)
-            , class "w-full flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/20 rounded-xl text-purple-200 hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-200 cursor-pointer"
-            , type_ "button"
-            ]
-            [ i [ class "fas fa-question-circle", attribute "aria-hidden" "true" ] []
-            , span [ class "font-medium" ] [ text model.userConfig.t.helpSupport ]
-            ]
-        ]
 
 mobileMenu : FrontendModel -> Html FrontendMsg
 mobileMenu model =
-    div [ class "lg:hidden fixed inset-0 z-mobile-menu" ]
-        [ div [ class "fixed inset-0 bg-black/70", onClick ToggleMobileMenu ] []
-        , nav [ class "fixed left-0 top-0 w-80 max-w-[85vw] h-full glass border-r border-gray-700 shadow-2xl transform transition-transform duration-300 translate-x-0"
-              , attribute "role" "dialog"
-              , attribute "aria-modal" "true"
-              , attribute "aria-label" model.userConfig.t.navigation
-              , tabindex 0
-              , onKeyTabTrap { firstId = "mobile-first-link", lastId = "mobile-last-link" } NoOpFrontendMsg
-              , id "mobile-menu-dialog"
-              ]
-            [ div [ class "flex flex-col h-full" ]
-                [ div [ class "flex items-center justify-between p-4 border-b border-gray-700/50" ]
-                    [ h2 [ class "text-lg font-bold text-white", id "mobile-menu-title", tabindex -1 ] [ text model.userConfig.t.navigation ]
-                    , button [ class "p-2 text-gray-400 hover:text-white", onClick ToggleMobileMenu, attribute "aria-label" "Close menu" ]
-                        [ i [ class "fas fa-times", attribute "aria-hidden" "true" ] [] ]
+    let
+        navItems =
+            primaryNavigationItems
+
+        t =
+            model.userConfig.t
+    in
+    div [ class "lg:hidden" ]
+        [ div [ class "fixed inset-0 bg-black/40 backdrop-blur-sm z-40", onClick ToggleMobileMenu ] []
+        , nav
+            [ class "fixed inset-x-4 top-5 z-50 rounded-2xl bg-white dark:bg-gray-900 p-6 shadow-2xl"
+            , attribute "role" "dialog"
+            , attribute "aria-modal" "true"
+            , attribute "aria-label" t.navigation
+            , id "mobile-menu-dialog"
+            , tabindex 0
+            , onEscapeKeyDown
+            ]
+            [ div [ class "flex items-center justify-between mb-6" ]
+                [ h2 [ class "text-sm font-semibold uppercase tracking-[0.18em] text-gray-500" ] [ text t.navigation ]
+                , button
+                    [ onClick ToggleMobileMenu
+                    , class "mobile-menu-button"
+                    , attribute "aria-label" "Close menu"
                     ]
-                , div [ class "flex-1 overflow-y-auto" ]
-                    [ mobileMainNav model
-                    , progressSection model
+                    [ text "✕" ]
+                ]
+            , ul [ class "space-y-2" ]
+                (indexedMap
+                    (\index item ->
+                        li []
+                            [ viewMobileNavItem index (length navItems) model item ]
+                    )
+                    navItems
+                )
+            , div [ class "mt-6 space-y-3" ]
+                [ button
+                    [ onClick StartSession
+                    , class "btn btn-primary w-full"
                     ]
+                    [ text t.startSession ]
+                , languageSelectorMobile model
                 ]
             ]
         ]
+
+
+viewMobileNavItem : Int -> Int -> FrontendModel -> NavItem -> Html FrontendMsg
+viewMobileNavItem index total model item =
+    let
+        isActive =
+            isRouteActive model item.route
+
+        label =
+            navLabel model item
+
+        attrs =
+            if index == 0 then
+                [ id "mobile-first-link", onFirstItemKeyDown "mobile-last-link" ]
+
+            else if index == total - 1 then
+                [ id "mobile-last-link", onLastItemKeyDown "mobile-first-link" ]
+
+            else
+                []
+    in
+    button
+        ([ onPreventDefaultClick (NavigateTo item.route)
+         , classList
+            [ ( "w-full text-left px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200", True )
+            , ( "bg-purple-100 text-purple-700", isActive )
+            , ( "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200", not isActive )
+            ]
+         ]
+            ++ attrs
+        )
+        [ text label ]
+
+
+languageSelectorMobile : FrontendModel -> Html FrontendMsg
+languageSelectorMobile model =
+    let
+        currentLanguage =
+            I18n.languageToString model.userConfig.language
+    in
+    select
+        [ class "w-full rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200"
+        , value currentLanguage
+        , onInput (\val -> ChangeLanguage (I18n.languageFromString val))
+        ]
+        [ option [ value "EN", selected (currentLanguage == "EN") ] [ text "EN" ]
+        , option [ value "FR", selected (currentLanguage == "FR") ] [ text "FR" ]
+        ]
+
+
+
+-- NAVIGATION -----------------------------------------------------------------
+
+
+type alias NavItem =
+    { id : String
+    , labelEn : String
+    , labelFr : String
+    , icon : String
+    , route : Route
+    }
+
+
+primaryNavigationItems : List NavItem
+primaryNavigationItems =
+    [ { id = "nav-home", labelEn = "Home", labelFr = "Accueil", icon = "🏠", route = Home }
+    , { id = "nav-dashboard", labelEn = "Dashboard", labelFr = "Tableau", icon = "📊", route = Dashboard }
+    , { id = "nav-heroes", labelEn = "Heroes", labelFr = "Héros", icon = "🥋", route = HeroesRoute Nothing }
+    , { id = "nav-academies", labelEn = "Academies", labelFr = "Académies", icon = "🏛️", route = Academies Nothing }
+    , { id = "nav-events", labelEn = "Events", labelFr = "Évènements", icon = "🗓", route = Events AllEvents }
+    , { id = "nav-training", labelEn = "Training", labelFr = "Entraînement", icon = "💪", route = TrainingView }
+    , { id = "nav-profile", labelEn = "Profile", labelFr = "Profil", icon = "👤", route = Profile }
+    ]
+
+
+navLabel : FrontendModel -> NavItem -> String
+navLabel model item =
+    case model.userConfig.language of
+        I18n.FR ->
+            item.labelFr
+
+        I18n.EN ->
+            item.labelEn
+
+
+isRouteActive : FrontendModel -> Route -> Bool
+isRouteActive model routeToMatch =
+    case ( model.route, routeToMatch ) of
+        ( Home, Home ) ->
+            True
+
+        ( Dashboard, Dashboard ) ->
+            True
+
+        ( HeroesRoute _, HeroesRoute _ ) ->
+            True
+
+        ( HeroDetail _, HeroesRoute _ ) ->
+            True
+
+        ( Academies _, Academies _ ) ->
+            True
+
+        ( AcademyDetail _, Academies _ ) ->
+            True
+
+        ( Events _, Events _ ) ->
+            True
+
+        ( EventDetail _, Events _ ) ->
+            True
+
+        ( Training, Training ) ->
+            True
+
+        ( TrainingView, TrainingView ) ->
+            True
+
+        ( RoadmapView _, Dashboard ) ->
+            True
+
+        ( Profile, Profile ) ->
+            True
+
+        ( _, _ ) ->
+            False
+
 
 beltToString : BeltLevel -> String
 beltToString belt =
     case belt of
-        White -> "White"
-        Blue -> "Blue"
-        Purple -> "Purple"
-        Brown -> "Brown"
-        Black -> "Black"
+        White ->
+            "White Belt"
+
+        Blue ->
+            "Blue Belt"
+
+        Purple ->
+            "Purple Belt"
+
+        Brown ->
+            "Brown Belt"
+
+        Black ->
+            "Black Belt"
 
 
-onKeyTabTrap : { firstId : String, lastId : String } -> FrontendMsg -> Html.Attribute FrontendMsg
-onKeyTabTrap ids noOp =
+
+-- MOBILE FOCUS MANAGEMENT ----------------------------------------------------
+
+
+onFirstItemKeyDown : String -> Html.Attribute FrontendMsg
+onFirstItemKeyDown lastId =
     Events.preventDefaultOn "keydown"
-        (Decode.map2 (\key shift ->
-            if key == "Tab" then
-                ( TrapFocus
-                    (if shift then
-                        { firstId = ids.lastId, lastId = ids.firstId }
-                     else
-                        { firstId = ids.firstId, lastId = ids.lastId }
-                    )
-                , True
-                )
-            else if key == "Escape" then
-                ( ToggleMobileMenu, True )
-            else
-                ( noOp, False )
-        )
+        (Decode.map2
+            (\key shift ->
+                if key == "Tab" && shift then
+                    ( TrapFocus { firstId = lastId, lastId = lastId }, True )
+
+                else
+                    ( NoOpFrontendMsg, False )
+            )
             (Decode.field "key" Decode.string)
             (Decode.field "shiftKey" Decode.bool)
         )
 
-escapeKeyDecoder : FrontendMsg -> Decode.Decoder FrontendMsg
-escapeKeyDecoder msg =
-    Decode.field "key" Decode.string
-        |> Decode.andThen (\key ->
-            if key == "Escape" then
-                Decode.succeed msg
-            else
-                Decode.fail "Not escape key"
+
+onLastItemKeyDown : String -> Html.Attribute FrontendMsg
+onLastItemKeyDown firstId =
+    Events.preventDefaultOn "keydown"
+        (Decode.map2
+            (\key shift ->
+                if key == "Tab" && not shift then
+                    ( TrapFocus { firstId = firstId, lastId = firstId }, True )
+
+                else
+                    ( NoOpFrontendMsg, False )
+            )
+            (Decode.field "key" Decode.string)
+            (Decode.field "shiftKey" Decode.bool)
         )
 
 
+onEscapeKeyDown : Html.Attribute FrontendMsg
+onEscapeKeyDown =
+    Events.preventDefaultOn "keydown"
+        (Decode.field "key" Decode.string
+            |> Decode.andThen
+                (\key ->
+                    if key == "Escape" then
+                        Decode.succeed ( ToggleMobileMenu, True )
+
+                    else
+                        Decode.fail "not escape"
+                )
+        )
+
+
+onModalEscapeKeyDown : FrontendMsg -> Html.Attribute FrontendMsg
+onModalEscapeKeyDown closeMsg =
+    Events.preventDefaultOn "keydown"
+        (Decode.field "key" Decode.string
+            |> Decode.andThen
+                (\key ->
+                    if key == "Escape" then
+                        Decode.succeed ( closeMsg, True )
+
+                    else
+                        Decode.fail "not escape"
+                )
+        )

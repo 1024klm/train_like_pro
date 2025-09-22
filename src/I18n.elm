@@ -682,3 +682,58 @@ formatDate lang posix =
                 ( EN, Time.Dec ) -> "Dec"
     in
     String.fromInt d ++ " " ++ monthName ++ " " ++ String.fromInt y
+
+
+formatFullDate : Language -> Time.Posix -> String
+formatFullDate lang posix =
+    let
+        zone = Time.utc
+        weekday = Time.toWeekday zone posix
+        m = Time.toMonth zone posix
+        d = Time.toDay zone posix
+
+        weekdayName =
+            case ( lang, weekday ) of
+                ( FR, Time.Mon ) -> "lundi"
+                ( FR, Time.Tue ) -> "mardi"
+                ( FR, Time.Wed ) -> "mercredi"
+                ( FR, Time.Thu ) -> "jeudi"
+                ( FR, Time.Fri ) -> "vendredi"
+                ( FR, Time.Sat ) -> "samedi"
+                ( FR, Time.Sun ) -> "dimanche"
+                ( EN, Time.Mon ) -> "Monday"
+                ( EN, Time.Tue ) -> "Tuesday"
+                ( EN, Time.Wed ) -> "Wednesday"
+                ( EN, Time.Thu ) -> "Thursday"
+                ( EN, Time.Fri ) -> "Friday"
+                ( EN, Time.Sat ) -> "Saturday"
+                ( EN, Time.Sun ) -> "Sunday"
+
+        monthName =
+            case ( lang, m ) of
+                ( FR, Time.Jan ) -> "janv."
+                ( FR, Time.Feb ) -> "févr."
+                ( FR, Time.Mar ) -> "mars"
+                ( FR, Time.Apr ) -> "avr."
+                ( FR, Time.May ) -> "mai"
+                ( FR, Time.Jun ) -> "juin"
+                ( FR, Time.Jul ) -> "juil."
+                ( FR, Time.Aug ) -> "août"
+                ( FR, Time.Sep ) -> "sept."
+                ( FR, Time.Oct ) -> "oct."
+                ( FR, Time.Nov ) -> "nov."
+                ( FR, Time.Dec ) -> "déc."
+                ( EN, Time.Jan ) -> "Jan"
+                ( EN, Time.Feb ) -> "Feb"
+                ( EN, Time.Mar ) -> "Mar"
+                ( EN, Time.Apr ) -> "Apr"
+                ( EN, Time.May ) -> "May"
+                ( EN, Time.Jun ) -> "Jun"
+                ( EN, Time.Jul ) -> "Jul"
+                ( EN, Time.Aug ) -> "Aug"
+                ( EN, Time.Sep ) -> "Sep"
+                ( EN, Time.Oct ) -> "Oct"
+                ( EN, Time.Nov ) -> "Nov"
+                ( EN, Time.Dec ) -> "Dec"
+    in
+    weekdayName ++ ", " ++ monthName ++ " " ++ String.fromInt d
