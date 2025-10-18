@@ -247,18 +247,17 @@ techniqueOption icon name =
 
 viewQuickActions : Html FrontendMsg
 viewQuickActions =
-    div [ class "grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" ]
-        [ quickActionButton "✅" "Success" "bg-green-500 hover:bg-green-600"
-        , quickActionButton "❌" "Failed" "bg-red-500 hover:bg-red-600"
-        , quickActionButton "💡" "Insight" "bg-yellow-500 hover:bg-yellow-600"
-        , quickActionButton "🎥" "Record" "bg-blue-500 hover:bg-blue-600"
+    div [ class "grid grid-cols-2 gap-4 mb-6" ]
+        [ quickActionButton "✅" "Réussite" (ShowNotification Success "Technique réussie ! +10 XP bonus") "bg-green-500 hover:bg-green-600"
+        , quickActionButton "💡" "Insight" (ShowNotification Info "Note ajoutée à la session") "bg-purple-500 hover:bg-purple-600"
         ]
 
 
-quickActionButton : String -> String -> String -> Html FrontendMsg
-quickActionButton icon label colorClass =
-    button 
-        [ class ("w-full py-4 rounded-lg text-white font-semibold transition-colors " ++ colorClass)
+quickActionButton : String -> String -> FrontendMsg -> String -> Html FrontendMsg
+quickActionButton icon label action colorClass =
+    button
+        [ onClick action
+        , class ("w-full py-4 rounded-lg text-white font-semibold transition-colors " ++ colorClass)
         ]
         [ div [ class "text-2xl mb-1" ] [ text icon ]
         , text label

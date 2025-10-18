@@ -1574,12 +1574,21 @@ viewEventsPage model filter =
                 |> Dict.values
                 |> filterEvents filter
                 |> List.sortBy .date
+
+        headerSubtitle =
+            case model.userConfig.language of
+                I18n.FR ->
+                    "Tournois, superfights, séminaires et camps d'entraînement"
+
+                I18n.EN ->
+                    "Tournaments, superfights, seminars and training camps"
     in
     div [ class "page-stack" ]
-        [ div [ class "card page-intro" ]
-            [ span [ class "chip chip--outline" ] [ text model.userConfig.t.events ]
+        [ -- Centered page intro
+          div [ class "card page-intro" ]
+            [ span [ class "chip chip--outline" ] [ text (String.fromInt (List.length eventsList) ++ " events") ]
             , h1 [ class "page-intro__title" ] [ text model.userConfig.t.events ]
-            , p [ class "page-intro__subtitle" ] [ text "Tournaments, seminars, and training camps" ]
+            , p [ class "page-intro__subtitle" ] [ text headerSubtitle ]
             ]
         , viewEventFilters filter
         , Keyed.node "div"
@@ -1590,10 +1599,14 @@ viewEventsPage model filter =
 
 viewEventFilters : EventsFilter -> Html Msg
 viewEventFilters currentFilter =
+    let
+        btn label active target =
+            eventFilterButton label active (NavigateTo target)
+    in
     div [ class "filter-row" ]
-        [ eventFilterButton "All" (currentFilter == AllEvents) (NavigateTo (Events AllEvents))
-        , eventFilterButton "Upcoming" (currentFilter == UpcomingEvents) (NavigateTo (Events UpcomingEvents))
-        , eventFilterButton "Past" (currentFilter == PastEvents) (NavigateTo (Events PastEvents))
+        [ btn "All" (currentFilter == AllEvents) (Events AllEvents)
+        , btn "Upcoming" (currentFilter == UpcomingEvents) (Events UpcomingEvents)
+        , btn "Past" (currentFilter == PastEvents) (Events PastEvents)
         ]
 
 
@@ -1614,20 +1627,39 @@ viewEventListCard model event =
     let
         isFavorite =
             Set.member event.id model.favorites.events
+
+        typeIcon =
+            eventTypeIcon event.type_
+
+        statusClass =
+            eventStatusClass event.status
+
+        ctaLabel =
+            case ( event.registrationUrl, event.streamUrl ) of
+                ( Just _, _ ) ->
+                    "Register"
+
+                ( Nothing, Just _ ) ->
+                    "Watch"
+
+                _ ->
+                    "Details"
     in
     div
         [ onPreventDefaultClick (NavigateTo (EventDetail event.id))
-        , class "card list-card list-card--interactive"
+        , class "card list-card list-card--interactive p-5 text-center"
         ]
         [ div [ class "list-card__header" ]
             [ h3 [ class "list-card__title" ] [ text event.name ]
-            , span [ class "list-card__meta" ] [ text (eventStatusText event.status) ]
+            , span [ class statusClass ] [ text (eventStatusText event.status) ]
             ]
-        , span [ class "list-card__meta" ] [ text event.date ]
-        , span [ class "list-card__location" ] [ text (event.location.city ++ ", " ++ event.location.country) ]
+        , div [ class "space-y-1" ]
+            [ span [ class "list-card__meta" ] [ text (typeIcon ++ " " ++ eventTypeToString event.type_) ]
+            , span [ class "list-card__meta" ] [ text event.date ]
+            , span [ class "list-card__location" ] [ text (event.location.city ++ ", " ++ event.location.country) ]
+            ]
         , div [ class "list-card__footer" ]
-            [ span [ class "list-card__meta" ] [ text (eventTypeToString event.type_) ]
-            , button
+            [ button
                 [ onClick (ToggleFavorite EventFavorite event.id)
                 , Html.Events.stopPropagationOn "click" (Decode.succeed ( NoOpFrontendMsg, True ))
                 , classList
@@ -1643,6 +1675,7 @@ viewEventListCard model event =
                         "☆"
                     )
                 ]
+            , span [ class "list-card__link" ] [ text ctaLabel ]
             ]
         ]
 
