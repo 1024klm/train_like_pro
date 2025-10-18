@@ -2327,8 +2327,7 @@ sessionTypeToString sessionType =
 viewProfilePage : Model -> Html Msg
 viewProfilePage model =
     div [ class "space-y-6" ]
-        [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-8" ] [ text "Profile" ]
-        , case model.userProfile of
+        [ case model.userProfile of
             Just profile ->
                 viewUserProfile profile model
 
@@ -2486,33 +2485,31 @@ viewGuestProfile : Model -> Html Msg
 viewGuestProfile model =
     div [ class "flex-1 flex items-center justify-center p-4 lg:p-8" ]
         [ div [ class "max-w-md w-full" ]
-            [ -- Card container with better contrast
-              div [ class "bg-gray-900/50 backdrop-blur-md rounded-2xl border border-gray-800/50 p-6 lg:p-8 shadow-2xl" ]
+            [ -- Card container styled to site purple theme
+              div [ class "bg-white dark:bg-gray-800 rounded-2xl border border-purple-500/20 p-6 lg:p-8 shadow-xl" ]
                 [ -- Icon
                   div [ class "flex justify-center mb-6" ]
-                    [ div [ class "w-24 h-24 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center" ]
+                    [ div [ class "w-24 h-24 bg-gradient-to-br from-purple-500/20 to-purple-700/20 rounded-full flex items-center justify-center" ]
                         [ span [ class "text-5xl" ] [ text "👤" ] ]
                     ]
                 , -- Title
-                  h2 [ class "text-3xl font-bold text-white text-center mb-4" ]
+                  h2 [ class "text-3xl font-bold text-slate-900 dark:text-white text-center mb-4" ]
                     [ text "Start Your Journey" ]
                 , -- Description
-                  p [ class "text-gray-400 text-center mb-8 leading-relaxed" ]
+                  p [ class "text-gray-600 dark:text-gray-400 text-center mb-8 leading-relaxed" ]
                     [ text "Create an account to track your training progress, save favorites, and unlock achievements." ]
                 , -- Buttons with proper handlers and z-index
                   div [ class "space-y-3" ]
                     [ button
                         [ onClick (NavigateTo SignUpPage)
-                        , class "w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer relative z-10"
+                        , class "w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer relative z-10"
                         , type_ "button"
-                        , style "cursor" "pointer"
                         ]
                         [ text "Sign Up" ]
                     , button
                         [ onClick (NavigateTo LoginPage)
-                        , class "w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium py-3 px-6 rounded-lg transition-colors cursor-pointer relative z-10"
+                        , class "w-full bg-white dark:bg-gray-800 border border-purple-600 text-purple-700 dark:text-purple-300 font-semibold py-3 px-6 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors cursor-pointer relative z-10"
                         , type_ "button"
-                        , style "cursor" "pointer"
                         ]
                         [ text "Already have an account? Log in" ]
                     ]
