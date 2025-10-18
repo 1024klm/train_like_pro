@@ -40,6 +40,8 @@ type Route
     | TechniqueLibrary
     | Progress
     | Profile
+    | SignUpPage
+    | LoginPage
     | NotFound
 
 

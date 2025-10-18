@@ -29,6 +29,8 @@ routeParser =
         , Parser.map TechniqueLibrary (s "techniques")
         , Parser.map Progress (s "progress")
         , Parser.map Profile (s "profile")
+        , Parser.map SignUpPage (s "signup")
+        , Parser.map LoginPage (s "login")
         ]
 
 
@@ -177,6 +179,12 @@ toPath route =
 
         Profile ->
             "/profile"
+
+        SignUpPage ->
+            "/signup"
+
+        LoginPage ->
+            "/login"
 
         NotFound ->
             "/404"

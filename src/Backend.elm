@@ -232,4 +232,6 @@ routeToAnalyticsKey route =
         TechniqueLibrary -> "techniques"
         Progress -> "progress"
         Profile -> "profile"
+        SignUpPage -> "signup"
+        LoginPage -> "login"
         NotFound -> "404"

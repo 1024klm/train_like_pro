@@ -32,12 +32,19 @@ view model content =
 
             else
                 "sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:px-4 focus:py-2 focus:rounded-full focus:bg-violet-700 focus:text-white focus:shadow-lg"
+
+        -- Check if we're on an auth page (signup or login)
+        isAuthPage =
+            model.route == SignUpPage || model.route == LoginPage
     in
     div [ class "min-h-screen bg-gray-50 dark:bg-gray-900" ]
         [ a [ href "#main", class skipLinkClass ] [ text model.userConfig.t.skipToContent ]
-        , headerBar model
+        , if not isAuthPage then
+            headerBar model
+          else
+            text ""
         , mainArea model content hasOverlayOpen
-        , if model.mobileMenuOpen then
+        , if model.mobileMenuOpen && not isAuthPage then
             mobileMenu model
 
           else
@@ -144,8 +151,18 @@ mainArea model content hasOverlayOpen =
 
             else
                 []
+
+        -- Remove padding on auth pages (no navbar)
+        isAuthPage =
+            model.route == SignUpPage || model.route == LoginPage
+
+        paddingClass =
+            if isAuthPage then
+                ""
+            else
+                "py-16"
     in
-    Html.main_ ([ class "py-16", id "main" ] ++ inertAttrs)
+    Html.main_ ([ class paddingClass, id "main" ] ++ inertAttrs)
         [ div [ class "container-wide" ] [ content ] ]
 
 

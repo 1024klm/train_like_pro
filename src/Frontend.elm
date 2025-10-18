@@ -616,6 +616,12 @@ viewTitle model =
         Profile ->
             "Profile - BJJ Heroes"
 
+        SignUpPage ->
+            "Sign Up - Train Like Pro"
+
+        LoginPage ->
+            "Login - Train Like Pro"
+
         NotFound ->
             "404 - BJJ Heroes"
 
@@ -934,6 +940,12 @@ viewPage model =
 
         Profile ->
             viewProfilePage model
+
+        SignUpPage ->
+            viewSignUpPage model
+
+        LoginPage ->
+            viewLoginPage model
 
         NotFound ->
             viewNotFoundPage model
@@ -2490,19 +2502,162 @@ viewGuestProfile model =
                 , -- Buttons with proper handlers and z-index
                   div [ class "space-y-3" ]
                     [ button
-                        [ onClick (ShowNotification Info "Sign up feature coming soon!")
+                        [ onClick (NavigateTo SignUpPage)
                         , class "w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer relative z-10"
                         , type_ "button"
                         , style "cursor" "pointer"
                         ]
                         [ text "Sign Up" ]
                     , button
-                        [ onClick (ShowNotification Info "Login feature coming soon!")
+                        [ onClick (NavigateTo LoginPage)
                         , class "w-full bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium py-3 px-6 rounded-lg transition-colors cursor-pointer relative z-10"
                         , type_ "button"
                         , style "cursor" "pointer"
                         ]
                         [ text "Already have an account? Log in" ]
+                    ]
+                ]
+            ]
+        ]
+
+
+viewSignUpPage : Model -> Html Msg
+viewSignUpPage model =
+    div [ class "min-h-screen flex items-center justify-center p-4", style "margin-top" "-72px" ]
+        [ div [ class "max-w-md w-full" ]
+            [ div [ class "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700" ]
+                [ -- Header
+                  div [ class "text-center mb-8" ]
+                    [ div [ class "inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4" ]
+                        [ span [ class "text-3xl" ] [ text "🥋" ] ]
+                    , h1 [ class "text-3xl font-bold text-gray-900 dark:text-white mb-2" ]
+                        [ text "Create Account" ]
+                    , p [ class "text-gray-600 dark:text-gray-400" ]
+                        [ text "Join Train Like Pro and start your journey" ]
+                    ]
+                , -- Form
+                  div [ class "space-y-4" ]
+                    [ div []
+                        [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
+                            [ text "Full Name" ]
+                        , input
+                            [ type_ "text"
+                            , class "form-input w-full"
+                            , placeholder "John Doe"
+                            ]
+                            []
+                        ]
+                    , div []
+                        [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
+                            [ text "Email" ]
+                        , input
+                            [ type_ "email"
+                            , class "form-input w-full"
+                            , placeholder "john@example.com"
+                            ]
+                            []
+                        ]
+                    , div []
+                        [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
+                            [ text "Password" ]
+                        , input
+                            [ type_ "password"
+                            , class "form-input w-full"
+                            , placeholder "••••••••"
+                            ]
+                            []
+                        ]
+                    , div []
+                        [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
+                            [ text "Confirm Password" ]
+                        , input
+                            [ type_ "password"
+                            , class "form-input w-full"
+                            , placeholder "••••••••"
+                            ]
+                            []
+                        ]
+                    , button
+                        [ onClick (ShowNotification Info "Sign up functionality coming soon!")
+                        , class "w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+                        , type_ "button"
+                        ]
+                        [ text "Create Account" ]
+                    , div [ class "text-center text-sm text-gray-600 dark:text-gray-400" ]
+                        [ text "Already have an account? "
+                        , button
+                            [ onClick (NavigateTo LoginPage)
+                            , class "text-purple-600 dark:text-purple-400 font-semibold hover:underline"
+                            ]
+                            [ text "Log in" ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+
+viewLoginPage : Model -> Html Msg
+viewLoginPage model =
+    div [ class "min-h-screen flex items-center justify-center p-4", style "margin-top" "-72px" ]
+        [ div [ class "max-w-md w-full" ]
+            [ div [ class "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700" ]
+                [ -- Header
+                  div [ class "text-center mb-8" ]
+                    [ div [ class "inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4" ]
+                        [ span [ class "text-3xl" ] [ text "👤" ] ]
+                    , h1 [ class "text-3xl font-bold text-gray-900 dark:text-white mb-2" ]
+                        [ text "Welcome Back" ]
+                    , p [ class "text-gray-600 dark:text-gray-400" ]
+                        [ text "Log in to continue your training" ]
+                    ]
+                , -- Form
+                  div [ class "space-y-4" ]
+                    [ div []
+                        [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
+                            [ text "Email" ]
+                        , input
+                            [ type_ "email"
+                            , class "form-input w-full"
+                            , placeholder "john@example.com"
+                            ]
+                            []
+                        ]
+                    , div []
+                        [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
+                            [ text "Password" ]
+                        , input
+                            [ type_ "password"
+                            , class "form-input w-full"
+                            , placeholder "••••••••"
+                            ]
+                            []
+                        ]
+                    , div [ class "flex items-center justify-between" ]
+                        [ label [ class "flex items-center" ]
+                            [ input [ type_ "checkbox", class "mr-2" ] []
+                            , span [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text "Remember me" ]
+                            ]
+                        , button
+                            [ onClick (ShowNotification Info "Password reset coming soon!")
+                            , class "text-sm text-purple-600 dark:text-purple-400 hover:underline"
+                            ]
+                            [ text "Forgot password?" ]
+                        ]
+                    , button
+                        [ onClick (ShowNotification Info "Login functionality coming soon!")
+                        , class "w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+                        , type_ "button"
+                        ]
+                        [ text "Log In" ]
+                    , div [ class "text-center text-sm text-gray-600 dark:text-gray-400" ]
+                        [ text "Don't have an account? "
+                        , button
+                            [ onClick (NavigateTo SignUpPage)
+                            , class "text-purple-600 dark:text-purple-400 font-semibold hover:underline"
+                            ]
+                            [ text "Sign up" ]
+                        ]
                     ]
                 ]
             ]
