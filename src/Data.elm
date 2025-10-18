@@ -4,6 +4,7 @@ import Dict exposing (Dict)
 import Set exposing (Set)
 import Types
 import Time
+import Data.CFJJBEvents exposing (cfjjbEvents)
 
 
 initHeroes : Dict String Types.Hero
@@ -564,6 +565,11 @@ aojSchedule =
 
 initEvents : Dict String Types.Event
 initEvents =
+    Dict.union internationalEvents cfjjbEvents
+
+
+internationalEvents : Dict String Types.Event
+internationalEvents =
     Dict.fromList
         [ ( "adcc-2024"
           , { id = "adcc-2024"

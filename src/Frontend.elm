@@ -9,6 +9,7 @@ import Dict exposing (Dict)
 import Effect.Command as Command exposing (Command, FrontendOnly)
 import Effect.Lamdera
 import Effect.Subscription as Subscription exposing (Subscription)
+import GameMechanics.XP as XP
 import Html exposing (..)
 import Html.Attributes as Attr exposing (..)
 import Html.Events exposing (..)
@@ -334,6 +335,153 @@ update msg model =
             ( { model | animations = { animations | scrollProgress = animations.scrollProgress + 0.01 } }
             , Cmd.none
             )
+
+        StartSession ->
+            let
+                newSession =
+                    { startTime = Time.millisToPosix 0  -- Will be set properly by backend
+                    , currentTechnique = Nothing
+                    , techniques = []
+                    , totalXP = 0
+                    , notes = ""
+                    }
+            in
+            ( { model | activeSession = Just newSession, sessionTimer = 0 }
+            , Router.navigateTo model.key TrainingView
+            )
+
+        EndSession ->
+            case model.activeSession of
+                Just session ->
+                    let
+                        finalSession =
+                            { id = "session-" ++ String.fromInt model.sessionTimer  -- Temporary ID
+                            , date = session.startTime
+                            , planId = Nothing
+                            , duration = model.sessionTimer // 60  -- Convert seconds to minutes
+                            , techniques = session.techniques
+                            , notes = session.notes
+                            , sessionType = TechniqueSession  -- Default session type
+                            , rating = Nothing
+                            , completed = True
+                            , xpEarned = session.totalXP
+                            , mood = Good  -- Default mood
+                            , energy = Normal  -- Default energy
+                            }
+                    in
+                    ( { model
+                        | activeSession = Nothing
+                        , sessionTimer = 0
+                        , trainingSessions = finalSession :: model.trainingSessions
+                      }
+                    , Cmd.batch
+                        [ Lamdera.sendToBackend (SaveTrainingData finalSession)
+                        , Router.navigateTo model.key TrainingView
+                        ]
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        SelectNode techniqueId ->
+            case model.activeSession of
+                Just session ->
+                    ( { model | activeSession = Just { session | currentTechnique = Just techniqueId } }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        IncrementReps techniqueId ->
+            case model.activeSession of
+                Just session ->
+                    let
+                        updatedTechniques =
+                            case List.filter (\t -> t.techniqueId == techniqueId) session.techniques of
+                                [] ->
+                                    -- New technique
+                                    { techniqueId = techniqueId
+                                    , repetitions = 1
+                                    , quality = 3
+                                    , partner = Nothing
+                                    , notes = ""
+                                    , xpEarned = 1 * 3 * 5  -- reps * quality * base_xp
+                                    } :: session.techniques
+
+                                existingTech :: _ ->
+                                    -- Update existing
+                                    List.map (\t ->
+                                        if t.techniqueId == techniqueId then
+                                            let
+                                                newReps = t.repetitions + 1
+                                                newXP = newReps * t.quality * 5  -- reps * quality * base_xp
+                                            in
+                                            { t | repetitions = newReps, xpEarned = newXP }
+                                        else
+                                            t
+                                    ) session.techniques
+
+                        newTotalXP =
+                            List.sum (List.map .xpEarned updatedTechniques)
+                    in
+                    ( { model | activeSession = Just { session | techniques = updatedTechniques, totalXP = newTotalXP } }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        DecrementReps techniqueId ->
+            case model.activeSession of
+                Just session ->
+                    let
+                        updatedTechniques =
+                            List.map (\t ->
+                                if t.techniqueId == techniqueId && t.repetitions > 0 then
+                                    let
+                                        newReps = t.repetitions - 1
+                                        newXP = newReps * t.quality * 5  -- reps * quality * base_xp
+                                    in
+                                    { t | repetitions = newReps, xpEarned = newXP }
+                                else
+                                    t
+                            ) session.techniques
+
+                        newTotalXP =
+                            List.sum (List.map .xpEarned updatedTechniques)
+                    in
+                    ( { model | activeSession = Just { session | techniques = updatedTechniques, totalXP = newTotalXP } }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        SetQuality techniqueId quality ->
+            case model.activeSession of
+                Just session ->
+                    let
+                        updatedTechniques =
+                            List.map (\t ->
+                                if t.techniqueId == techniqueId then
+                                    let
+                                        newXP = t.repetitions * quality * 5  -- reps * quality * base_xp
+                                    in
+                                    { t | quality = quality, xpEarned = newXP }
+                                else
+                                    t
+                            ) session.techniques
+
+                        newTotalXP =
+                            List.sum (List.map .xpEarned updatedTechniques)
+                    in
+                    ( { model | activeSession = Just { session | techniques = updatedTechniques, totalXP = newTotalXP } }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
 
         _ ->
             ( model, Cmd.none )

@@ -91,6 +91,37 @@ The project uses `lamdera-program-test` for end-to-end testing:
 - Consider pagination for large lists
 - Images should be optimized before uploading
 
+## CFJJB Competition Integration
+
+The application automatically integrates French BJJ competitions from the CFJJB (Confédération Française de Jiu-Jitsu Brésilien).
+
+### Data Structure
+- **Source**: https://cfjjb.com/competitions/calendrier-competitions
+- **Module**: `src/Data/CFJJBEvents.elm`
+- **Integration**: Events are merged with international events in `src/Data.elm`
+
+### Updating CFJJB Data
+```bash
+# Update French competition data from CFJJB website
+npm run update:cfjjb
+```
+
+This command:
+1. Scrapes the CFJJB website for current competitions
+2. Generates `src/Data/CFJJBEvents.elm` with structured event data
+3. Creates `scripts/cfjjb-events.json` for debugging
+
+### Competition Categories
+- **GI**: Kimono competitions (type: `Tournament`)
+- **NO GI**: No-gi competitions (type: `Tournament`)
+- **KIDS**: Children's competitions (type: `Camp`)
+- **KIDS NO GI**: Children's no-gi competitions (type: `Camp`)
+
+### Files
+- `scripts/scrape-cfjjb.js` - Scraping script (uses native Node.js, no dependencies)
+- `src/Data/CFJJBEvents.elm` - Generated Elm module with CFJJB events
+- `docs/CFJJB_INTEGRATION.md` - Full documentation
+
 ## Development Commands
 
 ### Running the Application
