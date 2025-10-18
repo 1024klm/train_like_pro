@@ -29,8 +29,6 @@ type Route
     | Dashboard
     | HeroesRoute (Maybe HeroFilter)
     | HeroDetail String
-    | Academies (Maybe String)
-    | AcademyDetail String
     | Events EventsFilter
     | EventDetail String
     | Training
@@ -205,23 +203,7 @@ type VideoType
     | Highlight
 
 
--- ACADEMY DATA
-
-type alias Academy =
-    { id : String
-    , name : String
-    , location : Location
-    , headCoach : String
-    , established : Int
-    , description : String
-    , imageUrl : String
-    , website : Maybe String
-    , socialMedia : SocialMedia
-    , notableMembers : List String
-    , programs : List Program
-    , schedule : List ClassSchedule
-    }
-
+-- LOCATION DATA
 
 type alias Location =
     { city : String
@@ -236,43 +218,6 @@ type alias Coordinates =
     { latitude : Float
     , longitude : Float
     }
-
-
-type alias Program =
-    { id : String
-    , name : String
-    , level : ProgramLevel
-    , description : String
-    , duration : String
-    , price : Maybe Float
-    }
-
-
-type ProgramLevel
-    = BeginnerProgram
-    | IntermediateProgram
-    | AdvancedProgram
-    | CompetitionProgram
-    | KidsProgram
-
-
-type alias ClassSchedule =
-    { dayOfWeek : DayOfWeek
-    , time : String
-    , duration : Int
-    , className : String
-    , instructor : String
-    }
-
-
-type DayOfWeek
-    = Monday
-    | Tuesday
-    | Wednesday
-    | Thursday
-    | Friday
-    | Saturday
-    | Sunday
 
 
 -- EVENT DATA
@@ -460,7 +405,6 @@ type alias UserProfile =
     , academy : Maybe String
     , startedTraining : String
     , favoriteHeroes : Set String
-    , favoriteAcademies : Set String
     , savedEvents : Set String
     , trainingGoals : List String
     , achievements : List Achievement
@@ -753,7 +697,6 @@ type alias FrontendModel =
     
     -- Data
     , heroes : Dict String Hero
-    , academies : Dict String Academy
     , events : Dict String Event
     , trainingPlans : Dict String TrainingPlan
     , trainingSessions : List TrainingSession
@@ -776,6 +719,7 @@ type alias FrontendModel =
     , modals : ModalState
     , notifications : List Notification
     , animations : AnimationState
+    , claimedPlanItems : Set String
     }
 
 
@@ -795,7 +739,6 @@ type alias DateRange =
 
 type alias Favorites =
     { heroes : Set String
-    , academies : Set String
     , events : Set String
     }
 
@@ -853,7 +796,6 @@ type NotificationType
 type alias BackendModel =
     { sessions : Dict SessionId Session
     , heroes : Dict String Hero
-    , academies : Dict String Academy
     , events : Dict String Event
     , userProfiles : Dict String UserProfile
     , analytics : Analytics
@@ -910,11 +852,7 @@ type FrontendMsg
     | SelectHero String
     | LoadHeroVideos String
     | PlayVideo Video
-    
-    -- Academies
-    | SelectAcademy String
-    | ContactAcademy String
-    
+
     -- Events
     | SelectEvent String
     | RegisterForEvent String
@@ -948,11 +886,11 @@ type FrontendMsg
     | DismissNotification String
     | ScrollToSection String
     | AnimationTick Time.Posix
+    | ClaimPlanXP String Int
 
 
 type FavoriteType
     = HeroFavorite
-    | AcademyFavorite
     | EventFavorite
 
 
@@ -970,7 +908,6 @@ type ToBackend
     | TrackPageView Route
     | SearchHeroes String
     | GetHeroDetail String
-    | GetAcademyDetail String
     | GetEventDetail String
     | SaveUserProfile UserProfile
     | SaveTrainingData TrainingSession
@@ -991,15 +928,13 @@ type BackendMsg
 
 
 type ToFrontend
-    = InitialDataReceived 
+    = InitialDataReceived
         { heroes : Dict String Hero
-        , academies : Dict String Academy
         , events : Dict String Event
         , roadmaps : Dict String TechniqueRoadmap
         , userProgress : UserProgress
         }
     | HeroDetailReceived Hero
-    | AcademyDetailReceived Academy
     | EventDetailReceived Event
     | FavoritesSaved Favorites
     | UserProfileSaved UserProfile

@@ -25,7 +25,6 @@ init : ( Model, Cmd BackendMsg )
 init =
     ( { sessions = Dict.empty
       , heroes = Data.initHeroes
-      , academies = Data.initAcademies
       , events = Data.initEvents
       , userProfiles = Dict.empty
       , analytics =
@@ -76,7 +75,6 @@ updateFromFrontend sessionId clientId msg model =
             , Lamdera.sendToFrontend clientId
                 (InitialDataReceived
                     { heroes = model.heroes
-                    , academies = model.academies
                     , events = model.events
                     , roadmaps = Dict.empty -- TODO: Load from Data.Roadmaps
                     , userProgress = Data.defaultUserProgress
@@ -132,16 +130,6 @@ updateFromFrontend sessionId clientId msg model =
                     in
                     ( { model | analytics = { updatedAnalytics | heroViews = newHeroViews } }
                     , Lamdera.sendToFrontend clientId (HeroDetailReceived hero)
-                    )
-
-                Nothing ->
-                    ( model, Cmd.none )
-
-        GetAcademyDetail academyId ->
-            case Dict.get academyId model.academies of
-                Just academy ->
-                    ( model
-                    , Lamdera.sendToFrontend clientId (AcademyDetailReceived academy)
                     )
 
                 Nothing ->
@@ -221,8 +209,6 @@ routeToAnalyticsKey route =
         Dashboard -> "dashboard"
         HeroesRoute _ -> "heroes"
         HeroDetail id -> "hero:" ++ id
-        Academies _ -> "academies"
-        AcademyDetail id -> "academy:" ++ id
         Events _ -> "events"
         EventDetail id -> "event:" ++ id
         Training -> "training"

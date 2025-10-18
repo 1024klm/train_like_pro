@@ -15,9 +15,6 @@ routeParser =
         , Parser.map (HeroesRoute Nothing) (s "heroes")
         , Parser.map HeroesRoute (s "heroes" <?> heroFilterQuery)
         , Parser.map HeroDetail (s "hero" </> string)
-        , Parser.map (Academies Nothing) (s "academies")
-        , Parser.map (Academies << Just) (s "academies" </> string)
-        , Parser.map AcademyDetail (s "academy" </> string)
         , Parser.map (Events AllEvents) (s "events")
         , Parser.map (Events UpcomingEvents) (s "events" </> s "upcoming")
         , Parser.map (Events PastEvents) (s "events" </> s "past")
@@ -130,17 +127,6 @@ toPath route =
 
         HeroDetail id ->
             "/hero/" ++ id
-
-        Academies maybeLocation ->
-            case maybeLocation of
-                Nothing ->
-                    "/academies"
-
-                Just location ->
-                    "/academies/" ++ location
-
-        AcademyDetail id ->
-            "/academy/" ++ id
 
         Events filter ->
             case filter of

@@ -433,136 +433,6 @@ loVideos =
     ]
 
 
-initAcademies : Dict String Types.Academy
-initAcademies =
-    Dict.fromList
-        [ ( "atos-hq"
-          , { id = "atos-hq"
-            , name = "Atos Jiu-Jitsu HQ"
-            , location =
-                { city = "San Diego"
-                , state = "California"
-                , country = "USA"
-                , address = "4425 Convoy St, San Diego, CA 92111"
-                , coordinates = Just { latitude = 32.8245, longitude = -117.1581 }
-                }
-            , headCoach = "André Galvão"
-            , established = 2008
-            , description = "Home to multiple world champions and one of the most successful competition teams in BJJ history."
-            , imageUrl = "/images/academies/atos-hq.jpg"
-            , website = Just "www.atosjiujitsuhq.com"
-            , socialMedia =
-                { instagram = Just "@atosjiujitsuhq"
-                , youtube = Just "Atos Jiu-Jitsu"
-                , twitter = Nothing
-                , website = Just "www.atosjiujitsuhq.com"
-                }
-            , notableMembers = [ "André Galvão", "Kaynan Duarte", "Josh Hinger", "Keenan Cornelius" ]
-            , programs = atosPrograms
-            , schedule = atosSchedule
-            }
-          )
-        , ( "aoj"
-          , { id = "aoj"
-            , name = "Art of Jiu Jitsu"
-            , location =
-                { city = "Costa Mesa"
-                , state = "California"
-                , country = "USA"
-                , address = "1510 N Main St, Santa Ana, CA 92701"
-                , coordinates = Just { latitude = 33.7455, longitude = -117.8677 }
-                }
-            , headCoach = "Guilherme & Rafael Mendes"
-            , established = 2012
-            , description = "Founded by the Mendes Brothers, known for technical excellence and producing world-class competitors."
-            , imageUrl = "/images/academies/aoj.jpg"
-            , website = Just "www.artofjiujitsu.com"
-            , socialMedia =
-                { instagram = Just "@artofjiujitsu"
-                , youtube = Just "Art of Jiu Jitsu"
-                , twitter = Nothing
-                , website = Just "www.artofjiujitsu.com"
-                }
-            , notableMembers = [ "Tainan Dalpra", "Johnatha Alves", "Cole Abate", "Art Rosas" ]
-            , programs = aojPrograms
-            , schedule = aojSchedule
-            }
-          )
-        ]
-
-
-atosPrograms : List Types.Program
-atosPrograms =
-    [ { id = "atos-fundamentals"
-      , name = "Fundamentals Program"
-      , level = Types.BeginnerProgram
-      , description = "Perfect for beginners to learn the basics"
-      , duration = "3 months"
-      , price = Just 150
-      }
-    , { id = "atos-competition"
-      , name = "Competition Team"
-      , level = Types.CompetitionProgram
-      , description = "For serious competitors"
-      , duration = "Ongoing"
-      , price = Just 250
-      }
-    ]
-
-
-aojPrograms : List Types.Program
-aojPrograms =
-    [ { id = "aoj-kids"
-      , name = "Kids Program"
-      , level = Types.KidsProgram
-      , description = "BJJ for children 4-12"
-      , duration = "Ongoing"
-      , price = Just 120
-      }
-    , { id = "aoj-advanced"
-      , name = "Advanced Program"
-      , level = Types.AdvancedProgram
-      , description = "For purple belts and above"
-      , duration = "Ongoing"
-      , price = Just 200
-      }
-    ]
-
-
-atosSchedule : List Types.ClassSchedule
-atosSchedule =
-    [ { dayOfWeek = Types.Monday
-      , time = "06:00"
-      , duration = 90
-      , className = "Morning Competition Class"
-      , instructor = "André Galvão"
-      }
-    , { dayOfWeek = Types.Monday
-      , time = "19:00"
-      , duration = 90
-      , className = "All Levels"
-      , instructor = "Josh Hinger"
-      }
-    ]
-
-
-aojSchedule : List Types.ClassSchedule
-aojSchedule =
-    [ { dayOfWeek = Types.Tuesday
-      , time = "10:00"
-      , duration = 120
-      , className = "Competition Training"
-      , instructor = "Guilherme Mendes"
-      }
-    , { dayOfWeek = Types.Thursday
-      , time = "18:00"
-      , duration = 90
-      , className = "Fundamentals"
-      , instructor = "Rafael Mendes"
-      }
-    ]
-
-
 initEvents : Dict String Types.Event
 initEvents =
     Dict.union internationalEvents cfjjbEvents
@@ -651,7 +521,6 @@ worldsBrackets =
 emptyFavorites : Types.Favorites
 emptyFavorites =
     { heroes = Set.empty
-    , academies = Set.empty
     , events = Set.empty
     }
 
@@ -666,7 +535,6 @@ defaultUserProfile userId =
     , academy = Nothing
     , startedTraining = "2024-01-01"
     , favoriteHeroes = Set.empty
-    , favoriteAcademies = Set.empty
     , savedEvents = Set.empty
     , trainingGoals = []
     , achievements = []

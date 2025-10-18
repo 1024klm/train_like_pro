@@ -28,6 +28,7 @@ import Set exposing (Set)
 import Task
 import Theme
 import Time
+import Process
 import Types exposing (..)
 import Url
 
@@ -78,7 +79,6 @@ init url key =
                 , dateRange = Nothing
                 }
             , heroes = Data.initHeroes
-            , academies = Data.initAcademies
             , events = Data.initEvents
             , trainingPlans = Dict.empty
             , trainingSessions = []
@@ -104,6 +104,7 @@ init url key =
                 , xpAnimation = Nothing
                 , levelUpAnimation = False
                 }
+            , claimedPlanItems = Set.empty
             }
     in
     ( initialModel
@@ -253,9 +254,6 @@ update msg model =
                         HeroFavorite ->
                             { favorites | heroes = toggleSet id favorites.heroes }
 
-                        AcademyFavorite ->
-                            { favorites | academies = toggleSet id favorites.academies }
-
                         EventFavorite ->
                             { favorites | events = toggleSet id favorites.events }
             in
@@ -326,6 +324,26 @@ update msg model =
             ( { model | notifications = List.filter (\n -> n.id /= id) model.notifications }
             , Cmd.none
             )
+
+        ClaimPlanXP itemId xp ->
+            if Set.member itemId model.claimedPlanItems then
+                ( model, Cmd.none )
+
+            else
+                let
+                    xpNotif =
+                        { id = "xp-" ++ itemId
+                        , type_ = Success
+                        , message = "+" ++ String.fromInt xp ++ " XP"
+                        , timestamp = ""
+                        }
+                in
+                ( { model
+                    | claimedPlanItems = Set.insert itemId model.claimedPlanItems
+                    , notifications = xpNotif :: model.notifications
+                  }
+                , Task.perform (\_ -> DismissNotification xpNotif.id) (Process.sleep 2500)
+                )
 
         AnimationTick _ ->
             let
@@ -501,13 +519,19 @@ scrollToTop =
     Task.perform (\_ -> NoOpFrontendMsg) (Task.succeed ())
 
 
+-- Helper to dispatch a message as a Cmd
+
+send : Msg -> Cmd Msg
+send message =
+    Task.perform (\_ -> message) (Task.succeed ())
+
+
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd Msg )
 updateFromBackend msg model =
     case msg of
         InitialDataReceived data ->
             ( { model
                 | heroes = data.heroes
-                , academies = data.academies
                 , events = data.events
                 , roadmaps = data.roadmaps
                 , userProgress = data.userProgress
@@ -583,15 +607,6 @@ viewTitle model =
                 |> Maybe.withDefault "Hero"
                 |> (\name -> name ++ " - BJJ Heroes")
 
-        Academies _ ->
-            "Academies - BJJ Heroes"
-
-        AcademyDetail id ->
-            Dict.get id model.academies
-                |> Maybe.map .name
-                |> Maybe.withDefault "Academy"
-                |> (\name -> name ++ " - BJJ Heroes")
-
         Events _ ->
             "Events - BJJ Heroes"
 
@@ -656,7 +671,6 @@ viewDesktopNav model =
         [ navLink model Home "Home" "🏠"
         , navLink model Dashboard "Dashboard" "📊"
         , navLink model (HeroesRoute Nothing) "Heroes" "🥋"
-        , navLink model (Academies Nothing) "Academies" "🏛️"
         , navLink model (Events AllEvents) "Events" "📅"
         , navLink model TrainingView "Training" "💪"
         ]
@@ -677,12 +691,6 @@ navLink model route label icon =
                     True
 
                 ( HeroDetail _, HeroesRoute _ ) ->
-                    True
-
-                ( Academies _, Academies _ ) ->
-                    True
-
-                ( AcademyDetail _, Academies _ ) ->
                     True
 
                 ( Events _, Events _ ) ->
@@ -817,7 +825,6 @@ viewMobileMenu model =
         [ div [ class "p-4 space-y-2" ]
             [ mobileNavLink (NavigateTo Home) "Home" "🏠"
             , mobileNavLink (NavigateTo (HeroesRoute Nothing)) "Heroes" "🥋"
-            , mobileNavLink (NavigateTo (Academies Nothing)) "Academies" "🏛️"
             , mobileNavLink (NavigateTo (Events AllEvents)) "Events" "📅"
             , mobileNavLink (NavigateTo Training) "Training" "💪"
             , mobileNavLink (NavigateTo Profile) "Profile" "👤"
@@ -914,12 +921,6 @@ viewPage model =
         HeroDetail id ->
             viewHeroDetailPage model id
 
-        Academies location ->
-            viewAcademiesPage model location
-
-        AcademyDetail id ->
-            viewAcademyDetailPage model id
-
         Events filter ->
             viewEventsPage model filter
 
@@ -979,8 +980,8 @@ viewTrainingDashboard model =
 
         heroStat ( value, label ) =
             div [ class "hero-stat" ]
-                [ span [ class "hero-stat-number" ] [ text value ]
-                , span [ class "hero-stat-label" ] [ text label ]
+                [ div [ class "hero-stat-number" ] [ text value ]
+                , div [ class "hero-stat-label mt-2" ] [ text label ]
                 ]
     in
     section [ class "min-h-[70vh] flex items-center bg-white dark:bg-gray-900" ]
@@ -1000,7 +1001,7 @@ viewTrainingDashboard model =
                         ]
                     , p [ class "hero-subtitle" ]
                         [ text "Suivi des séances, tableaux de bord intuitifs et routines inspirées des champions pour rester constant sur le tatami." ]
-                    , div [ class "hero-actions" ]
+                    , div [ class "hero-actions mb-8" ]
                         [ button
                             [ onClick StartSession
                             , class "btn btn-primary px-10 py-4 text-lg"
@@ -1012,7 +1013,7 @@ viewTrainingDashboard model =
                             ]
                             [ text t.training ]
                         ]
-                    , div [ class "hero-stats" ] (List.map heroStat heroStats)
+                    , div [ class "hero-stats mt-8" ] (List.map heroStat heroStats)
                     ]
                 ]
             ]
@@ -1118,8 +1119,8 @@ fighterPathCard language name title specialty slug isActive weeks =
         ]
 
 
-techniqueCheckItem : String -> String -> Bool -> Int -> Html Msg
-techniqueCheckItem name system completed xp =
+techniqueCheckItem : Model -> String -> String -> Bool -> Int -> Html Msg
+techniqueCheckItem model name system completed xp =
     let
         checkboxClass =
             if completed then
@@ -1136,16 +1137,27 @@ techniqueCheckItem name system completed xp =
                 "plan-item__title"
 
         symbol =
-            if completed then
+            if completed || alreadyClaimed then
                 "✓"
 
             else
                 "+"
+        itemId = name ++ "-" ++ system
+
+        alreadyClaimed = Set.member itemId model.claimedPlanItems
+
+        onClaim =
+            if alreadyClaimed || completed then
+                NoOpFrontendMsg
+
+            else
+                ClaimPlanXP itemId xp
     in
     div [ class "plan-item" ]
         [ button
-            [ onClick (ShowNotification Success ("+" ++ String.fromInt xp ++ " XP"))
+            [ onClick onClaim
             , class checkboxClass
+            , disabled (alreadyClaimed || completed)
             ]
             [ text symbol ]
         , div [ class "plan-item__content" ]
@@ -1183,9 +1195,9 @@ viewTodaysPlan model =
             , span [ class "plan-card__date" ] [ text dateLabel ]
             ]
         , div [ class "plan-list" ]
-            [ techniqueCheckItem "Heel Hook" "Gordon Ryan" False 50
-            , techniqueCheckItem "Back take from leg entanglement" "Gordon Ryan" False 75
-            , techniqueCheckItem "RNC finish details" "Gordon Ryan" True 100
+            [ techniqueCheckItem model "Heel Hook" "Gordon Ryan" False 50
+            , techniqueCheckItem model "Back take from leg entanglement" "Gordon Ryan" False 75
+            , techniqueCheckItem model "RNC finish details" "Gordon Ryan" True 100
             ]
         , div [ class "plan-card__footer" ]
             [ span [ class "plan-card__progress" ] [ text "Session progress: 1/3" ]
@@ -1347,7 +1359,7 @@ viewHeroesPage model filter =
             ]
         , viewHeroFilters model filter
         , Keyed.node "div"
-            [ class "card-grid" ]
+            [ class "grid grid-cols-1 md:grid-cols-3 gap-6" ]
             (heroesList |> List.map (\h -> ( h.id, viewHeroCard model h )))
         ]
 
@@ -1394,39 +1406,11 @@ filterButton label isActive msg =
         [ text label ]
 
 
-viewAcademiesPage : Model -> Maybe String -> Html Msg
-viewAcademiesPage model location =
-    let
-        academiesList =
-            model.academies
-                |> Dict.values
-                |> List.sortBy .name
-    in
-    div [ class "page-stack" ]
-        [ div [ class "card page-intro" ]
-            [ span [ class "chip chip--outline" ] [ text model.userConfig.t.academies ]
-            , h1 [ class "page-intro__title" ] [ text model.userConfig.t.academies ]
-            , p [ class "page-intro__subtitle" ] [ text model.userConfig.t.topAcademies ]
-            ]
-        , Keyed.node "div"
-            [ class "card-grid" ]
-            (academiesList |> List.map (\a -> ( a.id, viewAcademyListCard model a )))
-        ]
-
-
-viewAcademyListCard : Model -> Academy -> Html Msg
-viewAcademyListCard model academy =
-    div
-        [ onPreventDefaultClick (NavigateTo (AcademyDetail academy.id))
-        , class "card list-card list-card--interactive"
-        ]
-        [ div [ class "list-card__header" ]
-            [ h3 [ class "list-card__title" ] [ text academy.name ]
-            , span [ class "list-card__meta" ] [ text academy.headCoach ]
-            ]
-        , span [ class "list-card__location" ] [ text (academy.location.city ++ ", " ++ academy.location.country) ]
-        , p [ class "list-card__description" ] [ text academy.description ]
-        , span [ class "list-card__link" ] [ text model.userConfig.t.viewDetails ]
+infoRow : String -> String -> Html Msg
+infoRow label value =
+    div [ class "flex" ]
+        [ span [ class "font-medium text-gray-700 dark:text-gray-300 w-32" ] [ text (label ++ ":") ]
+        , span [ class "text-gray-600 dark:text-gray-400" ] [ text value ]
         ]
 
 
@@ -1437,144 +1421,6 @@ viewEventCard event =
         , h4 [ class "info-card__title" ] [ text event.name ]
         , span [ class "info-card__meta" ] [ text event.date ]
         , span [ class "info-card__meta" ] [ text (event.location.city ++ ", " ++ event.location.country) ]
-        ]
-
-
-viewAcademyDetailPage : Model -> String -> Html Msg
-viewAcademyDetailPage model academyId =
-    case Dict.get academyId model.academies of
-        Just academy ->
-            div [ class "container mx-auto px-4 py-8" ]
-                [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text academy.name ]
-                , div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
-                    [ div [ class "lg:col-span-2" ]
-                        [ viewAcademyInfo academy
-                        , viewAcademyPrograms academy
-                        ]
-                    , div []
-                        [ viewAcademySchedule academy
-                        , viewAcademyMembers academy
-                        ]
-                    ]
-                ]
-
-        Nothing ->
-            div [ class "container mx-auto px-4 py-8" ]
-                [ p [ class "text-center text-gray-500" ] [ text "Academy not found" ] ]
-
-
-viewAcademyInfo : Academy -> Html Msg
-viewAcademyInfo academy =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "About" ]
-        , p [ class "text-gray-600 dark:text-gray-300 mb-4" ] [ text academy.description ]
-        , div [ class "space-y-2" ]
-            [ infoRow "Head Coach" academy.headCoach
-            , infoRow "Established" (String.fromInt academy.established)
-            , infoRow "Location" (academy.location.city ++ ", " ++ academy.location.country)
-            , infoRow "Address" academy.location.address
-            ]
-        ]
-
-
-infoRow : String -> String -> Html Msg
-infoRow label value =
-    div [ class "flex" ]
-        [ span [ class "font-medium text-gray-700 dark:text-gray-300 w-32" ] [ text (label ++ ":") ]
-        , span [ class "text-gray-600 dark:text-gray-400" ] [ text value ]
-        ]
-
-
-viewAcademyPrograms : Academy -> Html Msg
-viewAcademyPrograms academy =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Programs" ]
-        , div [ class "space-y-4" ]
-            (List.map viewProgram academy.programs)
-        ]
-
-
-viewProgram : Types.Program -> Html Msg
-viewProgram program =
-    div [ class "border-l-4 border-blue-500 pl-4" ]
-        [ h3 [ class "font-bold dark:text-white" ] [ text program.name ]
-        , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text program.description ]
-        , div [ class "flex items-center space-x-4 mt-2" ]
-            [ span [ class "text-sm text-gray-500" ] [ text ("Duration: " ++ program.duration) ]
-            , case program.price of
-                Just price ->
-                    span [ class "text-sm font-medium text-green-600" ] [ text ("$" ++ String.fromFloat price ++ "/month") ]
-
-                Nothing ->
-                    text ""
-            ]
-        ]
-
-
-viewAcademySchedule : Academy -> Html Msg
-viewAcademySchedule academy =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Schedule" ]
-        , div [ class "space-y-3" ]
-            (List.map viewClassSchedule academy.schedule)
-        ]
-
-
-viewClassSchedule : ClassSchedule -> Html Msg
-viewClassSchedule schedule =
-    div [ class "border-b border-gray-200 dark:border-gray-700 pb-2" ]
-        [ div [ class "flex justify-between items-start" ]
-            [ div []
-                [ p [ class "font-medium dark:text-white" ] [ text schedule.className ]
-                , p [ class "text-sm text-gray-500" ] [ text schedule.instructor ]
-                ]
-            , div [ class "text-right" ]
-                [ p [ class "text-sm font-medium dark:text-white" ] [ text (dayToString schedule.dayOfWeek) ]
-                , p [ class "text-sm text-gray-500" ] [ text schedule.time ]
-                ]
-            ]
-        ]
-
-
-dayToString : DayOfWeek -> String
-dayToString day =
-    case day of
-        Monday ->
-            "Monday"
-
-        Tuesday ->
-            "Tuesday"
-
-        Wednesday ->
-            "Wednesday"
-
-        Thursday ->
-            "Thursday"
-
-        Friday ->
-            "Friday"
-
-        Saturday ->
-            "Saturday"
-
-        Sunday ->
-            "Sunday"
-
-
-viewAcademyMembers : Academy -> Html Msg
-viewAcademyMembers academy =
-    div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Notable Members" ]
-        , div [ class "space-y-2" ]
-            (List.map
-                (\member ->
-                    div [ class "flex items-center space-x-2" ]
-                        [ span [ class "text-lg" ] [ text "🥋" ]
-                        , span [ class "dark:text-white" ] [ text member ]
-                        ]
-                )
-                academy.notableMembers
-            )
         ]
 
 
@@ -1604,7 +1450,7 @@ viewEventsPage model filter =
             ]
         , viewEventFilters filter
         , Keyed.node "div"
-            [ class "card-grid" ]
+            [ class "grid grid-cols-1 md:grid-cols-3 gap-6" ]
             (eventsList |> List.map (\e -> ( e.id, viewEventListCard model e )))
         ]
 
@@ -1659,18 +1505,16 @@ viewEventListCard model event =
     in
     div
         [ onPreventDefaultClick (NavigateTo (EventDetail event.id))
-        , class "card list-card list-card--interactive p-5 text-center"
+        , class "card list-card list-card--interactive p-6"
         ]
-        [ div [ class "list-card__header" ]
-            [ h3 [ class "list-card__title" ] [ text event.name ]
-            , span [ class statusClass ] [ text (eventStatusText event.status) ]
-            ]
-        , div [ class "space-y-1" ]
-            [ span [ class "list-card__meta" ] [ text (typeIcon ++ " " ++ eventTypeToString event.type_) ]
+        [ div [ class "flex flex-col items-center text-center gap-2" ]
+            [ span [ class statusClass ] [ text (eventStatusText event.status) ]
+            , h3 [ class "list-card__title" ] [ text event.name ]
+            , span [ class "list-card__meta" ] [ text (typeIcon ++ " " ++ eventTypeToString event.type_) ]
             , span [ class "list-card__meta" ] [ text event.date ]
             , span [ class "list-card__location" ] [ text (event.location.city ++ ", " ++ event.location.country) ]
             ]
-        , div [ class "list-card__footer" ]
+        , div [ class "list-card__footer flex items-center justify-center gap-4" ]
             [ button
                 [ onClick (ToggleFavorite EventFavorite event.id)
                 , Html.Events.stopPropagationOn "click" (Decode.succeed ( NoOpFrontendMsg, True ))
@@ -1679,14 +1523,7 @@ viewEventListCard model event =
                     , ( "list-card__favorite", not isFavorite )
                     ]
                 ]
-                [ text
-                    (if isFavorite then
-                        "★"
-
-                     else
-                        "☆"
-                    )
-                ]
+                [ text (if isFavorite then "★" else "☆") ]
             , span [ class "list-card__link" ] [ text ctaLabel ]
             ]
         ]
@@ -1709,46 +1546,28 @@ viewHeroCard model hero =
 
         detailLabel =
             t.viewDetails
-
-        favoriteLabel =
-            if isFavorite then
-                t.favorited
-
-            else
-                t.addToFavorites
     in
     div
         [ onClick (SelectHero hero.id)
-        , class "card hero-tile"
+        , class "card list-card list-card--interactive p-6"
         ]
-        [ div [ class "hero-tile__header" ]
-            [ span [ class "hero-tile__badge" ] [ text weightLabel ]
+        [ div [ class "flex flex-col items-center text-center gap-2" ]
+            [ span [ class "chip chip--outline" ] [ text weightLabel ]
+            , h3 [ class "list-card__title" ] [ text hero.name ]
+            , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text hero.nickname ]
+            , p [ class "list-card__description text-center" ] [ text hero.bio ]
+            ]
+        , div [ class "list-card__footer flex items-center justify-center gap-4" ]
+            [ span [ class "list-card__meta" ] [ text (hero.nationality ++ " · " ++ recordLabel) ]
             , button
                 [ onClick (ToggleFavorite HeroFavorite hero.id)
                 , Html.Events.stopPropagationOn "click" (Decode.succeed ( NoOpFrontendMsg, True ))
                 , classList
-                    [ ( "hero-tile__favorite hero-tile__favorite--active", isFavorite )
-                    , ( "hero-tile__favorite", not isFavorite )
+                    [ ( "list-card__favorite list-card__favorite--active", isFavorite )
+                    , ( "list-card__favorite", not isFavorite )
                     ]
                 ]
-                [ span []
-                    [ text
-                        (if isFavorite then
-                            "❤️"
-
-                         else
-                            "♡"
-                        )
-                    ]
-                , span [ class "hero-tile__favorite-label" ] [ text favoriteLabel ]
-                ]
-            ]
-        , h4 [ class "hero-tile__title" ] [ text hero.name ]
-        , p [ class "hero-tile__subtitle" ] [ text hero.nickname ]
-        , p [ class "hero-tile__description" ] [ text hero.bio ]
-        , div [ class "hero-tile__footer" ]
-            [ span [ class "hero-tile__meta" ] [ text (hero.nationality ++ " · " ++ recordLabel) ]
-            , span [ class "hero-tile__cta" ] [ text detailLabel ]
+                [ text (if isFavorite then "★" else "☆") ]
             ]
         ]
 
@@ -2427,7 +2246,6 @@ viewProfileFavorites model =
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Favorites" ]
         , div [ class "space-y-4" ]
             [ favoriteSection "Heroes" (Set.toList model.favorites.heroes) "🥋"
-            , favoriteSection "Academies" (Set.toList model.favorites.academies) "🏛️"
             , favoriteSection "Events" (Set.toList model.favorites.events) "📅"
             ]
         ]
@@ -2912,7 +2730,6 @@ viewFooter model =
                     [ h4 [ class "font-bold mb-4" ] [ text "Explore" ]
                     , ul [ class "space-y-2" ]
                         [ footerLink "Heroes" (NavigateTo (HeroesRoute Nothing))
-                        , footerLink "Academies" (NavigateTo (Academies Nothing))
                         , footerLink "Events" (NavigateTo (Events AllEvents))
                         , footerLink "Training" (NavigateTo Training)
                         ]

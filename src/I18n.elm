@@ -24,7 +24,6 @@ type alias Translations =
     -- Navigation
     , dashboard : String
     , heroes : String
-    , academies : String
     , events : String
     , training : String
     , profile : String
@@ -183,11 +182,6 @@ type alias Translations =
     , location : String
     , date : String
     , participants : String
-    
-    -- Academy
-    , topAcademies : String
-    , schedule : String
-    , instructors : String
     , contact : String
     , website : String
     
@@ -212,7 +206,6 @@ en =
     -- Navigation
     , dashboard = "Dashboard"
     , heroes = "Heroes"
-    , academies = "Academies"
     , events = "Events"
     , training = "Training"
     , profile = "Profile"
@@ -371,11 +364,6 @@ en =
     , location = "Location"
     , date = "Date"
     , participants = "Participants"
-    
-    -- Academy
-    , topAcademies = "Top Academies"
-    , schedule = "Schedule"
-    , instructors = "Instructors"
     , contact = "Contact"
     , website = "Website"
     
@@ -398,7 +386,6 @@ fr =
     -- Navigation
     , dashboard = "Tableau de bord"
     , heroes = "Héros"
-    , academies = "Académies"
     , events = "Événements"
     , training = "Entraînement"
     , profile = "Profil"
@@ -557,11 +544,6 @@ fr =
     , location = "Lieu"
     , date = "Date"
     , participants = "Participants"
-    
-    -- Academy
-    , topAcademies = "Meilleures Académies"
-    , schedule = "Horaire"
-    , instructors = "Instructeurs"
     , contact = "Contact"
     , website = "Site Web"
     
