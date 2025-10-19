@@ -667,12 +667,16 @@ viewLogo =
 
 viewDesktopNav : Model -> Html Msg
 viewDesktopNav model =
+    let
+        t =
+            model.userConfig.t
+    in
     nav [ class "hidden lg:flex items-center space-x-4" ]
-        [ navLink model Home "Home" "🏠"
-        , navLink model Dashboard "Dashboard" "📊"
-        , navLink model (HeroesRoute Nothing) "Heroes" "🥋"
-        , navLink model (Events AllEvents) "Events" "📅"
-        , navLink model TrainingView "Training" "💪"
+        [ navLink model Home t.home "🏠"
+        , navLink model Dashboard t.dashboard "📊"
+        , navLink model (HeroesRoute Nothing) t.heroes "🥋"
+        , navLink model (Events AllEvents) t.events "📅"
+        , navLink model TrainingView t.training "💪"
         ]
 
 
@@ -739,10 +743,14 @@ viewHeaderActions model =
 
 viewSearchBar : Model -> Html Msg
 viewSearchBar model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "relative" ]
         [ input
             [ type_ "search"
-            , placeholder "Search heroes, academies..."
+            , placeholder t.searchPlaceholder
             , value model.searchQuery
             , onInput UpdateSearchQuery
             , class "w-64 px-4 py-2 pl-10 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500 border border-gray-300 dark:border-gray-600"
@@ -821,13 +829,17 @@ viewMobileMenuButton model =
 
 viewMobileMenu : Model -> Html Msg
 viewMobileMenu model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "lg:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg" ]
         [ div [ class "p-4 space-y-2" ]
-            [ mobileNavLink (NavigateTo Home) "Home" "🏠"
-            , mobileNavLink (NavigateTo (HeroesRoute Nothing)) "Heroes" "🥋"
-            , mobileNavLink (NavigateTo (Events AllEvents)) "Events" "📅"
-            , mobileNavLink (NavigateTo Training) "Training" "💪"
-            , mobileNavLink (NavigateTo Profile) "Profile" "👤"
+            [ mobileNavLink (NavigateTo Home) t.home "🏠"
+            , mobileNavLink (NavigateTo (HeroesRoute Nothing)) t.heroes "🥋"
+            , mobileNavLink (NavigateTo (Events AllEvents)) t.events "📅"
+            , mobileNavLink (NavigateTo Training) t.training "💪"
+            , mobileNavLink (NavigateTo Profile) t.profile "👤"
             ]
         ]
 
@@ -991,22 +1003,24 @@ viewTrainingDashboard model =
                 [ div [ class "hero-inner text-center lg:text-left" ]
                     [ div [ class "hero-badge" ]
                         [ span [ class "badge-dot" ] []
-                        , span [] [ text "Programme d'entraînement élite" ]
+                        , span [] [ text t.heroBadge ]
                         ]
                     , h1 [ class "hero-title" ]
-                        [ text "Libère ton jiu-jitsu"
+                        [ text t.heroTitleLine1
                         , br [] []
-                        , text "avec un plan "
-                        , span [ class "text-gradient" ] [ text "prêt à l'emploi" ]
+                        , text t.heroTitleLine2
+                        , span [ class "text-gradient" ] [ text t.heroTitleHighlight ]
                         ]
                     , p [ class "hero-subtitle" ]
-                        [ text "Suivi des séances, tableaux de bord intuitifs et routines inspirées des champions pour rester constant sur le tatami." ]
+                        [ text t.heroSubtitle ]
                     , div [ class "hero-actions mb-8" ]
                         [ button
                             [ onClick StartSession
-                            , class "btn btn-primary px-10 py-4 text-lg"
+                            , class "start-session-button start-session-button--large"
                             ]
-                            [ text t.startSession ]
+                            [ span [ class "start-session-button__icon" ] [ text "⚡" ]
+                            , span [ class "start-session-button__label" ] [ text t.startSession ]
+                            ]
                         , button
                             [ onPreventDefaultClick (NavigateTo TrainingView)
                             , class "btn btn-secondary px-8 py-4"
@@ -1025,6 +1039,109 @@ viewFighterStylePaths model =
     let
         t =
             model.userConfig.t
+
+        language =
+            model.userConfig.language
+
+        fighterPaths =
+            [ { slug = "gordon-ryan"
+              , name = "Gordon Ryan"
+              , title =
+                    if language == I18n.FR then
+                        "Champion"
+
+                    else
+                        "Champion"
+              , specialty =
+                    if language == I18n.FR then
+                        "Attaques de jambes & pression dorsale"
+
+                    else
+                        "Leg locks & back pressure"
+              , isActive = True
+              , weeks = 28
+              }
+            , { slug = "mikey-galvao"
+              , name = "Mikey Galvao"
+              , title =
+                    if language == I18n.FR then
+                        "Prodige"
+
+                    else
+                        "Prodigy"
+              , specialty =
+                    if language == I18n.FR then
+                        "Entrées inversées dynamiques"
+
+                    else
+                        "Dynamic inverted entries"
+              , isActive = False
+              , weeks = 24
+              }
+            , { slug = "craig-jones"
+              , name = "Craig Jones"
+              , title =
+                    if language == I18n.FR then
+                        "Technicien"
+
+                    else
+                        "Technician"
+              , specialty =
+                    if language == I18n.FR then
+                        "Guillotine vers attaques de jambes"
+
+                    else
+                        "Front headlock to legs"
+              , isActive = False
+              , weeks = 20
+              }
+            , { slug = "marcelo-garcia"
+              , name = "Marcelo Garcia"
+              , title =
+                    if language == I18n.FR then
+                        "Légende"
+
+                    else
+                        "Legend"
+              , specialty =
+                    if language == I18n.FR then
+                        "Tempo papillon maîtrisé"
+
+                    else
+                        "Butterfly tempo work"
+              , isActive = False
+              , weeks = 32
+              }
+            , { slug = "roger-gracie"
+              , name = "Roger Gracie"
+              , title =
+                    if language == I18n.FR then
+                        "Fondamentaux"
+
+                    else
+                        "Fundamentals"
+              , specialty =
+                    if language == I18n.FR then
+                        "Plan de passage en pression"
+
+                    else
+                        "Pressure passing blueprint"
+              , isActive = False
+              , weeks = 16
+              }
+            , { slug = "leandro-lo"
+              , name = "Leandro Lo"
+              , title = "Flow"
+              , specialty =
+                    if language == I18n.FR then
+                        "Chaînes de grips & torreando"
+
+                    else
+                        "Grip chains & torreando"
+              , isActive = False
+              , weeks = 24
+              }
+            ]
     in
     section [ class "section-stack" ]
         [ div [ class "section-header" ]
@@ -1040,34 +1157,32 @@ viewFighterStylePaths model =
                 [ text t.viewAllFighters ]
             ]
         , div [ class "path-grid" ]
-            [ fighterPathCard model.userConfig.language "Gordon Ryan" "Champion" "Leg locks & back pressure" "gordon-ryan" True 28
-            , fighterPathCard model.userConfig.language "Mikey Galvao" "Prodige" "Dynamic inverted entries" "mikey-galvao" False 24
-            , fighterPathCard model.userConfig.language "Craig Jones" "Technicien" "Front headlock to legs" "craig-jones" False 20
-            , fighterPathCard model.userConfig.language "Marcelo Garcia" "Légende" "Butterfly tempo work" "marcelo-garcia" False 32
-            , fighterPathCard model.userConfig.language "Roger Gracie" "Fondamentaux" "Pressure passing blueprint" "roger-gracie" False 16
-            , fighterPathCard model.userConfig.language "Leandro Lo" "Flow" "Grip chains & torreando" "leandro-lo" False 24
-            ]
+            (List.map (fighterPathCard language t) fighterPaths)
         ]
 
 
-fighterPathCard : I18n.Language -> String -> String -> String -> String -> Bool -> Int -> Html Msg
-fighterPathCard language name title specialty slug isActive weeks =
+type alias FighterPathContent =
+    { slug : String
+    , name : String
+    , title : String
+    , specialty : String
+    , isActive : Bool
+    , weeks : Int
+    }
+
+
+fighterPathCard : I18n.Language -> I18n.Translations -> FighterPathContent -> Html Msg
+fighterPathCard language t content =
     let
         route =
-            StylePath slug
+            StylePath content.slug
 
         href_ =
             Router.toPath route
 
         badgeText =
-            if isActive then
-                Just <|
-                    case language of
-                        I18n.FR ->
-                            "En cours"
-
-                        I18n.EN ->
-                            "Active"
+            if content.isActive then
+                Just t.pathActive
 
             else
                 Nothing
@@ -1075,26 +1190,21 @@ fighterPathCard language name title specialty slug isActive weeks =
         ctaLabel =
             case language of
                 I18n.FR ->
-                    if isActive then
-                        "Poursuivre"
+                    if content.isActive then
+                        t.pathContinue
 
                     else
-                        "Découvrir"
+                        t.pathExplore
 
                 I18n.EN ->
-                    if isActive then
-                        "Continue"
+                    if content.isActive then
+                        t.pathContinue
 
                     else
-                        "Explore"
+                        t.pathExplore
 
         weeksLabel =
-            case language of
-                I18n.FR ->
-                    "semaines"
-
-                I18n.EN ->
-                    "weeks"
+            I18n.formatWeeks language content.weeks
     in
     a
         [ href href_
@@ -1108,12 +1218,12 @@ fighterPathCard language name title specialty slug isActive weeks =
             Nothing ->
                 text ""
         , div [ class "path-card__body" ]
-            [ span [ class "path-card__legend" ] [ text title ]
-            , h4 [ class "path-card__title" ] [ text name ]
-            , p [ class "path-card__description" ] [ text specialty ]
+            [ span [ class "path-card__legend" ] [ text content.title ]
+            , h4 [ class "path-card__title" ] [ text content.name ]
+            , p [ class "path-card__description" ] [ text content.specialty ]
             ]
         , div [ class "path-card__footer" ]
-            [ span [ class "path-card__meta" ] [ text (String.fromInt weeks ++ " " ++ weeksLabel) ]
+            [ span [ class "path-card__meta" ] [ text weeksLabel ]
             , span [ class "path-card__cta" ] [ text ctaLabel ]
             ]
         ]
@@ -1174,23 +1284,18 @@ viewTodaysPlan model =
         t =
             model.userConfig.t
 
-        ( title, subtitle, buttonLabel ) =
-            case model.userConfig.language of
-                I18n.FR ->
-                    ( "Plan d'entrainement", "Structure ta repetition et reste attentif aux details.", "Voir la session" )
-
-                I18n.EN ->
-                    ( "Training focus", "Structure your repetition work and stay tuned to details.", "Open session" )
-
         dateLabel =
             I18n.formatFullDate model.userConfig.language (Time.millisToPosix 1731366000000)
+
+        sessionProgress =
+            t.sessionProgressLabel ++ ": 1/3"
     in
     section [ class "card plan-card" ]
         [ div [ class "plan-card__header" ]
             [ div [ class "plan-card__titles" ]
                 [ span [ class "chip chip--outline" ] [ text t.todaysTraining ]
-                , h3 [ class "plan-card__title" ] [ text title ]
-                , p [ class "plan-card__subtitle" ] [ text subtitle ]
+                , h3 [ class "plan-card__title" ] [ text t.planTitle ]
+                , p [ class "plan-card__subtitle" ] [ text t.planSubtitle ]
                 ]
             , span [ class "plan-card__date" ] [ text dateLabel ]
             ]
@@ -1200,12 +1305,12 @@ viewTodaysPlan model =
             , techniqueCheckItem model "RNC finish details" "Gordon Ryan" True 100
             ]
         , div [ class "plan-card__footer" ]
-            [ span [ class "plan-card__progress" ] [ text "Session progress: 1/3" ]
+            [ span [ class "plan-card__progress" ] [ text sessionProgress ]
             , button
                 [ onPreventDefaultClick (NavigateTo TrainingView)
                 , class "btn btn-outline"
                 ]
-                [ text buttonLabel ]
+                [ text t.planButtonLabel ]
             ]
         ]
 
@@ -1219,35 +1324,24 @@ viewProgressStats model =
         t =
             model.userConfig.t
 
-        descriptor =
-            case language of
-                I18n.FR ->
-                    "Garde une vue claire sur ton volume, ton XP et ta constance."
-
-                I18n.EN ->
-                    "Keep a clear pulse on volume, XP, and consistency."
-
         streakSuffix =
-            case language of
-                I18n.FR ->
-                    " jours"
+            if model.userProgress.currentStreak == 1 then
+                " " ++ t.day
 
-                I18n.EN ->
-                    " days"
+            else
+                " " ++ t.days
 
         beltLabel =
-            case language of
-                I18n.FR ->
-                    "Progression ceinture"
+            model.userConfig.t.beltProgress
 
-                I18n.EN ->
-                    "Belt progress"
+        descriptor =
+            model.userConfig.t.progressDescriptor
     in
     section [ class "card stats-card" ]
         [ div [ class "section-header section-header--compact" ]
             [ div [ class "section-header__copy" ]
                 [ span [ class "chip chip--outline" ] [ text t.progress ]
-                , h3 [ class "section-title" ] [ text "Momentum overview" ]
+                , h3 [ class "section-title" ] [ text t.momentumOverview ]
                 , p [ class "section-subtitle" ] [ text descriptor ]
                 ]
             ]
@@ -1273,48 +1367,36 @@ progressStatCard label value suffix icon =
 viewWeeklyGoals : Model -> Html Msg
 viewWeeklyGoals model =
     let
-        description =
-            case model.userConfig.language of
-                I18n.FR ->
-                    "Visualise tes objectifs de la semaine et valide-les un par un."
+        t =
+            model.userConfig.t
 
-                I18n.EN ->
-                    "Map this week's targets and tick them off with intention."
+        language =
+            model.userConfig.language
 
-        buttonLabel =
-            case model.userConfig.language of
-                I18n.FR ->
-                    "Ajuster"
-
-                I18n.EN ->
-                    "Adjust"
+        bonusXp =
+            I18n.formatXP language 500
 
         bonusText =
-            case model.userConfig.language of
-                I18n.FR ->
-                    " bonus si tous les objectifs sont realises cette semaine."
-
-                I18n.EN ->
-                    " bonus if every goal is completed this week."
+            " " ++ t.weeklyBonusReminder
     in
     section [ class "card goals-card" ]
         [ div [ class "goals-card__header" ]
             [ h3 [ class "goals-card__title" ] [ text model.userConfig.t.weeklyGoal ]
             , button
-                [ onClick (ShowNotification Info "Goal customization coming soon!")
+                [ onClick (ShowNotification Info t.goalSettingFeature)
                 , class "btn btn-outline"
                 ]
-                [ text buttonLabel ]
+                [ text t.adjustGoals ]
             ]
-        , p [ class "goals-card__description" ] [ text description ]
+        , p [ class "goals-card__description" ] [ text t.weeklyGoalsDescription ]
         , div [ class "goals-list" ]
-            [ weeklyGoalItem "Complete 5 training sessions" 3 5
-            , weeklyGoalItem "Master 3 new techniques" 1 3
-            , weeklyGoalItem "Log 300 minutes of mat time" 180 300
-            , weeklyGoalItem "Review 10 competition videos" 6 10
+            [ weeklyGoalItem t.weeklyGoalSessions 3 5
+            , weeklyGoalItem t.weeklyGoalTechniques 1 3
+            , weeklyGoalItem t.weeklyGoalMinutes 180 300
+            , weeklyGoalItem t.weeklyGoalVideos 6 10
             ]
         , div [ class "goals-card__bonus" ]
-            [ span [ class "goals-card__bonus-xp" ] [ text "+500 XP" ]
+            [ span [ class "goals-card__bonus-xp" ] [ text bonusXp ]
             , text bonusText
             ]
         ]
@@ -1366,12 +1448,19 @@ viewHeroesPage model filter =
 
 viewHeroFilters : Model -> Maybe HeroFilter -> Html Msg
 viewHeroFilters model currentFilter =
+    let
+        language =
+            model.userConfig.language
+
+        t =
+            model.userConfig.t
+    in
     div [ class "filter-row" ]
-        [ filterButton "All" (currentFilter == Nothing || currentFilter == Just AllHeroes) (ApplyFilter AllHeroes)
-        , filterButton "Super Heavy" (currentFilter == Just (ByWeight SuperHeavy)) (ApplyFilter (ByWeight SuperHeavy))
-        , filterButton "Leg Locks" (currentFilter == Just (ByStyle LegLocks)) (ApplyFilter (ByStyle LegLocks))
-        , filterButton "Guard" (currentFilter == Just (ByStyle Guard)) (ApplyFilter (ByStyle Guard))
-        , filterButton "Passing" (currentFilter == Just (ByStyle Passing)) (ApplyFilter (ByStyle Passing))
+        [ filterButton t.eventsFilterAll (currentFilter == Nothing || currentFilter == Just AllHeroes) (ApplyFilter AllHeroes)
+        , filterButton (weightClassLabel language SuperHeavy) (currentFilter == Just (ByWeight SuperHeavy)) (ApplyFilter (ByWeight SuperHeavy))
+        , filterButton (styleLabel language LegLocks) (currentFilter == Just (ByStyle LegLocks)) (ApplyFilter (ByStyle LegLocks))
+        , filterButton (styleLabel language Guard) (currentFilter == Just (ByStyle Guard)) (ApplyFilter (ByStyle Guard))
+        , filterButton (styleLabel language Passing) (currentFilter == Just (ByStyle Passing)) (ApplyFilter (ByStyle Passing))
         ]
 
 
@@ -1603,8 +1692,116 @@ weightClassToString weight =
             "Ultra Heavy"
 
 
+weightClassLabel : I18n.Language -> WeightClass -> String
+weightClassLabel language weight =
+    case ( language, weight ) of
+        ( I18n.FR, Rooster ) ->
+            "Poids coq"
+
+        ( I18n.FR, LightFeather ) ->
+            "Plume léger"
+
+        ( I18n.FR, Feather ) ->
+            "Plume"
+
+        ( I18n.FR, Light ) ->
+            "Léger"
+
+        ( I18n.FR, Middle ) ->
+            "Moyen"
+
+        ( I18n.FR, MediumHeavy ) ->
+            "Moyen-lourd"
+
+        ( I18n.FR, Heavy ) ->
+            "Lourd"
+
+        ( I18n.FR, SuperHeavy ) ->
+            "Super-lourd"
+
+        ( I18n.FR, UltraHeavy ) ->
+            "Ultra-lourd"
+
+        ( _, Rooster ) ->
+            "Rooster"
+
+        ( _, LightFeather ) ->
+            "Light Feather"
+
+        ( _, Feather ) ->
+            "Feather"
+
+        ( _, Light ) ->
+            "Light"
+
+        ( _, Middle ) ->
+            "Middle"
+
+        ( _, MediumHeavy ) ->
+            "Medium Heavy"
+
+        ( _, Heavy ) ->
+            "Heavy"
+
+        ( _, SuperHeavy ) ->
+            "Super Heavy"
+
+        ( _, UltraHeavy ) ->
+            "Ultra Heavy"
+
+
+styleLabel : I18n.Language -> FightingStyle -> String
+styleLabel language style =
+    case ( language, style ) of
+        ( I18n.FR, Guard ) ->
+            "Garde"
+
+        ( I18n.FR, Passing ) ->
+            "Passage"
+
+        ( I18n.FR, LegLocks ) ->
+            "Attaques de jambes"
+
+        ( I18n.FR, Wrestling ) ->
+            "Lutte"
+
+        ( I18n.FR, Balanced ) ->
+            "Équilibré"
+
+        ( I18n.FR, Submission ) ->
+            "Soumissions"
+
+        ( I18n.FR, Pressure ) ->
+            "Pression"
+
+        ( _, Guard ) ->
+            "Guard"
+
+        ( _, Passing ) ->
+            "Passing"
+
+        ( _, LegLocks ) ->
+            "Leg Locks"
+
+        ( _, Wrestling ) ->
+            "Wrestling"
+
+        ( _, Balanced ) ->
+            "Balanced"
+
+        ( _, Submission ) ->
+            "Submission"
+
+        ( _, Pressure ) ->
+            "Pressure"
+
+
 viewHeroDetailPage : Model -> String -> Html Msg
 viewHeroDetailPage model heroId =
+    let
+        t =
+            model.userConfig.t
+    in
     case Dict.get heroId model.heroes of
         Just hero ->
             div [ class "space-y-6" ]
@@ -1614,11 +1811,21 @@ viewHeroDetailPage model heroId =
 
         Nothing ->
             div [ class "p-8 text-center" ]
-                [ p [ class "text-gray-400" ] [ text "Hero not found" ] ]
+                [ p [ class "text-gray-400" ] [ text t.heroNotFound ] ]
 
 
 viewHeroHeader : Hero -> Model -> Html Msg
 viewHeroHeader hero model =
+    let
+        t =
+            model.userConfig.t
+
+        language =
+            model.userConfig.language
+
+        isFavorite =
+            Set.member hero.id model.favorites.heroes
+    in
     div [ class "relative h-96 bg-gradient-to-br from-red-600 to-red-800" ]
         [ div [ class "absolute inset-0 bg-black/40" ] []
         , div [ class "container mx-auto px-4 h-full flex items-end pb-8" ]
@@ -1629,17 +1836,17 @@ viewHeroHeader hero model =
                     [ span [ class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg" ]
                         [ text hero.team ]
                     , span [ class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg" ]
-                        [ text (weightClassToString hero.weight) ]
+                        [ text (weightClassLabel language hero.weight) ]
                     , button
                         [ onClick (ToggleFavorite HeroFavorite hero.id)
                         , class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors"
                         ]
                         [ text
-                            (if Set.member hero.id model.favorites.heroes then
-                                "❤️ Favorited"
+                            (if isFavorite then
+                                "❤️ " ++ t.favorited
 
                              else
-                                "🤍 Add to Favorites"
+                                "🤍 " ++ t.addToFavorites
                             )
                         ]
                     ]
@@ -1650,39 +1857,43 @@ viewHeroHeader hero model =
 
 viewHeroContent : Hero -> Model -> Html Msg
 viewHeroContent hero model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "space-y-6 lg:space-y-0" ]
         [ div [ class "grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" ]
             [ div [ class "lg:col-span-2 space-y-8" ]
-                [ viewHeroBio hero
-                , viewHeroRecord hero
-                , viewHeroTechniques hero
-                , viewHeroVideos hero
+                [ viewHeroBio t hero
+                , viewHeroRecord t hero
+                , viewHeroTechniques t hero
+                , viewHeroVideos t hero
                 ]
             , div [ class "space-y-8" ]
-                [ viewHeroStats hero
-                , viewHeroSocial hero
-                , viewHeroAchievements hero
+                [ viewHeroStats t hero
+                , viewHeroSocial t hero
+                , viewHeroAchievements t hero
                 ]
             ]
         ]
 
 
-viewHeroBio : Hero -> Html Msg
-viewHeroBio hero =
+viewHeroBio : I18n.Translations -> Hero -> Html Msg
+viewHeroBio t hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Biography" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.biography ]
         , p [ class "text-gray-600 dark:text-gray-300 leading-relaxed" ] [ text hero.bio ]
         ]
 
 
-viewHeroRecord : Hero -> Html Msg
-viewHeroRecord hero =
+viewHeroRecord : I18n.Translations -> Hero -> Html Msg
+viewHeroRecord t hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Competition Record" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.competitionRecord ]
         , div [ class "grid grid-cols-3 gap-4 mb-6" ]
-            [ recordStat "Wins" (String.fromInt hero.record.wins) "text-green-600"
-            , recordStat "Losses" (String.fromInt hero.record.losses) "text-red-600"
-            , recordStat "Draws" (String.fromInt hero.record.draws) "text-gray-600"
+            [ recordStat t.wins (String.fromInt hero.record.wins) "text-green-600"
+            , recordStat t.losses (String.fromInt hero.record.losses) "text-red-600"
+            , recordStat t.draws (String.fromInt hero.record.draws) "text-gray-600"
             ]
         , div [ class "space-y-2" ]
             (List.map
@@ -1705,13 +1916,19 @@ recordStat label value colorClass =
         ]
 
 
-viewHeroTechniques : Hero -> Html Msg
-viewHeroTechniques hero =
+viewHeroTechniques : I18n.Translations -> Hero -> Html Msg
+viewHeroTechniques translations hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Signature Techniques" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text translations.signatureTechniques ]
         , Keyed.node "div"
             [ class "space-y-4" ]
-            (hero.techniques |> List.sortBy .name |> List.map (\t -> ( t.id, viewTechnique t )))
+            (hero.techniques
+                |> List.sortBy .name
+                |> List.map
+                    (\techniqueInfo ->
+                        ( techniqueInfo.id, viewTechnique techniqueInfo )
+                    )
+            )
         ]
 
 
@@ -1723,10 +1940,10 @@ viewTechnique technique =
         ]
 
 
-viewHeroVideos : Hero -> Html Msg
-viewHeroVideos hero =
+viewHeroVideos : I18n.Translations -> Hero -> Html Msg
+viewHeroVideos t hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Videos" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.videos ]
         , Keyed.node "div"
             [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
             (hero.videos |> List.sortBy .date |> List.map (\v -> ( v.id, viewVideoCard v )))
@@ -1741,16 +1958,16 @@ viewVideoCard video =
         ]
 
 
-viewHeroStats : Hero -> Html Msg
-viewHeroStats hero =
+viewHeroStats : I18n.Translations -> Hero -> Html Msg
+viewHeroStats t hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Statistics" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.statistics ]
         , div [ class "space-y-3" ]
-            [ statRow "Win Rate" (String.fromFloat hero.stats.winRate ++ "%")
-            , statRow "Submission Rate" (String.fromFloat hero.stats.submissionRate ++ "%")
-            , statRow "Avg Match Time" (String.fromFloat hero.stats.averageMatchTime ++ " min")
-            , statRow "Favorite Position" hero.stats.favoritePosition
-            , statRow "Favorite Submission" hero.stats.favoriteSubmission
+            [ statRow t.winRate (String.fromFloat hero.stats.winRate ++ "%")
+            , statRow t.submissionRate (String.fromFloat hero.stats.submissionRate ++ "%")
+            , statRow t.avgMatchTime (String.fromFloat hero.stats.averageMatchTime ++ " min")
+            , statRow t.favoritePosition hero.stats.favoritePosition
+            , statRow t.favoriteSubmission hero.stats.favoriteSubmission
             ]
         ]
 
@@ -1763,10 +1980,10 @@ statRow label value =
         ]
 
 
-viewHeroSocial : Hero -> Html Msg
-viewHeroSocial hero =
+viewHeroSocial : I18n.Translations -> Hero -> Html Msg
+viewHeroSocial t hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Social Media" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.socialMedia ]
         , div [ class "space-y-3" ]
             [ case hero.socialMedia.instagram of
                 Just handle ->
@@ -1782,7 +1999,7 @@ viewHeroSocial hero =
                     text ""
             , case hero.socialMedia.website of
                 Just url ->
-                    socialLink "Website" url "🌐"
+                    socialLink t.website url "🌐"
 
                 Nothing ->
                     text ""
@@ -1801,12 +2018,16 @@ socialLink platform handle icon =
         ]
 
 
-viewHeroAchievements : Hero -> Html Msg
-viewHeroAchievements hero =
+viewHeroAchievements : I18n.Translations -> Hero -> Html Msg
+viewHeroAchievements t hero =
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Achievements" ]
-        , div [ class "space-y-3" ]
-            (List.map viewAchievement hero.achievements)
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.achievements ]
+        , if List.isEmpty hero.achievements then
+            p [ class "text-gray-500 dark:text-gray-400" ] [ text t.noAchievementsYet ]
+
+          else
+            div [ class "space-y-3" ]
+                (List.map viewAchievement hero.achievements)
         ]
 
 

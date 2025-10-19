@@ -22,6 +22,7 @@ type alias Translations =
     , loading : String
     
     -- Navigation
+    , home : String
     , dashboard : String
     , heroes : String
     , events : String
@@ -74,6 +75,10 @@ type alias Translations =
     , achievements : String
     , goals : String
     , addGoal : String
+    , favorites : String
+    , noAchievementsYet : String
+    , noFavorites : String
+    , noGoalsSet : String
     
     -- Gamification
     , dailyQuests : String
@@ -173,6 +178,13 @@ type alias Translations =
     , videos : String
     , addToFavorites : String
     , favorited : String
+    , heroNotFound : String
+    , socialMedia : String
+    , winRate : String
+    , submissionRate : String
+    , avgMatchTime : String
+    , favoritePosition : String
+    , favoriteSubmission : String
     
     -- Events
     , upcomingEvents : String
@@ -190,6 +202,119 @@ type alias Translations =
     , errorOccurred : String
     , tryAgain : String
     , goHome : String
+    , notFoundDescription : String
+
+    -- Global UI
+    , searchPlaceholder : String
+    , sessionProgressLabel : String
+    , planTitle : String
+    , planSubtitle : String
+    , planButtonLabel : String
+    , momentumOverview : String
+    , progressDescriptor : String
+    , beltProgress : String
+    , adjustGoals : String
+    , weeklyGoalsDescription : String
+    , weeklyBonusReminder : String
+    , weeklyGoalSessions : String
+    , weeklyGoalTechniques : String
+    , weeklyGoalMinutes : String
+    , weeklyGoalVideos : String
+    , goalsCompletedMessage : String
+    , noGoalsMessage : String
+    , noSessionsYet : String
+    , logFirstSession : String
+    , duration : String
+    , quality : String
+    , quickNotes : String
+    , switchTechnique : String
+    , selectTechniquePrompt : String
+    , sessionTechniques : String
+    , sessionStats : String
+    , todaysGoalsTitle : String
+    , recentSessions : String
+
+    -- Home
+    , heroBadge : String
+    , heroTitleLine1 : String
+    , heroTitleLine2 : String
+    , heroTitleHighlight : String
+    , heroSubtitle : String
+
+    -- Fighter Paths
+    , pathActive : String
+    , pathContinue : String
+    , pathExplore : String
+    , fighterPathDescription : String
+    , fighterPathComingSoon : String
+
+    -- Technique Library & Progress
+    , techniqueLibraryTitle : String
+    , techniqueLibraryDescription : String
+    , techniqueLibraryComingSoon : String
+    , progressPageTitle : String
+    , progressPageDescription : String
+    , progressTrackingComingSoon : String
+
+    -- Events
+    , eventsSubtitle : String
+    , eventsCountSingular : String
+    , eventsCountPlural : String
+    , eventsFilterAll : String
+    , eventsFilterUpcoming : String
+    , eventsFilterPast : String
+    , eventStatusUpcoming : String
+    , eventStatusLive : String
+    , eventStatusCompleted : String
+    , eventStatusCancelled : String
+    , eventInformation : String
+    , venue : String
+    , organization : String
+    , statusLabel : String
+    , typeLabel : String
+    , brackets : String
+    , links : String
+    , eventNotFound : String
+    , eventNotFoundDescription : String
+
+    -- Training
+    , trainingPlans : String
+    , trainingPlansSubtitle : String
+    , totalSessionsLabel : String
+    , hoursTrainedLabel : String
+
+    -- Forms & Auth
+    , signUpSubtitle : String
+    , fullName : String
+    , fullNamePlaceholder : String
+    , emailPlaceholder : String
+    , passwordPlaceholder : String
+    , confirmPassword : String
+    , confirmPasswordPlaceholder : String
+    , rememberMe : String
+    , forgotPassword : String
+    , dontHaveAccount : String
+    , welcomeBack : String
+    , loginSubtitle : String
+    , passwordResetFeature : String
+
+    -- Footer
+    , footerTagline : String
+    , footerExplore : String
+    , footerResources : String
+    , footerConnect : String
+    , footerTechniqueLibrary : String
+    , footerTrainingTips : String
+    , footerCompetitionRules : String
+    , footerBlog : String
+    , footerCopyright : String
+
+    -- Modals & Animations
+    , logTrainingSession : String
+    , sessionLoggingSoon : String
+    , levelUp : String
+    , achievementUnlocked : String
+    , questComplete : String
     }
 
 
@@ -204,6 +329,7 @@ en =
     , loading = "Loading..."
     
     -- Navigation
+    , home = "Home"
     , dashboard = "Dashboard"
     , heroes = "Heroes"
     , events = "Events"
@@ -256,6 +382,10 @@ en =
     , achievements = "ACHIEVEMENTS"
     , goals = "Goals"
     , addGoal = "Add Goal"
+    , favorites = "Favorites"
+    , noAchievementsYet = "No achievements yet"
+    , noFavorites = "No favorites yet"
+    , noGoalsSet = "No goals set"
     
     -- Gamification
     , dailyQuests = "DAILY QUESTS"
@@ -355,6 +485,13 @@ en =
     , videos = "Videos"
     , addToFavorites = "Add to Favorites"
     , favorited = "Favorited"
+    , heroNotFound = "Hero not found"
+    , socialMedia = "Social Media"
+    , winRate = "Win Rate"
+    , submissionRate = "Submission Rate"
+    , avgMatchTime = "Avg Match Time"
+    , favoritePosition = "Favorite Position"
+    , favoriteSubmission = "Favorite Submission"
     
     -- Events
     , upcomingEvents = "Upcoming Events"
@@ -372,6 +509,119 @@ en =
     , errorOccurred = "An error occurred"
     , tryAgain = "Try Again"
     , goHome = "Go Home"
+    , notFoundDescription = "The page you're looking for doesn't exist."
+
+    -- Global UI
+    , searchPlaceholder = "Search heroes, academies..."
+    , sessionProgressLabel = "Session progress"
+    , planTitle = "Training focus"
+    , planSubtitle = "Structure your repetition work and stay tuned to details."
+    , planButtonLabel = "Open session"
+    , momentumOverview = "Momentum overview"
+    , progressDescriptor = "Keep a clear pulse on volume, XP, and consistency."
+    , beltProgress = "Belt progress"
+    , adjustGoals = "Adjust"
+    , weeklyGoalsDescription = "Map this week's targets and tick them off with intention."
+    , weeklyBonusReminder = "bonus if every goal is completed this week."
+    , weeklyGoalSessions = "Complete 5 training sessions"
+    , weeklyGoalTechniques = "Master 3 new techniques"
+    , weeklyGoalMinutes = "Log 300 minutes of mat time"
+    , weeklyGoalVideos = "Review 10 competition videos"
+    , goalsCompletedMessage = "All goals completed! Great job! 🎉"
+    , noGoalsMessage = "No active goals"
+    , noSessionsYet = "No training sessions yet"
+    , logFirstSession = "Log Your First Session"
+    , duration = "Duration"
+    , quality = "Quality"
+    , quickNotes = "Quick Notes"
+    , switchTechnique = "Switch Technique"
+    , selectTechniquePrompt = "Select a technique to practice"
+    , sessionTechniques = "Session Techniques"
+    , sessionStats = "Session Stats"
+    , todaysGoalsTitle = "Today's Goals"
+    , recentSessions = "Recent Sessions"
+
+    -- Home
+    , heroBadge = "Elite Training Program"
+    , heroTitleLine1 = "Unlock your jiu-jitsu"
+    , heroTitleLine2 = "with a plan "
+    , heroTitleHighlight = "built by champions"
+    , heroSubtitle = "Track sessions, intuitive dashboards, and champion-inspired routines to stay consistent on the mats."
+
+    -- Fighter Paths
+    , pathActive = "Active"
+    , pathContinue = "Continue"
+    , pathExplore = "Explore"
+    , fighterPathDescription = "Learn the complete system and techniques of this fighter."
+    , fighterPathComingSoon = "Fighter path system coming soon!"
+
+    -- Technique Library & Progress
+    , techniqueLibraryTitle = "Technique Library"
+    , techniqueLibraryDescription = "Browse and learn all available techniques."
+    , techniqueLibraryComingSoon = "Technique library coming soon!"
+    , progressPageTitle = "Your Progress"
+    , progressPageDescription = "Track your journey and achievements."
+    , progressTrackingComingSoon = "Progress tracking coming soon!"
+
+    -- Events
+    , eventsSubtitle = "Tournaments, superfights, seminars and training camps"
+    , eventsCountSingular = "event"
+    , eventsCountPlural = "events"
+    , eventsFilterAll = "All"
+    , eventsFilterUpcoming = "Upcoming"
+    , eventsFilterPast = "Past"
+    , eventStatusUpcoming = "Upcoming"
+    , eventStatusLive = "LIVE"
+    , eventStatusCompleted = "Completed"
+    , eventStatusCancelled = "Cancelled"
+    , eventInformation = "Event Information"
+    , venue = "Venue"
+    , organization = "Organization"
+    , statusLabel = "Status"
+    , typeLabel = "Type"
+    , brackets = "Brackets"
+    , links = "Links"
+    , eventNotFound = "Event not found"
+    , eventNotFoundDescription = "We couldn't find this event. Please try another one."
+
+    -- Training
+    , trainingPlans = "Training Plans"
+    , trainingPlansSubtitle = "Choose a hero and follow their training methodology"
+    , totalSessionsLabel = "Total Sessions"
+    , hoursTrainedLabel = "Hours Trained"
+
+    -- Forms & Auth
+    , signUpSubtitle = "Join Train Like Pro and start your journey"
+    , fullName = "Full Name"
+    , fullNamePlaceholder = "John Doe"
+    , emailPlaceholder = "john@example.com"
+    , passwordPlaceholder = "••••••••"
+    , confirmPassword = "Confirm Password"
+    , confirmPasswordPlaceholder = "••••••••"
+    , rememberMe = "Remember me"
+    , forgotPassword = "Forgot password?"
+    , dontHaveAccount = "Don't have an account? Sign up"
+    , welcomeBack = "Welcome Back"
+    , loginSubtitle = "Log in to continue your training"
+    , passwordResetFeature = "Password reset coming soon!"
+
+    -- Footer
+    , footerTagline = "Train like champions with guidance from the greatest athletes in BJJ history."
+    , footerExplore = "Explore"
+    , footerResources = "Resources"
+    , footerConnect = "Connect"
+    , footerTechniqueLibrary = "Technique Library"
+    , footerTrainingTips = "Training Tips"
+    , footerCompetitionRules = "Competition Rules"
+    , footerBlog = "Blog"
+    , footerCopyright = "© 2024 BJJ Heroes. Train Like Champions. All rights reserved."
+
+    -- Modals & Animations
+    , logTrainingSession = "Log Training Session"
+    , sessionLoggingSoon = "Session logging coming soon!"
+    , levelUp = "LEVEL UP!"
+    , achievementUnlocked = "Achievement Unlocked!"
+    , questComplete = "Quest Complete!"
     }
 
 
@@ -384,6 +634,7 @@ fr =
     , loading = "Chargement..."
     
     -- Navigation
+    , home = "Accueil"
     , dashboard = "Tableau de bord"
     , heroes = "Héros"
     , events = "Événements"
@@ -436,6 +687,10 @@ fr =
     , achievements = "SUCCÈS"
     , goals = "Objectifs"
     , addGoal = "Ajouter un objectif"
+    , favorites = "Favoris"
+    , noAchievementsYet = "Aucun succès pour le moment"
+    , noFavorites = "Aucun favori pour le moment"
+    , noGoalsSet = "Aucun objectif défini"
     
     -- Gamification
     , dailyQuests = "QUÊTES QUOTIDIENNES"
@@ -535,6 +790,13 @@ fr =
     , videos = "Vidéos"
     , addToFavorites = "Ajouter aux Favoris"
     , favorited = "Favori"
+    , heroNotFound = "Héros introuvable"
+    , socialMedia = "Réseaux sociaux"
+    , winRate = "Taux de victoire"
+    , submissionRate = "Taux de soumission"
+    , avgMatchTime = "Temps moyen de combat"
+    , favoritePosition = "Position favorite"
+    , favoriteSubmission = "Soumission favorite"
     
     -- Events
     , upcomingEvents = "Événements à Venir"
@@ -552,6 +814,119 @@ fr =
     , errorOccurred = "Une erreur s'est produite"
     , tryAgain = "Réessayer"
     , goHome = "Retour à l'Accueil"
+    , notFoundDescription = "La page que tu cherches n'existe pas."
+
+    -- Global UI
+    , searchPlaceholder = "Rechercher des héros, académies..."
+    , sessionProgressLabel = "Progression de la session"
+    , planTitle = "Plan d'entraînement"
+    , planSubtitle = "Structure ta répétition et reste attentif aux détails."
+    , planButtonLabel = "Voir la session"
+    , momentumOverview = "Vue d'ensemble du momentum"
+    , progressDescriptor = "Garde un œil sur ton volume, ton XP et ta constance."
+    , beltProgress = "Progression ceinture"
+    , adjustGoals = "Ajuster"
+    , weeklyGoalsDescription = "Visualise tes objectifs de la semaine et valide-les un par un."
+    , weeklyBonusReminder = "de bonus si tous les objectifs sont réalisés cette semaine."
+    , weeklyGoalSessions = "Compléter 5 sessions d'entraînement"
+    , weeklyGoalTechniques = "Maîtriser 3 nouvelles techniques"
+    , weeklyGoalMinutes = "Enregistrer 300 minutes de temps de tatami"
+    , weeklyGoalVideos = "Revoir 10 vidéos de compétition"
+    , goalsCompletedMessage = "Tous les objectifs sont complétés ! Bravo ! 🎉"
+    , noGoalsMessage = "Aucun objectif actif"
+    , noSessionsYet = "Aucune session d'entraînement pour l'instant"
+    , logFirstSession = "Enregistrer ta première session"
+    , duration = "Durée"
+    , quality = "Qualité"
+    , quickNotes = "Notes rapides"
+    , switchTechnique = "Changer de technique"
+    , selectTechniquePrompt = "Sélectionne une technique à pratiquer"
+    , sessionTechniques = "Techniques de la session"
+    , sessionStats = "Statistiques de la session"
+    , todaysGoalsTitle = "Objectifs du jour"
+    , recentSessions = "Sessions récentes"
+
+    -- Home
+    , heroBadge = "Programme d'entraînement élite"
+    , heroTitleLine1 = "Libère ton jiu-jitsu"
+    , heroTitleLine2 = "avec un plan "
+    , heroTitleHighlight = "prêt à l'emploi"
+    , heroSubtitle = "Suivi des séances, tableaux de bord intuitifs et routines inspirées des champions pour rester constant sur le tatami."
+
+    -- Fighter Paths
+    , pathActive = "En cours"
+    , pathContinue = "Poursuivre"
+    , pathExplore = "Découvrir"
+    , fighterPathDescription = "Découvre le système complet et les techniques de ce combattant."
+    , fighterPathComingSoon = "Le système des parcours combattants arrive bientôt !"
+
+    -- Technique Library & Progress
+    , techniqueLibraryTitle = "Bibliothèque de techniques"
+    , techniqueLibraryDescription = "Parcours et apprends toutes les techniques disponibles."
+    , techniqueLibraryComingSoon = "La bibliothèque de techniques arrive bientôt !"
+    , progressPageTitle = "Ta progression"
+    , progressPageDescription = "Suis ton parcours et tes réussites."
+    , progressTrackingComingSoon = "Le suivi de progression arrive bientôt !"
+
+    -- Events
+    , eventsSubtitle = "Tournois, superfights, séminaires et camps d'entraînement"
+    , eventsCountSingular = "événement"
+    , eventsCountPlural = "événements"
+    , eventsFilterAll = "Tous"
+    , eventsFilterUpcoming = "À venir"
+    , eventsFilterPast = "Passés"
+    , eventStatusUpcoming = "À venir"
+    , eventStatusLive = "EN DIRECT"
+    , eventStatusCompleted = "Terminé"
+    , eventStatusCancelled = "Annulé"
+    , eventInformation = "Informations sur l'événement"
+    , venue = "Lieu"
+    , organization = "Organisation"
+    , statusLabel = "Statut"
+    , typeLabel = "Type"
+    , brackets = "Tableaux"
+    , links = "Liens"
+    , eventNotFound = "Événement introuvable"
+    , eventNotFoundDescription = "Nous n'avons pas trouvé cet événement. Essaie une autre recherche."
+
+    -- Training
+    , trainingPlans = "Plans d'entraînement"
+    , trainingPlansSubtitle = "Choisis un héros et suis sa méthodologie d'entraînement"
+    , totalSessionsLabel = "Sessions totales"
+    , hoursTrainedLabel = "Heures d'entraînement"
+
+    -- Forms & Auth
+    , signUpSubtitle = "Rejoins Train Like Pro et lance ton aventure"
+    , fullName = "Nom complet"
+    , fullNamePlaceholder = "Jean Dupont"
+    , emailPlaceholder = "jean@exemple.com"
+    , passwordPlaceholder = "••••••••"
+    , confirmPassword = "Confirmer le mot de passe"
+    , confirmPasswordPlaceholder = "••••••••"
+    , rememberMe = "Se souvenir de moi"
+    , forgotPassword = "Mot de passe oublié ?"
+    , dontHaveAccount = "Pas encore de compte ? Inscris-toi"
+    , welcomeBack = "Bon retour"
+    , loginSubtitle = "Connecte-toi pour poursuivre ton entraînement"
+    , passwordResetFeature = "La réinitialisation du mot de passe arrive bientôt !"
+
+    -- Footer
+    , footerTagline = "Entraîne-toi comme les champions avec les plus grands athlètes de l'histoire du BJJ."
+    , footerExplore = "Explorer"
+    , footerResources = "Ressources"
+    , footerConnect = "Connexion"
+    , footerTechniqueLibrary = "Bibliothèque de techniques"
+    , footerTrainingTips = "Conseils d'entraînement"
+    , footerCompetitionRules = "Règles de compétition"
+    , footerBlog = "Blog"
+    , footerCopyright = "© 2024 BJJ Heroes. Entraîne-toi comme les champions. Tous droits réservés."
+
+    -- Modals & Animations
+    , logTrainingSession = "Journal de session d'entraînement"
+    , sessionLoggingSoon = "L'enregistrement des sessions arrive bientôt !"
+    , levelUp = "NIVEAU SUPÉRIEUR !"
+    , achievementUnlocked = "Succès débloqué !"
+    , questComplete = "Quête terminée !"
     }
 
 
@@ -626,6 +1001,19 @@ formatWeeks lang count =
         String.fromInt count ++ " " ++ trans.week
     else
         String.fromInt count ++ " " ++ trans.weeks
+
+
+formatEventsCount : Language -> Int -> String
+formatEventsCount lang count =
+    let
+        trans = translate lang
+        label =
+            if count == 1 then
+                trans.eventsCountSingular
+            else
+                trans.eventsCountPlural
+    in
+    String.fromInt count ++ " " ++ label
 
 
 formatDate : Language -> Time.Posix -> String

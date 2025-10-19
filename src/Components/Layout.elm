@@ -75,9 +75,11 @@ headerBar model =
                 , profileSummary model
                 , button
                     [ onClick StartSession
-                    , class "hidden lg:inline-flex btn btn-primary"
+                    , class "hidden lg:inline-flex start-session-button"
                     ]
-                    [ text t.startSession ]
+                    [ span [ class "start-session-button__icon" ] [ text "⚡" ]
+                    , span [ class "start-session-button__label" ] [ text t.startSession ]
+                    ]
                 , button
                     [ onClick ToggleMobileMenu
                     , class "mobile-menu-button lg:hidden"
@@ -251,9 +253,11 @@ mobileMenu model =
             , div [ class "mt-6 space-y-3" ]
                 [ button
                     [ onClick StartSession
-                    , class "btn btn-primary w-full"
+                    , class "start-session-button start-session-button--full"
                     ]
-                    [ text t.startSession ]
+                    [ span [ class "start-session-button__icon" ] [ text "⚡" ]
+                    , span [ class "start-session-button__label" ] [ text t.startSession ]
+                    ]
                 , languageSelectorMobile model
                 ]
             ]

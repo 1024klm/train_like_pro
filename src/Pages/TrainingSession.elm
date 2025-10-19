@@ -49,11 +49,13 @@ viewStartSession model =
                     ]
                     
                   -- Quick Start Button
-                , button 
+                , button
                     [ onClick StartSession
-                    , class "px-8 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition-all transform hover:scale-105 shadow-lg"
+                    , class "start-session-button start-session-button--large mx-auto"
                     ]
-                    [ text "Start Training Session" ]
+                    [ span [ class "start-session-button__icon" ] [ text "⚡" ]
+                    , span [ class "start-session-button__label" ] [ text model.userConfig.t.startSession ]
+                    ]
                 ]
                 
               -- Today's Goals
