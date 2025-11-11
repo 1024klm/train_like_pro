@@ -1,8 +1,8 @@
 module Pages.Heroes exposing (viewDetail, viewList)
 
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, h1, h2, h3, h4, label, option, p, select, span, text)
-import Html.Attributes exposing (class, classList, value)
+import Html exposing (Html, button, div, h1, h2, h3, h4, input, label, option, p, select, span, text)
+import Html.Attributes exposing (class, classList, placeholder, type_, value)
 import Html.Events exposing (onClick, onInput, stopPropagationOn)
 import Html.Keyed as Keyed
 import String
@@ -18,6 +18,7 @@ viewList model filter =
         heroesList =
             model.heroes
                 |> Dict.values
+                |> List.filter (matchesSearch model.searchQuery)
                 |> filterHeroes filter
                 |> List.sortBy .name
     in
@@ -70,6 +71,14 @@ viewHeroFilters model currentFilter =
     div [ class "filter-row flex items-center gap-3 flex-wrap" ]
         [ label [ class "text-sm font-semibold text-gray-600 dark:text-gray-300" ]
             [ text (filterLabel language) ]
+        , input
+            [ type_ "text"
+            , placeholder (searchPlaceholder language)
+            , class "px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm font-medium text-gray-700 dark:text-gray-200"
+            , value model.searchQuery
+            , onInput UpdateSearchQuery
+            ]
+            []
         , select
             [ class "px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm font-medium text-gray-700 dark:text-gray-200"
             , value selectedValue
@@ -188,6 +197,42 @@ titleLabel language titleFilter =
 
         ( I18n.EN, TitleWorlds ) ->
             "World Titles"
+
+
+searchPlaceholder : I18n.Language -> String
+searchPlaceholder language =
+    case language of
+        I18n.FR ->
+            "Rechercher un champion"
+
+        I18n.EN ->
+            "Search for a champion"
+
+
+matchesSearch : String -> Hero -> Bool
+matchesSearch query hero =
+    let
+        trimmed =
+            String.trim query
+
+        lowered =
+            String.toLower trimmed
+    in
+    if String.isEmpty trimmed then
+        True
+
+    else
+        let
+            nameMatch =
+                String.toLower hero.name |> String.contains lowered
+
+            nicknameMatch =
+                String.toLower hero.nickname |> String.contains lowered
+
+            bioMatch =
+                String.toLower hero.bio |> String.contains lowered
+        in
+        nameMatch || nicknameMatch || bioMatch
 
 
 filterHeroes : Maybe HeroFilter -> List Hero -> List Hero
