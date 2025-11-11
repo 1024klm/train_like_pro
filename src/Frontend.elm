@@ -21,6 +21,7 @@ import Lamdera
 import List
 import LocalStorage
 import Pages.Dashboard
+import Pages.Heroes
 import Pages.TrainingSession
 import Router
 import Router.Helpers exposing (onPreventDefaultClick)
@@ -200,9 +201,17 @@ update msg model =
             let
                 filters =
                     model.activeFilters
+
+                ( newHeroFilter, route ) =
+                    case filter of
+                        AllHeroes ->
+                            ( Nothing, HeroesRoute Nothing )
+
+                        _ ->
+                            ( Just filter, HeroesRoute (Just filter) )
             in
-            ( { model | activeFilters = { filters | heroFilter = Just filter } }
-            , Cmd.none
+            ( { model | activeFilters = { filters | heroFilter = newHeroFilter } }
+            , Router.navigateTo model.key route
             )
 
         ClearFilters ->
@@ -214,7 +223,12 @@ update msg model =
                     , dateRange = Nothing
                     }
               }
-            , Cmd.none
+            , case model.route of
+                HeroesRoute _ ->
+                    Router.navigateTo model.key (HeroesRoute Nothing)
+
+                _ ->
+                    Cmd.none
             )
 
         ChangeLanguage language ->
@@ -530,9 +544,22 @@ updateFromBackend : ToFrontend -> Model -> ( Model, Cmd Msg )
 updateFromBackend msg model =
     case msg of
         InitialDataReceived data ->
+            let
+                seededHeroes =
+                    if Dict.isEmpty data.heroes then
+                        Data.initHeroes
+                    else
+                        data.heroes
+
+                seededEvents =
+                    if Dict.isEmpty data.events then
+                        Data.initEvents
+                    else
+                        data.events
+            in
             ( { model
-                | heroes = data.heroes
-                , events = data.events
+                | heroes = seededHeroes
+                , events = seededEvents
                 , roadmaps = data.roadmaps
                 , userProgress = data.userProgress
               }
@@ -928,10 +955,10 @@ viewPage model =
                 [ text ("Roadmap View: " ++ roadmapId ++ " - Coming Soon!") ]
 
         HeroesRoute filter ->
-            viewHeroesPage model filter
+            Pages.Heroes.viewList model filter
 
         HeroDetail id ->
-            viewHeroDetailPage model id
+            Pages.Heroes.viewDetail model id
 
         Events filter ->
             viewEventsPage model filter
@@ -1424,77 +1451,6 @@ weeklyGoalItem description current target =
         ]
 
 
-viewHeroesPage : Model -> Maybe HeroFilter -> Html Msg
-viewHeroesPage model filter =
-    let
-        heroesList =
-            model.heroes
-                |> Dict.values
-                |> filterHeroes filter
-                |> List.sortBy .name
-    in
-    div [ class "page-stack" ]
-        [ div [ class "card page-intro" ]
-            [ span [ class "chip chip--outline" ] [ text model.userConfig.t.heroes ]
-            , h1 [ class "page-intro__title" ] [ text model.userConfig.t.heroes ]
-            , p [ class "page-intro__subtitle" ] [ text model.userConfig.t.learnFromLegends ]
-            ]
-        , viewHeroFilters model filter
-        , Keyed.node "div"
-            [ class "grid grid-cols-1 md:grid-cols-3 gap-6" ]
-            (heroesList |> List.map (\h -> ( h.id, viewHeroCard model h )))
-        ]
-
-
-viewHeroFilters : Model -> Maybe HeroFilter -> Html Msg
-viewHeroFilters model currentFilter =
-    let
-        language =
-            model.userConfig.language
-
-        t =
-            model.userConfig.t
-    in
-    div [ class "filter-row" ]
-        [ filterButton t.eventsFilterAll (currentFilter == Nothing || currentFilter == Just AllHeroes) (ApplyFilter AllHeroes)
-        , filterButton (weightClassLabel language SuperHeavy) (currentFilter == Just (ByWeight SuperHeavy)) (ApplyFilter (ByWeight SuperHeavy))
-        , filterButton (styleLabel language LegLocks) (currentFilter == Just (ByStyle LegLocks)) (ApplyFilter (ByStyle LegLocks))
-        , filterButton (styleLabel language Guard) (currentFilter == Just (ByStyle Guard)) (ApplyFilter (ByStyle Guard))
-        , filterButton (styleLabel language Passing) (currentFilter == Just (ByStyle Passing)) (ApplyFilter (ByStyle Passing))
-        ]
-
-
-filterHeroes : Maybe HeroFilter -> List Hero -> List Hero
-filterHeroes maybeFilter heroes =
-    case maybeFilter of
-        Nothing ->
-            heroes
-
-        Just AllHeroes ->
-            heroes
-
-        Just (ByWeight weight) ->
-            List.filter (\h -> h.weight == weight) heroes
-
-        Just (ByStyle style) ->
-            List.filter (\h -> h.style == style) heroes
-
-        Just (ByNationality nationality) ->
-            List.filter (\h -> h.nationality == nationality) heroes
-
-
-filterButton : String -> Bool -> Msg -> Html Msg
-filterButton label isActive msg =
-    button
-        [ onClick msg
-        , classList
-            [ ( "filter-pill filter-pill--active", isActive )
-            , ( "filter-pill", not isActive )
-            ]
-        ]
-        [ text label ]
-
-
 infoRow : String -> String -> Html Msg
 infoRow label value =
     div [ class "flex" ]
@@ -1618,428 +1574,8 @@ viewEventListCard model event =
         ]
 
 
-viewHeroCard : Model -> Hero -> Html Msg
-viewHeroCard model hero =
-    let
-        t =
-            model.userConfig.t
 
-        isFavorite =
-            Set.member hero.id model.favorites.heroes
 
-        recordLabel =
-            String.fromInt hero.record.wins ++ " - " ++ String.fromInt hero.record.losses
-
-        weightLabel =
-            weightClassToString hero.weight
-
-        detailLabel =
-            t.viewDetails
-    in
-    div
-        [ onClick (SelectHero hero.id)
-        , class "card list-card list-card--interactive p-6"
-        ]
-        [ div [ class "flex flex-col items-center text-center gap-2" ]
-            [ span [ class "chip chip--outline" ] [ text weightLabel ]
-            , h3 [ class "list-card__title" ] [ text hero.name ]
-            , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text hero.nickname ]
-            , p [ class "list-card__description text-center" ] [ text hero.bio ]
-            ]
-        , div [ class "list-card__footer flex items-center justify-center gap-4" ]
-            [ span [ class "list-card__meta" ] [ text (hero.nationality ++ " · " ++ recordLabel) ]
-            , button
-                [ onClick (ToggleFavorite HeroFavorite hero.id)
-                , Html.Events.stopPropagationOn "click" (Decode.succeed ( NoOpFrontendMsg, True ))
-                , classList
-                    [ ( "list-card__favorite list-card__favorite--active", isFavorite )
-                    , ( "list-card__favorite", not isFavorite )
-                    ]
-                ]
-                [ text (if isFavorite then "★" else "☆") ]
-            ]
-        ]
-
-
-weightClassToString : WeightClass -> String
-weightClassToString weight =
-    case weight of
-        Rooster ->
-            "Rooster"
-
-        LightFeather ->
-            "Light Feather"
-
-        Feather ->
-            "Feather"
-
-        Light ->
-            "Light"
-
-        Middle ->
-            "Middle"
-
-        MediumHeavy ->
-            "Medium Heavy"
-
-        Heavy ->
-            "Heavy"
-
-        SuperHeavy ->
-            "Super Heavy"
-
-        UltraHeavy ->
-            "Ultra Heavy"
-
-
-weightClassLabel : I18n.Language -> WeightClass -> String
-weightClassLabel language weight =
-    case ( language, weight ) of
-        ( I18n.FR, Rooster ) ->
-            "Poids coq"
-
-        ( I18n.FR, LightFeather ) ->
-            "Plume léger"
-
-        ( I18n.FR, Feather ) ->
-            "Plume"
-
-        ( I18n.FR, Light ) ->
-            "Léger"
-
-        ( I18n.FR, Middle ) ->
-            "Moyen"
-
-        ( I18n.FR, MediumHeavy ) ->
-            "Moyen-lourd"
-
-        ( I18n.FR, Heavy ) ->
-            "Lourd"
-
-        ( I18n.FR, SuperHeavy ) ->
-            "Super-lourd"
-
-        ( I18n.FR, UltraHeavy ) ->
-            "Ultra-lourd"
-
-        ( _, Rooster ) ->
-            "Rooster"
-
-        ( _, LightFeather ) ->
-            "Light Feather"
-
-        ( _, Feather ) ->
-            "Feather"
-
-        ( _, Light ) ->
-            "Light"
-
-        ( _, Middle ) ->
-            "Middle"
-
-        ( _, MediumHeavy ) ->
-            "Medium Heavy"
-
-        ( _, Heavy ) ->
-            "Heavy"
-
-        ( _, SuperHeavy ) ->
-            "Super Heavy"
-
-        ( _, UltraHeavy ) ->
-            "Ultra Heavy"
-
-
-styleLabel : I18n.Language -> FightingStyle -> String
-styleLabel language style =
-    case ( language, style ) of
-        ( I18n.FR, Guard ) ->
-            "Garde"
-
-        ( I18n.FR, Passing ) ->
-            "Passage"
-
-        ( I18n.FR, LegLocks ) ->
-            "Attaques de jambes"
-
-        ( I18n.FR, Wrestling ) ->
-            "Lutte"
-
-        ( I18n.FR, Balanced ) ->
-            "Équilibré"
-
-        ( I18n.FR, Submission ) ->
-            "Soumissions"
-
-        ( I18n.FR, Pressure ) ->
-            "Pression"
-
-        ( _, Guard ) ->
-            "Guard"
-
-        ( _, Passing ) ->
-            "Passing"
-
-        ( _, LegLocks ) ->
-            "Leg Locks"
-
-        ( _, Wrestling ) ->
-            "Wrestling"
-
-        ( _, Balanced ) ->
-            "Balanced"
-
-        ( _, Submission ) ->
-            "Submission"
-
-        ( _, Pressure ) ->
-            "Pressure"
-
-
-viewHeroDetailPage : Model -> String -> Html Msg
-viewHeroDetailPage model heroId =
-    let
-        t =
-            model.userConfig.t
-    in
-    case Dict.get heroId model.heroes of
-        Just hero ->
-            div [ class "space-y-6" ]
-                [ viewHeroHeader hero model
-                , viewHeroContent hero model
-                ]
-
-        Nothing ->
-            div [ class "p-8 text-center" ]
-                [ p [ class "text-gray-400" ] [ text t.heroNotFound ] ]
-
-
-viewHeroHeader : Hero -> Model -> Html Msg
-viewHeroHeader hero model =
-    let
-        t =
-            model.userConfig.t
-
-        language =
-            model.userConfig.language
-
-        isFavorite =
-            Set.member hero.id model.favorites.heroes
-    in
-    div [ class "relative h-96 bg-gradient-to-br from-red-600 to-red-800" ]
-        [ div [ class "absolute inset-0 bg-black/40" ] []
-        , div [ class "container mx-auto px-4 h-full flex items-end pb-8" ]
-            [ div [ class "text-white" ]
-                [ h1 [ class "text-5xl font-bold mb-2" ] [ text hero.name ]
-                , p [ class "text-2xl mb-4 opacity-90" ] [ text hero.nickname ]
-                , div [ class "flex items-center space-x-4" ]
-                    [ span [ class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg" ]
-                        [ text hero.team ]
-                    , span [ class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg" ]
-                        [ text (weightClassLabel language hero.weight) ]
-                    , button
-                        [ onClick (ToggleFavorite HeroFavorite hero.id)
-                        , class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors"
-                        ]
-                        [ text
-                            (if isFavorite then
-                                "❤️ " ++ t.favorited
-
-                             else
-                                "🤍 " ++ t.addToFavorites
-                            )
-                        ]
-                    ]
-                ]
-            ]
-        ]
-
-
-viewHeroContent : Hero -> Model -> Html Msg
-viewHeroContent hero model =
-    let
-        t =
-            model.userConfig.t
-    in
-    div [ class "space-y-6 lg:space-y-0" ]
-        [ div [ class "grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" ]
-            [ div [ class "lg:col-span-2 space-y-8" ]
-                [ viewHeroBio t hero
-                , viewHeroRecord t hero
-                , viewHeroTechniques t hero
-                , viewHeroVideos t hero
-                ]
-            , div [ class "space-y-8" ]
-                [ viewHeroStats t hero
-                , viewHeroSocial t hero
-                , viewHeroAchievements t hero
-                ]
-            ]
-        ]
-
-
-viewHeroBio : I18n.Translations -> Hero -> Html Msg
-viewHeroBio t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.biography ]
-        , p [ class "text-gray-600 dark:text-gray-300 leading-relaxed" ] [ text hero.bio ]
-        ]
-
-
-viewHeroRecord : I18n.Translations -> Hero -> Html Msg
-viewHeroRecord t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.competitionRecord ]
-        , div [ class "grid grid-cols-3 gap-4 mb-6" ]
-            [ recordStat t.wins (String.fromInt hero.record.wins) "text-green-600"
-            , recordStat t.losses (String.fromInt hero.record.losses) "text-red-600"
-            , recordStat t.draws (String.fromInt hero.record.draws) "text-gray-600"
-            ]
-        , div [ class "space-y-2" ]
-            (List.map
-                (\title ->
-                    div [ class "flex items-center space-x-2" ]
-                        [ span [ class "text-xl" ] [ text "🏆" ]
-                        , span [ class "text-gray-700 dark:text-gray-300" ] [ text title ]
-                        ]
-                )
-                hero.record.titles
-            )
-        ]
-
-
-recordStat : String -> String -> String -> Html Msg
-recordStat label value colorClass =
-    div [ class "text-center" ]
-        [ p [ class ("text-3xl font-bold " ++ colorClass) ] [ text value ]
-        , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text label ]
-        ]
-
-
-viewHeroTechniques : I18n.Translations -> Hero -> Html Msg
-viewHeroTechniques translations hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text translations.signatureTechniques ]
-        , Keyed.node "div"
-            [ class "space-y-4" ]
-            (hero.techniques
-                |> List.sortBy .name
-                |> List.map
-                    (\techniqueInfo ->
-                        ( techniqueInfo.id, viewTechnique techniqueInfo )
-                    )
-            )
-        ]
-
-
-viewTechnique : Technique -> Html Msg
-viewTechnique technique =
-    div [ class "border-l-4 border-red-500 pl-4" ]
-        [ h3 [ class "font-bold dark:text-white" ] [ text technique.name ]
-        , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text technique.description ]
-        ]
-
-
-viewHeroVideos : I18n.Translations -> Hero -> Html Msg
-viewHeroVideos t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.videos ]
-        , Keyed.node "div"
-            [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
-            (hero.videos |> List.sortBy .date |> List.map (\v -> ( v.id, viewVideoCard v )))
-        ]
-
-
-viewVideoCard : Video -> Html Msg
-viewVideoCard video =
-    div [ class "bg-gray-700/50 backdrop-blur-sm rounded-lg p-4 hover:shadow-md transition-all cursor-pointer border border-gray-600/30 hover:border-blue-500/50" ]
-        [ h3 [ class "font-medium dark:text-white mb-2" ] [ text video.title ]
-        , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text video.date ]
-        ]
-
-
-viewHeroStats : I18n.Translations -> Hero -> Html Msg
-viewHeroStats t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.statistics ]
-        , div [ class "space-y-3" ]
-            [ statRow t.winRate (String.fromFloat hero.stats.winRate ++ "%")
-            , statRow t.submissionRate (String.fromFloat hero.stats.submissionRate ++ "%")
-            , statRow t.avgMatchTime (String.fromFloat hero.stats.averageMatchTime ++ " min")
-            , statRow t.favoritePosition hero.stats.favoritePosition
-            , statRow t.favoriteSubmission hero.stats.favoriteSubmission
-            ]
-        ]
-
-
-statRow : String -> String -> Html Msg
-statRow label value =
-    div [ class "flex justify-between" ]
-        [ span [ class "text-gray-600 dark:text-gray-400" ] [ text label ]
-        , span [ class "font-medium dark:text-white" ] [ text value ]
-        ]
-
-
-viewHeroSocial : I18n.Translations -> Hero -> Html Msg
-viewHeroSocial t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.socialMedia ]
-        , div [ class "space-y-3" ]
-            [ case hero.socialMedia.instagram of
-                Just handle ->
-                    socialLink "Instagram" handle "📷"
-
-                Nothing ->
-                    text ""
-            , case hero.socialMedia.youtube of
-                Just channel ->
-                    socialLink "YouTube" channel "📺"
-
-                Nothing ->
-                    text ""
-            , case hero.socialMedia.website of
-                Just url ->
-                    socialLink t.website url "🌐"
-
-                Nothing ->
-                    text ""
-            ]
-        ]
-
-
-socialLink : String -> String -> String -> Html Msg
-socialLink platform handle icon =
-    div [ class "flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-lg cursor-pointer" ]
-        [ span [ class "text-xl" ] [ text icon ]
-        , div [ class "flex-1" ]
-            [ p [ class "font-medium dark:text-white" ] [ text platform ]
-            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text handle ]
-            ]
-        ]
-
-
-viewHeroAchievements : I18n.Translations -> Hero -> Html Msg
-viewHeroAchievements t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.achievements ]
-        , if List.isEmpty hero.achievements then
-            p [ class "text-gray-500 dark:text-gray-400" ] [ text t.noAchievementsYet ]
-
-          else
-            div [ class "space-y-3" ]
-                (List.map viewAchievement hero.achievements)
-        ]
-
-
-viewAchievement : Achievement -> Html Msg
-viewAchievement achievement =
-    div [ class "flex items-center space-x-3" ]
-        [ span [ class "text-2xl" ] [ text achievement.icon ]
-        , div [ class "flex-1" ]
-            [ p [ class "font-medium dark:text-white" ] [ text achievement.name ]
-            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text achievement.description ]
-            ]
-        ]
 
 
 pageIntro : String -> String -> Html Msg
@@ -2173,6 +1709,37 @@ viewBracket bracket =
                 bracket.competitors
             )
         ]
+
+
+weightClassToString : WeightClass -> String
+weightClassToString weight =
+    case weight of
+        Rooster ->
+            "Rooster"
+
+        LightFeather ->
+            "Light Feather"
+
+        Feather ->
+            "Feather"
+
+        Light ->
+            "Light"
+
+        Middle ->
+            "Middle"
+
+        MediumHeavy ->
+            "Medium Heavy"
+
+        Heavy ->
+            "Heavy"
+
+        SuperHeavy ->
+            "Super Heavy"
+
+        UltraHeavy ->
+            "Ultra Heavy"
 
 
 beltToString : BeltLevel -> String
@@ -2702,14 +2269,19 @@ viewLoginPage model =
 
 viewStylePathPage : Model -> String -> Html Msg
 viewStylePathPage model slug =
-    div [ class "space-y-6 p-6" ]
-        [ h1 [ class "text-3xl font-bold text-white" ]
-            [ text ("Fighter Path: " ++ slug) ]
-        , p [ class "text-gray-400" ]
-            [ text "Learn the complete system and techniques of this fighter." ]
-        , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
-            [ text "Fighter path system coming soon!" ]
-        ]
+    case Dict.get slug model.heroes of
+        Just hero ->
+            viewHeroStylePath model hero
+
+        Nothing ->
+            div [ class "space-y-6 p-6" ]
+                [ h1 [ class "text-3xl font-bold text-white" ]
+                    [ text ("Fighter Path: " ++ slug) ]
+                , p [ class "text-gray-400" ]
+                    [ text "Learn the complete system and techniques of this fighter." ]
+                , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
+                    [ text "Fighter path system coming soon!" ]
+                ]
 
 
 viewTechniqueLibraryPage : Model -> Html Msg
@@ -2734,6 +2306,445 @@ viewProgressPage model =
         , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
             [ text "Progress tracking coming soon!" ]
         ]
+
+
+viewHeroStylePath : Model -> Hero -> Html Msg
+viewHeroStylePath model hero =
+    let
+        t =
+            model.userConfig.t
+    in
+    div [ class "space-y-8 pb-10" ]
+        [ stylePathHeader model hero
+        , stylePathQuickStats hero
+        , styleTechniqueSystems hero
+        , styleTrainingBlueprint t hero
+        , styleStudyPlaylist hero
+        , styleAchievementsSection hero
+        , styleNextSteps hero
+        ]
+
+
+stylePathHeader : Model -> Hero -> Html Msg
+stylePathHeader model hero =
+    let
+        coverStyle =
+            Attr.style "background-image" ("url(" ++ hero.coverImageUrl ++ ")")
+
+        weightLabel =
+            weightClassToString hero.weight
+
+        styleLabel =
+            fightingStyleLabel hero.style
+
+        overlayGradient =
+            "bg-gradient-to-br from-black/70 via-black/40 to-black/60"
+    in
+    div [ class "relative overflow-hidden rounded-3xl shadow-2xl border border-red-500/20" ]
+        [ div [ class "absolute inset-0 bg-cover bg-center scale-105 blur-sm opacity-60", coverStyle ] []
+        , div [ class ("absolute inset-0 " ++ overlayGradient) ] []
+        , div [ class "relative p-10 lg:p-14 text-white space-y-6" ]
+            [ span [ class "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur text-sm uppercase tracking-widest" ]
+                [ text "Signature Fighter Path" ]
+            , div [ class "space-y-3" ]
+                [ h1 [ class "text-4xl lg:text-5xl font-black tracking-tight" ] [ text hero.name ]
+                , p [ class "text-xl text-white/80" ] [ text ("\"" ++ hero.nickname ++ "\" • " ++ hero.team) ]
+                ]
+            , div [ class "flex flex-wrap items-center gap-3 text-sm uppercase tracking-widest" ]
+                [ span [ class "px-3 py-1 rounded-full bg-white/20 backdrop-blur" ] [ text weightLabel ]
+                , span [ class "px-3 py-1 rounded-full bg-white/20 backdrop-blur" ] [ text styleLabel ]
+                , span [ class "px-3 py-1 rounded-full bg-white/20 backdrop-blur" ] [ text (String.fromInt hero.record.wins ++ "-" ++ String.fromInt hero.record.losses ++ "-" ++ String.fromInt hero.record.draws) ]
+                ]
+            , p [ class "max-w-3xl text-lg text-white/80 leading-relaxed" ]
+                [ text "Deep dive into the systems, training structure, and study plan that define this athlete’s dominance. Use this roadmap to absorb the concepts, then tailor them to your own game." ]
+            , div [ class "flex flex-wrap items-center gap-3" ]
+                [ button
+                    [ onClick (NavigateTo (HeroDetail hero.id))
+                    , class "px-5 py-3 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors"
+                    ]
+                    [ text ("Voir le profil complet de " ++ hero.name) ]
+                , button
+                    [ onClick (ToggleFavorite HeroFavorite hero.id)
+                    , class "px-5 py-3 bg-white/15 hover:bg-white/25 text-white font-semibold rounded-xl transition-colors"
+                    ]
+                    [ text "Ajouter aux favoris" ]
+                ]
+            ]
+        ]
+
+
+stylePathQuickStats : Hero -> Html Msg
+stylePathQuickStats hero =
+    let
+        summaryCard label primary secondary =
+            div [ class "bg-gray-800/60 border border-gray-700/60 rounded-2xl p-6 shadow-lg backdrop-blur" ]
+                [ p [ class "text-sm uppercase tracking-widest text-gray-400 mb-2" ] [ text label ]
+                , p [ class "text-3xl font-bold text-white" ] [ text primary ]
+                , p [ class "text-sm text-gray-500 mt-1" ] [ text secondary ]
+                ]
+    in
+    div [ class "grid grid-cols-1 md:grid-cols-3 gap-5" ]
+        [ summaryCard "Win Rate" (formatPercentage hero.stats.winRate) "Across elite no-gi competition"
+        , summaryCard "Finish Rate" (formatPercentage hero.stats.submissionRate) ("Favourite: " ++ hero.stats.favoriteSubmission)
+        , summaryCard "Average Match Time" (String.fromFloat hero.stats.averageMatchTime ++ " min") ("Control from " ++ hero.stats.favoritePosition)
+        ]
+
+
+styleTechniqueSystems : Hero -> Html Msg
+styleTechniqueSystems hero =
+    let
+        groupedTechniques =
+            groupTechniquesByCategory hero.techniques
+                |> List.sortBy (\( category, _ ) -> techniqueCategoryOrder category)
+
+        techniqueCard technique =
+            div [ class "bg-gray-900/40 border border-gray-700/60 rounded-xl p-5 space-y-3" ]
+                [ h4 [ class "text-lg font-semibold text-white" ] [ text technique.name ]
+                , p [ class "text-sm text-gray-400" ] [ text technique.description ]
+                , div [ class "flex flex-wrap gap-2" ]
+                    (technique.keyDetails
+                        |> List.take 3
+                        |> List.map (\detail -> span [ class "px-3 py-1 bg-red-500/15 text-red-200 rounded-full text-xs tracking-wide" ] [ text detail ])
+                    )
+                , div [ class "flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 uppercase tracking-wide" ]
+                    [ span [] [ text (difficultyToString technique.difficulty) ]
+                    , span [] [ text ("Mastery: " ++ masteryLevelToString technique.masteryLevel) ]
+                    ]
+                ]
+
+        categorySection ( category, techniques ) =
+            div [ class "space-y-4" ]
+                [ h3 [ class "text-xl font-bold text-white flex items-center gap-2" ]
+                    [ span [ class "text-red-400" ] [ text "◆" ]
+                    , text (techniqueCategoryToString category)
+                    ]
+                , div [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
+                    (techniques
+                        |> List.sortBy .name
+                        |> List.map techniqueCard
+                    )
+                ]
+    in
+    div [ class "space-y-6" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Signature Systems" ]
+        , if List.isEmpty groupedTechniques then
+            p [ class "text-gray-500" ] [ text "Technique breakdown coming soon." ]
+
+          else
+            div [ class "space-y-6" ] (List.map categorySection groupedTechniques)
+        ]
+
+
+styleTrainingBlueprint : I18n.Translations -> Hero -> Html Msg
+styleTrainingBlueprint t hero =
+    let
+        phases =
+            [ ( "Foundation", "Build relentless mechanics: pressure passing, leg entries, and positional dominance drills." )
+            , ( "Systems Integration", "Layer submission chains from dominant control. Alternate upper-body and lower-body attacks." )
+            , ( "Competition Simulation", "Short time-limit rounds with score tracking; rehearse strategic adjustments and pacing." )
+            ]
+
+        focusAreas =
+            [ ( "Grip & Control Flow", "Chain seated guard grips into leg entanglement transitions." )
+            , ( "Back Attack Lab", "Daily back-take entries followed by finishing reps to sharpen squeeze endurance." )
+            , ( "Situational Sparring", "Start from opponent defenses to pressure-test the system." )
+            ]
+    in
+    div [ class "space-y-6" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Training Blueprint" ]
+        , div [ class "grid grid-cols-1 lg:grid-cols-2 gap-5" ]
+            [ div [ class "space-y-4" ]
+                [ h3 [ class "text-lg font-semibold text-white uppercase tracking-widest" ] [ text "Camp Phases" ]
+                , div [ class "space-y-3" ]
+                    (List.map
+                        (\( title, description ) ->
+                            div [ class "bg-gray-800/50 border border-gray-700/50 rounded-xl p-4" ]
+                                [ h4 [ class "text-sm font-semibold uppercase tracking-widest text-red-300" ] [ text title ]
+                                , p [ class "text-sm text-gray-400 leading-relaxed" ] [ text description ]
+                                ]
+                        )
+                        phases
+                    )
+                ]
+            , div [ class "space-y-4" ]
+                [ h3 [ class "text-lg font-semibold text-white uppercase tracking-widest" ] [ text "Key Focus Blocks" ]
+                , div [ class "space-y-3" ]
+                    (List.map
+                        (\( title, description ) ->
+                            div [ class "bg-gray-800/40 border border-gray-700/40 rounded-xl p-4 flex gap-3" ]
+                                [ span [ class "text-red-400 mt-1" ] [ text "●" ]
+                                , div []
+                                    [ h4 [ class "text-sm font-semibold text-white uppercase tracking-wider" ] [ text title ]
+                                    , p [ class "text-sm text-gray-400 leading-relaxed" ] [ text description ]
+                                    ]
+                                ]
+                        )
+                        focusAreas
+                    )
+                , div [ class "bg-gray-900/40 border border-gray-700/60 rounded-xl p-4 space-y-3" ]
+                    [ h4 [ class "text-sm font-semibold text-white uppercase tracking-wider" ] [ text "Competition Notes" ]
+                    , ul [ class "text-sm text-gray-400 space-y-2 list-disc list-inside" ]
+                        [ li [] [ text ("Favourites: " ++ hero.stats.favoriteSubmission ++ " from " ++ hero.stats.favoritePosition) ]
+                        , li [] [ text "Use tempo changes—float between pressure and sudden leg entanglements." ]
+                        , li [] [ text "Stay disciplined on grips to dictate scrambles and expose the back." ]
+                        ]
+                    ]
+                ]
+            ]
+        , div [ class "bg-red-500/10 border border-red-500/30 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" ]
+            [ div []
+                [ h4 [ class "text-lg font-semibold text-red-200" ] [ text "Integrate Into Weekly Plan" ]
+                , p [ class "text-sm text-red-200/80" ] [ text ("Blend the blueprint with your current schedule: two focused system drills, one positional spar, and one open-mat implementation session inspired by " ++ hero.name ++ ".") ]
+                ]
+            , button
+                [ onClick (NavigateTo Training)
+                , class "px-5 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors"
+                ]
+                [ text t.startSession ]
+            ]
+        ]
+
+
+styleStudyPlaylist : Hero -> Html Msg
+styleStudyPlaylist hero =
+    div [ class "space-y-6" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Study Playlist" ]
+        , if List.isEmpty hero.videos then
+            p [ class "text-gray-500" ] [ text "Video study pack coming soon." ]
+
+          else
+            div [ class "grid grid-cols-1 lg:grid-cols-3 gap-4" ]
+                (hero.videos
+                    |> List.sortBy .date
+                    |> List.map
+                        (\video ->
+                            div [ class "bg-gray-900/40 border border-gray-700/60 rounded-2xl p-4 space-y-3" ]
+                                [ span [ class "inline-flex text-xs px-3 py-1 rounded-full bg-white/10 text-white/70 uppercase tracking-widest" ]
+                                    [ text (videoTypeToString video.type_) ]
+                                , h3 [ class "text-lg font-semibold text-white" ] [ text video.title ]
+                                , p [ class "text-sm text-gray-500" ]
+                                    [ text ("Contextualise the footage: note how " ++ hero.name ++ " controls tempo and transitions between systems.") ]
+                                , span [ class "block text-xs text-gray-500 uppercase tracking-widest" ]
+                                    [ text ("Released: " ++ video.date) ]
+                                , a
+                                    [ href video.url
+                                    , target "_blank"
+                                    , rel "noreferrer noopener"
+                                    , class "inline-flex items-center gap-2 text-sm text-red-300 hover:text-red-200 transition-colors"
+                                    ]
+                                    [ span [] [ text "Watch now" ]
+                                    , span [] [ text "↗" ]
+                                    ]
+                                ]
+                        )
+                )
+        ]
+
+
+styleAchievementsSection : Hero -> Html Msg
+styleAchievementsSection hero =
+    div [ class "space-y-6" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Milestones" ]
+        , if List.isEmpty hero.achievements then
+            p [ class "text-gray-500" ] [ text "Achievements breakdown coming soon." ]
+
+          else
+            div [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
+                (hero.achievements
+                    |> List.sortBy .name
+                    |> List.map
+                        (\achievement ->
+                            div [ class "bg-gray-900/40 border border-gray-700/60 rounded-2xl p-4 flex gap-4" ]
+                                [ span [ class "text-3xl" ] [ text achievement.icon ]
+                                , div [ class "space-y-1" ]
+                                    [ h3 [ class "text-lg font-semibold text-white" ] [ text achievement.name ]
+                                    , p [ class "text-sm text-gray-500 leading-relaxed" ] [ text achievement.description ]
+                                    , span [ class "text-xs uppercase tracking-widest text-gray-500" ]
+                                        [ text ("Points: " ++ String.fromInt achievement.points) ]
+                                    ]
+                                ]
+                        )
+                )
+        ]
+
+
+styleNextSteps : Hero -> Html Msg
+styleNextSteps hero =
+    let
+        suggestions =
+            [ "Pair system drilling with detailed note-taking—track counters you encounter and refine the sequence."
+            , "Use positional sparring to recreate Gordon’s dominant scenarios: saddle entries, back triangles, and rear-body lock control."
+            , "When reviewing footage, pause to notice tempo changes, grip dominance, and decision-making around passing vs. leg attacks."
+            ]
+    in
+    div [ class "space-y-5 bg-gray-900/40 border border-gray-700/60 rounded-3xl p-6" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Next Steps" ]
+        , p [ class "text-gray-400 leading-relaxed" ]
+            [ text ("Absorb the concepts, then adapt them to your attributes. Focus on refining the transitions that deliver you to " ++ hero.stats.favoritePosition ++ " and build automatic reactions to defensive counters.") ]
+        , ul [ class "space-y-2 text-gray-300 list-disc list-inside" ]
+            (List.map (\item -> li [] [ text item ]) suggestions)
+        ]
+
+
+groupTechniquesByCategory : List Technique -> List ( TechniqueCategory, List Technique )
+groupTechniquesByCategory techniques =
+    List.foldl insertTechnique [] techniques
+        |> List.map (\( category, techs ) -> ( category, List.reverse techs ))
+
+
+insertTechnique : Technique -> List ( TechniqueCategory, List Technique ) -> List ( TechniqueCategory, List Technique )
+insertTechnique technique groups =
+    let
+        ( matches, others ) =
+            List.partition (\( category, _ ) -> category == technique.category) groups
+    in
+    case matches of
+        ( _, existing ) :: _ ->
+            ( technique.category, technique :: existing ) :: others
+
+        [] ->
+            ( technique.category, [ technique ] ) :: others
+
+
+techniqueCategoryOrder : TechniqueCategory -> Int
+techniqueCategoryOrder category =
+    case category of
+        GuardTechnique ->
+            0
+
+        PassingTechnique ->
+            1
+
+        TakedownTechnique ->
+            2
+
+        SubmissionTechnique ->
+            3
+
+        EscapeTechnique ->
+            4
+
+        SweepTechnique ->
+            5
+
+
+techniqueCategoryToString : TechniqueCategory -> String
+techniqueCategoryToString category =
+    case category of
+        GuardTechnique ->
+            "Guard Advancement"
+
+        PassingTechnique ->
+            "Passing Systems"
+
+        TakedownTechnique ->
+            "Standing Entries"
+
+        SubmissionTechnique ->
+            "Submission Chains"
+
+        EscapeTechnique ->
+            "Escape Frameworks"
+
+        SweepTechnique ->
+            "Sweeps & Reversals"
+
+
+difficultyToString : Difficulty -> String
+difficultyToString difficulty =
+    case difficulty of
+        Beginner ->
+            "Beginner Friendly"
+
+        Intermediate ->
+            "Intermediate"
+
+        DifficultyAdvanced ->
+            "Advanced"
+
+        Expert ->
+            "Expert"
+
+
+masteryLevelToString : MasteryLevel -> String
+masteryLevelToString mastery =
+    case mastery of
+        NotStarted ->
+            "Not started"
+
+        Learning ->
+            "Learning"
+
+        Practicing ->
+            "Practicing"
+
+        Proficient ->
+            "Proficient"
+
+        Advanced ->
+            "Advanced"
+
+        Mastered ->
+            "Mastered"
+
+
+videoTypeToString : VideoType -> String
+videoTypeToString videoType =
+    case videoType of
+        Match ->
+            "Match"
+
+        Instructional ->
+            "Instructional"
+
+        Interview ->
+            "Interview"
+
+        Highlight ->
+            "Highlight"
+
+
+fightingStyleLabel : FightingStyle -> String
+fightingStyleLabel style =
+    case style of
+        Guard ->
+            "Guard Strategist"
+
+        Passing ->
+            "Pressure Passing"
+
+        LegLocks ->
+            "Leg Lock Specialist"
+
+        Wrestling ->
+            "Wrestling Hybrid"
+
+        Balanced ->
+            "Complete Game"
+
+        Submission ->
+            "Submission Hunter"
+
+        Pressure ->
+            "Pressure Controller"
+
+
+formatPercentage : Float -> String
+formatPercentage value =
+    let
+        rounded =
+            roundFloat 1 value
+    in
+    String.fromFloat rounded ++ "%"
+
+
+roundFloat : Int -> Float -> Float
+roundFloat decimals value =
+    let
+        factor =
+            10 ^ decimals
+    in
+    (toFloat (round (value * toFloat factor))) / toFloat factor
 
 
 viewNotFoundPage : Model -> Html Msg

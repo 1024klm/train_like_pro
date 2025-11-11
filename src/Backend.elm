@@ -71,11 +71,30 @@ updateFromFrontend : SessionId -> ClientId -> ToBackend -> Model -> ( Model, Cmd
 updateFromFrontend sessionId clientId msg model =
     case msg of
         GetInitialData ->
-            ( model
+            let
+                seededHeroes =
+                    if Dict.isEmpty model.heroes then
+                        Data.initHeroes
+                    else
+                        model.heroes
+
+                seededEvents =
+                    if Dict.isEmpty model.events then
+                        Data.initEvents
+                    else
+                        model.events
+
+                updatedModel =
+                    { model
+                        | heroes = seededHeroes
+                        , events = seededEvents
+                    }
+            in
+            ( updatedModel
             , Lamdera.sendToFrontend clientId
                 (InitialDataReceived
-                    { heroes = model.heroes
-                    , events = model.events
+                    { heroes = seededHeroes
+                    , events = seededEvents
                     , roadmaps = Dict.empty -- TODO: Load from Data.Roadmaps
                     , userProgress = Data.defaultUserProgress
                     }
