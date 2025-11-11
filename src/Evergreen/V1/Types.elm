@@ -839,6 +839,7 @@ type FrontendMsg
     | IncrementReps String
     | DecrementReps String
     | SetQuality String Int
+    | QuickSuccess Int
     | CompleteQuest String
     | ClaimAchievement String
     | SelectRoadmap String

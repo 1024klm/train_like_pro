@@ -93,12 +93,12 @@ viewActiveSession model session =
               
               -- Quick Log Actions
             , viewQuickActions
-            
+              
               -- Technique List
             , viewTechniquesList session.techniques
-            
+              
               -- Session Stats
-            , viewSessionStats session
+            , viewSessionStats session model.sessionTimer
             ]
         ]
 
@@ -250,7 +250,7 @@ techniqueOption icon name =
 viewQuickActions : Html FrontendMsg
 viewQuickActions =
     div [ class "grid grid-cols-2 gap-4 mb-6" ]
-        [ quickActionButton "✅" "Réussite" (ShowNotification Success "Technique réussie ! +10 XP bonus") "bg-green-500 hover:bg-green-600"
+        [ quickActionButton "✅" "Réussite" (QuickSuccess 10) "bg-green-500 hover:bg-green-600"
         , quickActionButton "💡" "Insight" (ShowNotification Info "Note ajoutée à la session") "bg-purple-500 hover:bg-purple-600"
         ]
 
@@ -296,13 +296,13 @@ viewTechniqueLogItem log =
         ]
 
 
-viewSessionStats : ActiveSession -> Html msg
-viewSessionStats session =
+viewSessionStats : ActiveSession -> Int -> Html msg
+viewSessionStats session elapsedSeconds =
     div [ class "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" ]
         [ h3 [ class "text-xl font-bold mb-4 text-gray-900 dark:text-white" ]
             [ text "Session Stats" ]
         , div [ class "grid grid-cols-2 md:grid-cols-4 gap-4" ]
-            [ statCard "⏱️" "Duration" (String.fromInt 0 ++ " min")
+            [ statCard "⏱️" "Duration" (formatDuration elapsedSeconds)
             , statCard "🔄" "Techniques" (String.fromInt (List.length session.techniques))
             , statCard "💯" "Total Reps" (String.fromInt (List.sum (List.map .repetitions session.techniques)))
             , statCard "⚡" "XP Earned" (String.fromInt session.totalXP)

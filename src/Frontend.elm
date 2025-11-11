@@ -379,7 +379,10 @@ update msg model =
                     }
             in
             ( { model | activeSession = Just newSession, sessionTimer = 0 }
-            , Router.navigateTo model.key TrainingView
+            , Cmd.batch
+                [ Router.navigateTo model.key TrainingView
+                , Task.perform UpdateSessionTimer Time.now
+                ]
             )
 
         EndSession ->
@@ -415,11 +418,76 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        UpdateSessionTimer currentTime ->
+            case model.activeSession of
+                Just session ->
+                    let
+                        placeholder =
+                            Time.millisToPosix 0
+
+                        actualStartTime =
+                            if session.startTime == placeholder then
+                                currentTime
+                            else
+                                session.startTime
+
+                        elapsedMillis =
+                            Time.posixToMillis currentTime - Time.posixToMillis actualStartTime
+
+                        elapsedSeconds =
+                            if elapsedMillis > 0 then
+                                elapsedMillis // 1000
+                            else
+                                0
+
+                        updatedSession =
+                            if session.startTime == actualStartTime then
+                                session
+                            else
+                                { session | startTime = actualStartTime }
+                    in
+                    ( { model
+                        | activeSession = Just updatedSession
+                        , sessionTimer = elapsedSeconds
+                      }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
         SelectNode techniqueId ->
             case model.activeSession of
                 Just session ->
                     ( { model | activeSession = Just { session | currentTechnique = Just techniqueId } }
                     , Cmd.none
+                    )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        QuickSuccess bonusXP ->
+            case model.activeSession of
+                Just session ->
+                    let
+                        updatedSession =
+                            { session | totalXP = session.totalXP + bonusXP }
+
+                        notificationId =
+                            "quick-success-" ++ String.fromInt (List.length model.notifications + model.sessionTimer + bonusXP)
+
+                        notification =
+                            { id = notificationId
+                            , type_ = Success
+                            , message = "Technique réussie ! +" ++ String.fromInt bonusXP ++ " XP bonus"
+                            , timestamp = ""
+                            }
+                    in
+                    ( { model
+                        | activeSession = Just updatedSession
+                        , notifications = notification :: model.notifications
+                      }
+                    , Task.perform (\_ -> DismissNotification notificationId) (Process.sleep 2500)
                     )
 
                 Nothing ->
@@ -594,6 +662,12 @@ subscriptions model =
 
           else
             Sub.none
+        , case model.activeSession of
+            Just _ ->
+                Time.every 1000 UpdateSessionTimer
+
+            Nothing ->
+                Sub.none
         ]
 
 
