@@ -48,6 +48,8 @@ type HeroFilter
     | ByWeight WeightClass
     | ByNationality String
     | ByStyle FightingStyle
+    | ByGender Gender
+    | ByTitle TitleFilter
 
 
 type EventsFilter
@@ -64,6 +66,7 @@ type alias Hero =
     , nickname : String
     , nationality : String
     , team : String
+    , gender : Gender
     , weight : WeightClass
     , style : FightingStyle
     , achievements : List Achievement
@@ -110,6 +113,14 @@ type alias CompetitionRecord =
     , titles : List String
     }
 
+-- Filtering helpers
+type Gender
+    = Male
+    | Female
+
+type TitleFilter
+    = TitleADCC
+    | TitleWorlds
 
 type alias HeroStats =
     { winRate : Float

@@ -761,7 +761,7 @@ viewLogo =
             [ span [ class "text-white font-bold text-lg" ] [ text "BJJ" ] ]
         , div []
             [ h1 [ class "text-xl font-bold text-gray-900 dark:text-white" ] [ text "BJJ Heroes" ]
-            , p [ class "text-xs text-gray-500 dark:text-gray-400" ] [ text "Train Like Champions" ]
+            , p [ class "text-xs text-gray-500 dark:text-gray-400" ] [ text "Entraîne-toi comme les champions" ]
             ]
         ]
 
@@ -1611,23 +1611,26 @@ viewEventListCard model event =
         statusClass =
             eventStatusClass event.status
 
+        t =
+            model.userConfig.t
+
         ctaLabel =
             case ( event.registrationUrl, event.streamUrl ) of
                 ( Just _, _ ) ->
-                    "Register"
+                    t.register
 
                 ( Nothing, Just _ ) ->
-                    "Watch"
+                    t.watchStream
 
                 _ ->
-                    "Details"
+                    t.viewDetails
     in
     div
         [ onPreventDefaultClick (NavigateTo (EventDetail event.id))
         , class "card list-card list-card--interactive p-6"
         ]
         [ div [ class "flex flex-col items-center text-center gap-2" ]
-            [ span [ class statusClass ] [ text (eventStatusText event.status) ]
+            [ span [ class statusClass ] [ text (eventStatusText t event.status) ]
             , h3 [ class "list-card__title" ] [ text event.name ]
             , span [ class "list-card__meta" ] [ text (typeIcon ++ " " ++ eventTypeToString event.type_) ]
             , span [ class "list-card__meta" ] [ text event.date ]
@@ -1705,64 +1708,68 @@ eventStatusClass status =
             "px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-500 rounded text-xs font-medium line-through"
 
 
-eventStatusText : EventStatus -> String
-eventStatusText status =
+eventStatusText : I18n.Translations -> EventStatus -> String
+eventStatusText t status =
     case status of
         EventUpcoming ->
-            "Upcoming"
+            t.eventStatusUpcoming
 
         EventLive ->
-            "LIVE"
+            t.eventStatusLive
 
         EventCompleted ->
-            "Completed"
+            t.eventStatusCompleted
 
         EventCancelled ->
-            "Cancelled"
+            t.eventStatusCancelled
 
 
 viewEventDetailPage : Model -> String -> Html Msg
 viewEventDetailPage model eventId =
+    let
+        t =
+            model.userConfig.t
+    in
     case Dict.get eventId model.events of
         Just event ->
             div [ class "container mx-auto px-4 py-8" ]
                 [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text event.name ]
                 , div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
                     [ div [ class "lg:col-span-2" ]
-                        [ viewEventInfo event
-                        , viewEventBrackets event
+                        [ viewEventInfo t event
+                        , viewEventBrackets t event
                         ]
                     , div []
-                        [ viewEventDetails event
-                        , viewEventLinks event
+                        [ viewEventDetails t event
+                        , viewEventLinks t event
                         ]
                     ]
                 ]
 
         Nothing ->
             div [ class "container mx-auto px-4 py-8" ]
-                [ p [ class "text-center text-gray-500" ] [ text "Event not found" ] ]
+                [ p [ class "text-center text-gray-500" ] [ text t.eventNotFound ] ]
 
 
-viewEventInfo : Event -> Html Msg
-viewEventInfo event =
+viewEventInfo : I18n.Translations -> Event -> Html Msg
+viewEventInfo t event =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Event Information" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.eventInformation ]
         , p [ class "text-gray-600 dark:text-gray-300 mb-4" ] [ text event.description ]
         , div [ class "space-y-2" ]
-            [ infoRow "Date" event.date
-            , infoRow "Location" (event.location.city ++ ", " ++ event.location.country)
-            , infoRow "Venue" event.location.address
-            , infoRow "Organization" event.organization
-            , infoRow "Status" (eventStatusText event.status)
+            [ infoRow t.date event.date
+            , infoRow t.location (event.location.city ++ ", " ++ event.location.country)
+            , infoRow t.venue event.location.address
+            , infoRow t.organization event.organization
+            , infoRow t.statusLabel (eventStatusText t event.status)
             ]
         ]
 
 
-viewEventBrackets : Event -> Html Msg
-viewEventBrackets event =
+viewEventBrackets : I18n.Translations -> Event -> Html Msg
+viewEventBrackets t event =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Brackets" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.brackets ]
         , div [ class "space-y-4" ]
             (List.map viewBracket event.brackets)
         ]
@@ -1774,7 +1781,7 @@ viewBracket bracket =
         [ h3 [ class "font-bold dark:text-white" ]
             [ text (bracket.division ++ " - " ++ weightClassToString bracket.weightClass) ]
         , p [ class "text-sm text-gray-600 dark:text-gray-400" ]
-            [ text (beltToString bracket.belt ++ " Belt") ]
+            [ text ("Ceinture " ++ beltToString bracket.belt) ]
         , div [ class "mt-2 flex flex-wrap gap-2" ]
             (List.map
                 (\comp ->
@@ -1820,29 +1827,29 @@ beltToString : BeltLevel -> String
 beltToString belt =
     case belt of
         White ->
-            "White"
+            "blanche"
 
         Blue ->
-            "Blue"
+            "bleue"
 
         Purple ->
             "Purple"
 
         Brown ->
-            "Brown"
+            "marron"
 
         Black ->
-            "Black"
+            "noire"
 
 
-viewEventDetails : Event -> Html Msg
-viewEventDetails event =
+viewEventDetails : I18n.Translations -> Event -> Html Msg
+viewEventDetails t event =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Details" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.eventDetails ]
         , div [ class "space-y-3" ]
-            [ detailRow "Type" (eventTypeToString event.type_) (eventTypeIcon event.type_)
-            , detailRow "Status" (eventStatusText event.status) "📊"
-            , detailRow "Organization" event.organization "🏢"
+            [ detailRow t.typeLabel (eventTypeToString event.type_) (eventTypeIcon event.type_)
+            , detailRow t.statusLabel (eventStatusText t event.status) "📊"
+            , detailRow t.organization event.organization "🏢"
             ]
         ]
 
@@ -1851,16 +1858,16 @@ eventTypeToString : EventType -> String
 eventTypeToString eventType =
     case eventType of
         Tournament ->
-            "Tournament"
+            "Tournoi"
 
         SuperFight ->
-            "Super Fight"
+            "Superfight"
 
         Seminar ->
-            "Seminar"
+            "Séminaire"
 
         Camp ->
-            "Training Camp"
+            "Camp d'entraînement"
 
 
 detailRow : String -> String -> String -> Html Msg
@@ -1874,20 +1881,20 @@ detailRow label value icon =
         ]
 
 
-viewEventLinks : Event -> Html Msg
-viewEventLinks event =
+viewEventLinks : I18n.Translations -> Event -> Html Msg
+viewEventLinks t event =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Links" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.links ]
         , div [ class "space-y-3" ]
             [ case event.registrationUrl of
                 Just url ->
-                    linkButton "Register" "🎫"
+                    linkButton t t.register "🎫"
 
                 Nothing ->
                     text ""
             , case event.streamUrl of
                 Just url ->
-                    linkButton "Watch Stream" "📺"
+                    linkButton t t.watchStream "📺"
 
                 Nothing ->
                     text ""
@@ -1895,10 +1902,10 @@ viewEventLinks event =
         ]
 
 
-linkButton : String -> String -> Html Msg
-linkButton label icon =
+linkButton : I18n.Translations -> String -> String -> Html Msg
+linkButton t label icon =
     button
-        [ onClick (ShowNotification Info (label ++ " - External link will open in new tab"))
+        [ onClick (ShowNotification Info (label ++ " - " ++ t.externalLink))
         , class "w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer"
         , type_ "button"
         ]
@@ -1909,17 +1916,21 @@ linkButton label icon =
 
 viewTrainingPage : Model -> Html Msg
 viewTrainingPage model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "space-y-6" ]
-        [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-8" ] [ text "Training Plans" ]
+        [ h1 [ class "text-3xl lg:text-4xl font-bold text-white mb-8" ] [ text t.trainingPlans ]
         , div [ class "bg-gradient-to-r from-blue-600/30 to-purple-600/30 backdrop-blur-sm rounded-2xl p-6 lg:p-8 text-white border border-blue-500/30" ]
-            [ h2 [ class "text-3xl font-bold mb-4" ] [ text "Start Your Journey" ]
-            , p [ class "text-lg mb-6 opacity-90" ] [ text "Choose a hero and follow their training methodology" ]
+            [ h2 [ class "text-3xl font-bold mb-4" ] [ text t.startYourJourney ]
+            , p [ class "text-lg mb-6 opacity-90" ] [ text t.trainingPlansSubtitle ]
             , button
                 [ onClick StartSession
                 , class "px-6 py-3 bg-white text-blue-600 font-bold rounded-lg hover:shadow-xl transition-all cursor-pointer"
                 , type_ "button"
                 ]
-                [ text "Create Training Plan" ]
+                [ text t.createTrainingPlan ]
             ]
         , viewTrainingStats model
         , viewRecentSessions model
@@ -1928,11 +1939,15 @@ viewTrainingPage model =
 
 viewTrainingStats : Model -> Html Msg
 viewTrainingStats model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" ]
-        [ statCard "Total Sessions" "0" "📊" "bg-blue-500"
-        , statCard "Hours Trained" "0" "⏱️" "bg-green-500"
-        , statCard "Current Streak" "0 days" "🔥" "bg-orange-500"
-        , statCard "Techniques" "0" "🎯" "bg-purple-500"
+        [ statCard t.totalSessionsLabel "0" "📊" "bg-blue-500"
+        , statCard t.hoursTrainedLabel "0" "⏱️" "bg-green-500"
+        , statCard t.trainingStreak "0" "🔥" "bg-orange-500"
+        , statCard t.techniques "0" "🎯" "bg-purple-500"
         ]
 
 
@@ -1949,33 +1964,40 @@ statCard label value icon bgColor =
 
 viewRecentSessions : Model -> Html Msg
 viewRecentSessions model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Recent Sessions" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.recentSessions ]
         , if List.isEmpty model.trainingSessions then
             div [ class "text-center py-8" ]
                 [ span [ class "text-5xl mb-4 block" ] [ text "📝" ]
-                , p [ class "text-gray-500 dark:text-gray-400" ] [ text "No training sessions yet" ]
+                , p [ class "text-gray-500 dark:text-gray-400" ] [ text t.noSessionsYet ]
                 , button
                     [ onClick (OpenModal SessionModal)
                     , class "mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                     ]
-                    [ text "Log Your First Session" ]
+                    [ text t.logFirstSession ]
                 ]
 
           else
             Keyed.node "div"
                 [ class "space-y-4" ]
-                (model.trainingSessions |> List.sortBy (\s -> Time.posixToMillis s.date |> negate) |> List.map (\s -> ( s.id, viewSessionCard s )))
+                (model.trainingSessions
+                    |> List.sortBy (\s -> Time.posixToMillis s.date |> negate)
+                    |> List.map (\s -> ( s.id, viewSessionCard t s ))
+                )
         ]
 
 
-viewSessionCard : TrainingSession -> Html Msg
-viewSessionCard session =
+viewSessionCard : I18n.Translations -> TrainingSession -> Html Msg
+viewSessionCard t session =
     div [ class "border-l-4 border-green-500 pl-4" ]
         [ div [ class "flex justify-between items-start" ]
             [ div []
                 [ p [ class "font-medium dark:text-white" ] [ text (sessionTypeToString session.sessionType) ]
-                , p [ class "text-sm text-gray-500" ] [ text "Date" ] -- TODO: Format Time.Posix to string
+                , p [ class "text-sm text-gray-500" ] [ text t.date ] -- TODO: Format Time.Posix to string
                 ]
             , span [ class "text-sm text-gray-600 dark:text-gray-400" ]
                 [ text (String.fromInt session.duration ++ " min") ]
@@ -1990,19 +2012,19 @@ sessionTypeToString sessionType =
             "Technique"
 
         DrillingSession ->
-            "Drilling"
+            "Drill"
 
         SparringSession ->
             "Sparring"
 
         CompetitionSession ->
-            "Competition"
+            "Compétition"
 
         OpenMatSession ->
-            "Open Mat"
+            "Open mat"
 
         PrivateSession ->
-            "Private Lesson"
+            "Cours privé"
 
 
 viewProfilePage : Model -> Html Msg
@@ -2019,31 +2041,35 @@ viewProfilePage model =
 
 viewUserProfile : UserProfile -> Model -> Html Msg
 viewUserProfile profile model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
         [ div [ class "lg:col-span-2" ]
-            [ viewProfileInfo profile
-            , viewProfileStats profile
-            , viewProfileAchievements profile
+            [ viewProfileInfo t profile
+            , viewProfileStats t profile
+            , viewProfileAchievements t profile
             ]
         , div []
-            [ viewProfileFavorites model
-            , viewProfileGoals profile
+            [ viewProfileFavorites t model
+            , viewProfileGoals t profile
             ]
         ]
 
 
-viewProfileInfo : UserProfile -> Html Msg
-viewProfileInfo profile =
+viewProfileInfo : I18n.Translations -> UserProfile -> Html Msg
+viewProfileInfo t profile =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Profile Information" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.profileInfo ]
         , div [ class "space-y-3" ]
-            [ infoRow "Username" profile.username
-            , infoRow "Email" profile.email
-            , infoRow "Belt Level" (beltToString profile.beltLevel)
-            , infoRow "Training Since" profile.startedTraining
+            [ infoRow "Nom d'utilisateur" profile.username
+            , infoRow "E-mail" profile.email
+            , infoRow "Niveau de ceinture" ("Ceinture " ++ beltToString profile.beltLevel)
+            , infoRow "À l'entraînement depuis" profile.startedTraining
             , case profile.academy of
                 Just academy ->
-                    infoRow "Academy" academy
+                    infoRow "Académie" academy
 
                 Nothing ->
                     text ""
@@ -2051,19 +2077,19 @@ viewProfileInfo profile =
         ]
 
 
-viewProfileStats : UserProfile -> Html Msg
-viewProfileStats profile =
+viewProfileStats : I18n.Translations -> UserProfile -> Html Msg
+viewProfileStats t profile =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Statistics" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.statistics ]
         , div [ class "grid grid-cols-2 md:grid-cols-3 gap-4" ]
             [ statBox "Sessions" (String.fromInt profile.stats.totalSessions)
-            , statBox "Hours" (String.fromFloat profile.stats.totalHours)
-            , statBox "Streak" (String.fromInt profile.stats.currentStreak ++ " days")
-            , statBox "Best Streak" (String.fromInt profile.stats.longestStreak ++ " days")
+            , statBox "Heures" (String.fromFloat profile.stats.totalHours)
+            , statBox "Série" (String.fromInt profile.stats.currentStreak ++ " j")
+            , statBox "Meilleure série" (String.fromInt profile.stats.longestStreak ++ " j")
             , statBox "Techniques" (String.fromInt profile.stats.techniquesLearned)
             , case profile.stats.favoritePosition of
                 Just position ->
-                    statBox "Favorite" position
+                    statBox "Position favorite" position
 
                 Nothing ->
                     text ""
@@ -2079,12 +2105,12 @@ statBox label value =
         ]
 
 
-viewProfileAchievements : UserProfile -> Html Msg
-viewProfileAchievements profile =
+viewProfileAchievements : I18n.Translations -> UserProfile -> Html Msg
+viewProfileAchievements t profile =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Achievements" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.achievements ]
         , if List.isEmpty profile.achievements then
-            p [ class "text-gray-500 dark:text-gray-400" ] [ text "No achievements yet" ]
+            p [ class "text-gray-500 dark:text-gray-400" ] [ text t.noAchievementsYet ]
 
           else
             div [ class "grid grid-cols-2 md:grid-cols-3 gap-4" ]
@@ -2102,23 +2128,23 @@ viewAchievementBadge achievement =
         ]
 
 
-viewProfileFavorites : Model -> Html Msg
-viewProfileFavorites model =
+viewProfileFavorites : I18n.Translations -> Model -> Html Msg
+viewProfileFavorites t model =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Favorites" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.favorites ]
         , div [ class "space-y-4" ]
-            [ favoriteSection "Champions" (Set.toList model.favorites.heroes) "🥋"
-            , favoriteSection "Events" (Set.toList model.favorites.events) "📅"
+            [ favoriteSection t t.heroes (Set.toList model.favorites.heroes) "🥋"
+            , favoriteSection t t.events (Set.toList model.favorites.events) "📅"
             ]
         ]
 
 
-favoriteSection : String -> List String -> String -> Html Msg
-favoriteSection title items icon =
+favoriteSection : I18n.Translations -> String -> List String -> String -> Html Msg
+favoriteSection t title items icon =
     div []
         [ h3 [ class "font-medium text-gray-700 dark:text-gray-300 mb-2" ] [ text title ]
         , if List.isEmpty items then
-            p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text "No favorites yet" ]
+            p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text t.noFavorites ]
 
           else
             div [ class "space-y-1" ]
@@ -2134,12 +2160,12 @@ favoriteSection title items icon =
         ]
 
 
-viewProfileGoals : UserProfile -> Html Msg
-viewProfileGoals profile =
+viewProfileGoals : I18n.Translations -> UserProfile -> Html Msg
+viewProfileGoals t profile =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Training Goals" ]
+        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.goals ]
         , if List.isEmpty profile.trainingGoals then
-            p [ class "text-gray-500 dark:text-gray-400" ] [ text "No goals set" ]
+            p [ class "text-gray-500 dark:text-gray-400" ] [ text t.noGoalsSet ]
 
           else
             div [ class "space-y-2" ]
@@ -2153,16 +2179,20 @@ viewProfileGoals profile =
                     profile.trainingGoals
                 )
         , button
-            [ onClick (ShowNotification Info "Goal setting feature coming soon!")
+            [ onClick (ShowNotification Info t.goalSettingFeature)
             , class "mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors cursor-pointer"
             , type_ "button"
             ]
-            [ text "Add Goal" ]
+            [ text t.addGoal ]
         ]
 
 
 viewGuestProfile : Model -> Html Msg
 viewGuestProfile model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "flex-1 flex items-center justify-center p-4 lg:p-8" ]
         [ div [ class "max-w-md w-full" ]
             [ -- Card container styled to site purple theme
@@ -2174,10 +2204,10 @@ viewGuestProfile model =
                     ]
                 , -- Title
                   h2 [ class "text-3xl font-bold text-slate-900 dark:text-white text-center mb-4" ]
-                    [ text "Start Your Journey" ]
+                    [ text t.startYourJourney ]
                 , -- Description
                   p [ class "text-gray-600 dark:text-gray-400 text-center mb-8 leading-relaxed" ]
-                    [ text "Create an account to track your training progress, save favorites, and unlock achievements." ]
+                    [ text t.createAccount ]
                 , -- Buttons with proper handlers and z-index
                   div [ class "space-y-3" ]
                     [ button
@@ -2185,13 +2215,13 @@ viewGuestProfile model =
                         , class "w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200 cursor-pointer relative z-10"
                         , type_ "button"
                         ]
-                        [ text "Sign Up" ]
+                        [ text t.signUp ]
                     , button
                         [ onClick (NavigateTo LoginPage)
                         , class "w-full bg-white dark:bg-gray-800 border border-purple-600 text-purple-700 dark:text-purple-300 font-semibold py-3 px-6 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-700 transition-colors cursor-pointer relative z-10"
                         , type_ "button"
                         ]
-                        [ text "Already have an account? Log in" ]
+                        [ text t.alreadyHaveAccount ]
                     ]
                 ]
             ]
@@ -2200,6 +2230,10 @@ viewGuestProfile model =
 
 viewSignUpPage : Model -> Html Msg
 viewSignUpPage model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "min-h-screen flex items-center justify-center p-4", style "margin-top" "-72px" ]
         [ div [ class "max-w-md w-full" ]
             [ div [ class "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700" ]
@@ -2208,65 +2242,65 @@ viewSignUpPage model =
                     [ div [ class "inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4" ]
                         [ span [ class "text-3xl" ] [ text "🥋" ] ]
                     , h1 [ class "text-3xl font-bold text-gray-900 dark:text-white mb-2" ]
-                        [ text "Create Account" ]
+                        [ text t.createAccount ]
                     , p [ class "text-gray-600 dark:text-gray-400" ]
-                        [ text "Join Train Like Pro and start your journey" ]
+                        [ text t.signUpSubtitle ]
                     ]
                 , -- Form
                   div [ class "space-y-4" ]
                     [ div []
                         [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
-                            [ text "Full Name" ]
+                            [ text t.fullName ]
                         , input
                             [ type_ "text"
                             , class "form-input w-full"
-                            , placeholder "John Doe"
+                            , placeholder t.fullNamePlaceholder
                             ]
                             []
                         ]
                     , div []
                         [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
-                            [ text "Email" ]
+                            [ text "E-mail" ]
                         , input
                             [ type_ "email"
                             , class "form-input w-full"
-                            , placeholder "john@example.com"
+                            , placeholder t.emailPlaceholder
                             ]
                             []
                         ]
                     , div []
                         [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
-                            [ text "Password" ]
+                            [ text "Mot de passe" ]
                         , input
                             [ type_ "password"
                             , class "form-input w-full"
-                            , placeholder "••••••••"
+                            , placeholder t.passwordPlaceholder
                             ]
                             []
                         ]
                     , div []
                         [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
-                            [ text "Confirm Password" ]
+                            [ text t.confirmPassword ]
                         , input
                             [ type_ "password"
                             , class "form-input w-full"
-                            , placeholder "••••••••"
+                            , placeholder t.confirmPasswordPlaceholder
                             ]
                             []
                         ]
                     , button
-                        [ onClick (ShowNotification Info "Sign up functionality coming soon!")
+                        [ onClick (ShowNotification Info t.signUpFeature)
                         , class "w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
                         , type_ "button"
                         ]
-                        [ text "Create Account" ]
+                        [ text t.createAccount ]
                     , div [ class "text-center text-sm text-gray-600 dark:text-gray-400" ]
-                        [ text "Already have an account? "
+                        [ text t.alreadyHaveAccount
                         , button
                             [ onClick (NavigateTo LoginPage)
                             , class "text-purple-600 dark:text-purple-400 font-semibold hover:underline"
                             ]
-                            [ text "Log in" ]
+                            [ text t.logIn ]
                         ]
                     ]
                 ]
@@ -2276,6 +2310,10 @@ viewSignUpPage model =
 
 viewLoginPage : Model -> Html Msg
 viewLoginPage model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "min-h-screen flex items-center justify-center p-4", style "margin-top" "-72px" ]
         [ div [ class "max-w-md w-full" ]
             [ div [ class "bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-2xl border border-gray-200 dark:border-gray-700" ]
@@ -2284,56 +2322,56 @@ viewLoginPage model =
                     [ div [ class "inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4" ]
                         [ span [ class "text-3xl" ] [ text "👤" ] ]
                     , h1 [ class "text-3xl font-bold text-gray-900 dark:text-white mb-2" ]
-                        [ text "Welcome Back" ]
+                        [ text t.welcomeBack ]
                     , p [ class "text-gray-600 dark:text-gray-400" ]
-                        [ text "Log in to continue your training" ]
+                        [ text t.loginSubtitle ]
                     ]
                 , -- Form
                   div [ class "space-y-4" ]
                     [ div []
                         [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
-                            [ text "Email" ]
+                            [ text "E-mail" ]
                         , input
                             [ type_ "email"
                             , class "form-input w-full"
-                            , placeholder "john@example.com"
+                            , placeholder t.emailPlaceholder
                             ]
                             []
                         ]
                     , div []
                         [ label [ class "block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2" ]
-                            [ text "Password" ]
+                            [ text "Mot de passe" ]
                         , input
                             [ type_ "password"
                             , class "form-input w-full"
-                            , placeholder "••••••••"
+                            , placeholder t.passwordPlaceholder
                             ]
                             []
                         ]
                     , div [ class "flex items-center justify-between" ]
                         [ label [ class "flex items-center" ]
                             [ input [ type_ "checkbox", class "mr-2" ] []
-                            , span [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text "Remember me" ]
+                            , span [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text t.rememberMe ]
                             ]
                         , button
-                            [ onClick (ShowNotification Info "Password reset coming soon!")
+                            [ onClick (ShowNotification Info t.passwordResetFeature)
                             , class "text-sm text-purple-600 dark:text-purple-400 hover:underline"
                             ]
-                            [ text "Forgot password?" ]
+                            [ text t.forgotPassword ]
                         ]
                     , button
-                        [ onClick (ShowNotification Info "Login functionality coming soon!")
+                        [ onClick (ShowNotification Info t.loginFeature)
                         , class "w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
                         , type_ "button"
                         ]
-                        [ text "Log In" ]
+                        [ text t.logIn ]
                     , div [ class "text-center text-sm text-gray-600 dark:text-gray-400" ]
-                        [ text "Don't have an account? "
+                        [ text t.dontHaveAccount
                         , button
                             [ onClick (NavigateTo SignUpPage)
                             , class "text-purple-600 dark:text-purple-400 font-semibold hover:underline"
                             ]
-                            [ text "Sign up" ]
+                            [ text t.signUp ]
                         ]
                     ]
                 ]
@@ -2348,37 +2386,49 @@ viewStylePathPage model slug =
             viewHeroStylePath model hero
 
         Nothing ->
+            let
+                t =
+                    model.userConfig.t
+            in
             div [ class "space-y-6 p-6" ]
                 [ h1 [ class "text-3xl font-bold text-white" ]
-                    [ text ("Fighter Path: " ++ slug) ]
+                    [ text t.heroBadge ]
                 , p [ class "text-gray-400" ]
-                    [ text "Learn the complete system and techniques of this fighter." ]
+                    [ text t.fighterPathDescription ]
                 , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
-                    [ text "Fighter path system coming soon!" ]
+                    [ text t.fighterPathComingSoon ]
                 ]
 
 
 viewTechniqueLibraryPage : Model -> Html Msg
 viewTechniqueLibraryPage model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "space-y-6 p-6" ]
         [ h1 [ class "text-3xl font-bold text-white" ]
-            [ text "Technique Library" ]
+            [ text t.techniqueLibraryTitle ]
         , p [ class "text-gray-400" ]
-            [ text "Browse and learn all available techniques." ]
+            [ text t.techniqueLibraryDescription ]
         , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
-            [ text "Technique library coming soon!" ]
+            [ text t.techniqueLibraryComingSoon ]
         ]
 
 
 viewProgressPage : Model -> Html Msg
 viewProgressPage model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "space-y-6 p-6" ]
         [ h1 [ class "text-3xl font-bold text-white" ]
-            [ text "Your Progress" ]
+            [ text t.progressPageTitle ]
         , p [ class "text-gray-400" ]
-            [ text "Track your journey and achievements." ]
+            [ text t.progressPageDescription ]
         , div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700/50" ]
-            [ text "Progress tracking coming soon!" ]
+            [ text t.progressTrackingComingSoon ]
         ]
 
 
@@ -2419,7 +2469,7 @@ stylePathHeader model hero =
         , div [ class ("absolute inset-0 " ++ overlayGradient) ] []
         , div [ class "relative p-10 lg:p-14 text-white space-y-6" ]
             [ span [ class "inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/15 backdrop-blur text-sm uppercase tracking-widest" ]
-                [ text "Signature Fighter Path" ]
+                [ text "Parcours signature" ]
             , div [ class "space-y-3" ]
                 [ h1 [ class "text-4xl lg:text-5xl font-black tracking-tight" ] [ text hero.name ]
                 , p [ class "text-xl text-white/80" ] [ text ("\"" ++ hero.nickname ++ "\" • " ++ hero.team) ]
@@ -2430,7 +2480,7 @@ stylePathHeader model hero =
                 , span [ class "px-3 py-1 rounded-full bg-white/20 backdrop-blur" ] [ text (String.fromInt hero.record.wins ++ "-" ++ String.fromInt hero.record.losses ++ "-" ++ String.fromInt hero.record.draws) ]
                 ]
             , p [ class "max-w-3xl text-lg text-white/80 leading-relaxed" ]
-                [ text "Deep dive into the systems, training structure, and study plan that define this athlete’s dominance. Use this roadmap to absorb the concepts, then tailor them to your own game." ]
+                [ text "Plonge dans le système, la structure d'entraînement et le plan d'étude qui rendent ce champion dominant. Inspires-toi de cette feuille de route puis adapte-la à ton propre jeu." ]
             , div [ class "flex flex-wrap items-center gap-3" ]
                 [ button
                     [ onClick (NavigateTo (HeroDetail hero.id))
@@ -2458,9 +2508,9 @@ stylePathQuickStats hero =
                 ]
     in
     div [ class "grid grid-cols-1 md:grid-cols-3 gap-5" ]
-        [ summaryCard "Win Rate" (formatPercentage hero.stats.winRate) "Across elite no-gi competition"
-        , summaryCard "Finish Rate" (formatPercentage hero.stats.submissionRate) ("Favourite: " ++ hero.stats.favoriteSubmission)
-        , summaryCard "Average Match Time" (String.fromFloat hero.stats.averageMatchTime ++ " min") ("Control from " ++ hero.stats.favoritePosition)
+        [ summaryCard "Taux de victoire" (formatPercentage hero.stats.winRate) "Sur le circuit no-gi élite"
+        , summaryCard "Taux de soumission" (formatPercentage hero.stats.submissionRate) ("Signature : " ++ hero.stats.favoriteSubmission)
+        , summaryCard "Temps moyen par combat" (String.fromFloat hero.stats.averageMatchTime ++ " min") ("Contrôle depuis " ++ hero.stats.favoritePosition)
         ]
 
 
@@ -2482,7 +2532,7 @@ styleTechniqueSystems hero =
                     )
                 , div [ class "flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-500 uppercase tracking-wide" ]
                     [ span [] [ text (difficultyToString technique.difficulty) ]
-                    , span [] [ text ("Mastery: " ++ masteryLevelToString technique.masteryLevel) ]
+                    , span [] [ text ("Maîtrise : " ++ masteryLevelToString technique.masteryLevel) ]
                     ]
                 ]
 
@@ -2500,9 +2550,9 @@ styleTechniqueSystems hero =
                 ]
     in
     div [ class "space-y-6" ]
-        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Signature Systems" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Systèmes signature" ]
         , if List.isEmpty groupedTechniques then
-            p [ class "text-gray-500" ] [ text "Technique breakdown coming soon." ]
+            p [ class "text-gray-500" ] [ text "L'analyse technique sera bientôt disponible." ]
 
           else
             div [ class "space-y-6" ] (List.map categorySection groupedTechniques)
@@ -2513,22 +2563,22 @@ styleTrainingBlueprint : I18n.Translations -> Hero -> Html Msg
 styleTrainingBlueprint t hero =
     let
         phases =
-            [ ( "Foundation", "Build relentless mechanics: pressure passing, leg entries, and positional dominance drills." )
-            , ( "Systems Integration", "Layer submission chains from dominant control. Alternate upper-body and lower-body attacks." )
-            , ( "Competition Simulation", "Short time-limit rounds with score tracking; rehearse strategic adjustments and pacing." )
+            [ ( "Fondations", "Construis des mécaniques implacables : passage en pression, entrées sur les jambes et drills de domination positionnelle." )
+            , ( "Intégration des systèmes", "Superpose les chaînes de soumissions depuis les positions fortes et alterne les attaques haut/bas du corps." )
+            , ( "Simulation de compétition", "Rounds courts chronométrés avec suivi des points pour répéter les ajustements tactiques et la gestion du rythme." )
             ]
 
         focusAreas =
-            [ ( "Grip & Control Flow", "Chain seated guard grips into leg entanglement transitions." )
-            , ( "Back Attack Lab", "Daily back-take entries followed by finishing reps to sharpen squeeze endurance." )
-            , ( "Situational Sparring", "Start from opponent defenses to pressure-test the system." )
+            [ ( "Flux de contrôle", "Enchaîne les prises de garde assise vers des transitions en entanglement de jambes." )
+            , ( "Laboratoire dos", "Entrées quotidiennes vers la prise de dos suivies de répétitions de finalisation pour renforcer ton serrage." )
+            , ( "Sparring situationnel", "Pars des défenses adverses pour éprouver la robustesse du système." )
             ]
     in
     div [ class "space-y-6" ]
-        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Training Blueprint" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Plan d'entraînement" ]
         , div [ class "grid grid-cols-1 lg:grid-cols-2 gap-5" ]
             [ div [ class "space-y-4" ]
-                [ h3 [ class "text-lg font-semibold text-white uppercase tracking-widest" ] [ text "Camp Phases" ]
+                [ h3 [ class "text-lg font-semibold text-white uppercase tracking-widest" ] [ text "Phases du camp" ]
                 , div [ class "space-y-3" ]
                     (List.map
                         (\( title, description ) ->
@@ -2541,7 +2591,7 @@ styleTrainingBlueprint t hero =
                     )
                 ]
             , div [ class "space-y-4" ]
-                [ h3 [ class "text-lg font-semibold text-white uppercase tracking-widest" ] [ text "Key Focus Blocks" ]
+                [ h3 [ class "text-lg font-semibold text-white uppercase tracking-widest" ] [ text "Axes prioritaires" ]
                 , div [ class "space-y-3" ]
                     (List.map
                         (\( title, description ) ->
@@ -2556,19 +2606,19 @@ styleTrainingBlueprint t hero =
                         focusAreas
                     )
                 , div [ class "bg-gray-900/40 border border-gray-700/60 rounded-xl p-4 space-y-3" ]
-                    [ h4 [ class "text-sm font-semibold text-white uppercase tracking-wider" ] [ text "Competition Notes" ]
+                    [ h4 [ class "text-sm font-semibold text-white uppercase tracking-wider" ] [ text "Notes de compétition" ]
                     , ul [ class "text-sm text-gray-400 space-y-2 list-disc list-inside" ]
-                        [ li [] [ text ("Favourites: " ++ hero.stats.favoriteSubmission ++ " from " ++ hero.stats.favoritePosition) ]
-                        , li [] [ text "Use tempo changes—float between pressure and sudden leg entanglements." ]
-                        , li [] [ text "Stay disciplined on grips to dictate scrambles and expose the back." ]
+                        [ li [] [ text ("Armes : " ++ hero.stats.favoriteSubmission ++ " depuis " ++ hero.stats.favoritePosition) ]
+                        , li [] [ text "Varie le tempo : alterne pression lourde et entanglements explosifs pour surprendre." ]
+                        , li [] [ text "Discipline tes grips pour dicter les scrambles et exposer le dos." ]
                         ]
                     ]
                 ]
             ]
         , div [ class "bg-red-500/10 border border-red-500/30 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" ]
             [ div []
-                [ h4 [ class "text-lg font-semibold text-red-200" ] [ text "Integrate Into Weekly Plan" ]
-                , p [ class "text-sm text-red-200/80" ] [ text ("Blend the blueprint with your current schedule: two focused system drills, one positional spar, and one open-mat implementation session inspired by " ++ hero.name ++ ".") ]
+                [ h4 [ class "text-lg font-semibold text-red-200" ] [ text "Intégration dans ta semaine" ]
+                , p [ class "text-sm text-red-200/80" ] [ text ("Mêle ce plan à ton calendrier : deux sessions système, un sparring positionnel et une mise en situation inspirée par " ++ hero.name ++ ".") ]
                 ]
             , button
                 [ onClick (NavigateTo Training)
@@ -2582,9 +2632,9 @@ styleTrainingBlueprint t hero =
 styleStudyPlaylist : Hero -> Html Msg
 styleStudyPlaylist hero =
     div [ class "space-y-6" ]
-        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Study Playlist" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Playlist d'étude" ]
         , if List.isEmpty hero.videos then
-            p [ class "text-gray-500" ] [ text "Video study pack coming soon." ]
+            p [ class "text-gray-500" ] [ text "Le pack de préparation vidéo arrive bientôt." ]
 
           else
             div [ class "grid grid-cols-1 lg:grid-cols-3 gap-4" ]
@@ -2597,16 +2647,16 @@ styleStudyPlaylist hero =
                                     [ text (videoTypeToString video.type_) ]
                                 , h3 [ class "text-lg font-semibold text-white" ] [ text video.title ]
                                 , p [ class "text-sm text-gray-500" ]
-                                    [ text ("Contextualise the footage: note how " ++ hero.name ++ " controls tempo and transitions between systems.") ]
+                                    [ text ("Replace la séquence dans son contexte : observe comment " ++ hero.name ++ " contrôle le tempo et alterne entre les systèmes.") ]
                                 , span [ class "block text-xs text-gray-500 uppercase tracking-widest" ]
-                                    [ text ("Released: " ++ video.date) ]
+                                    [ text ("Publié : " ++ video.date) ]
                                 , a
                                     [ href video.url
                                     , target "_blank"
                                     , rel "noreferrer noopener"
                                     , class "inline-flex items-center gap-2 text-sm text-red-300 hover:text-red-200 transition-colors"
                                     ]
-                                    [ span [] [ text "Watch now" ]
+                                    [ span [] [ text "Voir la vidéo" ]
                                     , span [] [ text "↗" ]
                                     ]
                                 ]
@@ -2618,9 +2668,9 @@ styleStudyPlaylist hero =
 styleAchievementsSection : Hero -> Html Msg
 styleAchievementsSection hero =
     div [ class "space-y-6" ]
-        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Milestones" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Moments forts" ]
         , if List.isEmpty hero.achievements then
-            p [ class "text-gray-500" ] [ text "Achievements breakdown coming soon." ]
+            p [ class "text-gray-500" ] [ text "Les succès détaillés arrivent bientôt." ]
 
           else
             div [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
@@ -2634,7 +2684,7 @@ styleAchievementsSection hero =
                                     [ h3 [ class "text-lg font-semibold text-white" ] [ text achievement.name ]
                                     , p [ class "text-sm text-gray-500 leading-relaxed" ] [ text achievement.description ]
                                     , span [ class "text-xs uppercase tracking-widest text-gray-500" ]
-                                        [ text ("Points: " ++ String.fromInt achievement.points) ]
+                                        [ text ("Points : " ++ String.fromInt achievement.points) ]
                                     ]
                                 ]
                         )
@@ -2646,15 +2696,15 @@ styleNextSteps : Hero -> Html Msg
 styleNextSteps hero =
     let
         suggestions =
-            [ "Pair system drilling with detailed note-taking—track counters you encounter and refine the sequence."
-            , "Use positional sparring to recreate Gordon’s dominant scenarios: saddle entries, back triangles, and rear-body lock control."
-            , "When reviewing footage, pause to notice tempo changes, grip dominance, and decision-making around passing vs. leg attacks."
+            [ "Associe les drills système à une prise de notes précise : note les contres rencontrés et affine la séquence."
+            , "Utilise le sparring positionnel pour recréer les scénarios dominants : saddle, triangles dos et contrôle par body-lock."
+            , "En étudiant les vidéos, observe les changements de tempo, la domination des grips et les choix entre passage ou attaque de jambes."
             ]
     in
     div [ class "space-y-5 bg-gray-900/40 border border-gray-700/60 rounded-3xl p-6" ]
-        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Next Steps" ]
+        [ h2 [ class "text-2xl font-bold text-white" ] [ text "Prochaines étapes" ]
         , p [ class "text-gray-400 leading-relaxed" ]
-            [ text ("Absorb the concepts, then adapt them to your attributes. Focus on refining the transitions that deliver you to " ++ hero.stats.favoritePosition ++ " and build automatic reactions to defensive counters.") ]
+            [ text ("Absorbe les concepts puis adapte-les à tes attributs. Peaufine les transitions qui t’amènent vers " ++ hero.stats.favoritePosition ++ " et crée des réactions automatiques face aux défenses.") ]
         , ul [ class "space-y-2 text-gray-300 list-disc list-inside" ]
             (List.map (\item -> li [] [ text item ]) suggestions)
         ]
@@ -2706,35 +2756,35 @@ techniqueCategoryToString : TechniqueCategory -> String
 techniqueCategoryToString category =
     case category of
         GuardTechnique ->
-            "Guard Advancement"
+            "Progression de garde"
 
         PassingTechnique ->
-            "Passing Systems"
+            "Systèmes de passage"
 
         TakedownTechnique ->
-            "Standing Entries"
+            "Entrées debout"
 
         SubmissionTechnique ->
-            "Submission Chains"
+            "Chaînes de soumissions"
 
         EscapeTechnique ->
-            "Escape Frameworks"
+            "Sorties et défenses"
 
         SweepTechnique ->
-            "Sweeps & Reversals"
+            "Balayages & renversements"
 
 
 difficultyToString : Difficulty -> String
 difficultyToString difficulty =
     case difficulty of
         Beginner ->
-            "Beginner Friendly"
+            "Débutant"
 
         Intermediate ->
-            "Intermediate"
+            "Intermédiaire"
 
         DifficultyAdvanced ->
-            "Advanced"
+            "Avancé"
 
         Expert ->
             "Expert"
@@ -2744,63 +2794,63 @@ masteryLevelToString : MasteryLevel -> String
 masteryLevelToString mastery =
     case mastery of
         NotStarted ->
-            "Not started"
+            "Non démarré"
 
         Learning ->
-            "Learning"
+            "En apprentissage"
 
         Practicing ->
-            "Practicing"
+            "En pratique"
 
         Proficient ->
-            "Proficient"
+            "Compétent"
 
         Advanced ->
-            "Advanced"
+            "Avancé"
 
         Mastered ->
-            "Mastered"
+            "Maîtrisé"
 
 
 videoTypeToString : VideoType -> String
 videoTypeToString videoType =
     case videoType of
         Match ->
-            "Match"
+            "Combat"
 
         Instructional ->
-            "Instructional"
+            "Instruction"
 
         Interview ->
             "Interview"
 
         Highlight ->
-            "Highlight"
+            "Moments forts"
 
 
 fightingStyleLabel : FightingStyle -> String
 fightingStyleLabel style =
     case style of
         Guard ->
-            "Guard Strategist"
+            "Stratégiste de garde"
 
         Passing ->
-            "Pressure Passing"
+            "Passing en pression"
 
         LegLocks ->
-            "Leg Lock Specialist"
+            "Spécialiste des attaques de jambes"
 
         Wrestling ->
-            "Wrestling Hybrid"
+            "Hybride lutte"
 
         Balanced ->
-            "Complete Game"
+            "Jeu complet"
 
         Submission ->
-            "Submission Hunter"
+            "Chasseur de soumissions"
 
         Pressure ->
-            "Pressure Controller"
+            "Maître de la pression"
 
 
 formatPercentage : Float -> String
@@ -2823,16 +2873,20 @@ roundFloat decimals value =
 
 viewNotFoundPage : Model -> Html Msg
 viewNotFoundPage model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "container mx-auto px-4 py-16 text-center" ]
         [ span [ class "text-8xl mb-4 block" ] [ text "🤷" ]
-        , h1 [ class "text-4xl font-bold mb-4 dark:text-white" ] [ text "404 - Page Not Found" ]
+        , h1 [ class "text-4xl font-bold mb-4 dark:text-white" ] [ text t.pageNotFound ]
         , p [ class "text-gray-600 dark:text-gray-400 mb-8" ]
-            [ text "The page you're looking for doesn't exist." ]
+            [ text t.notFoundDescription ]
         , button
             [ onPreventDefaultClick (NavigateTo Home)
             , class "px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors"
             ]
-            [ text "Go Home" ]
+            [ text t.goHome ]
         ]
 
 
@@ -2855,6 +2909,10 @@ viewModals model =
 
 viewSessionModal : Model -> Html Msg
 viewSessionModal model =
+    let
+        t =
+            model.userConfig.t
+    in
     div [ class "fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-modal" ]
         [ div
             [ class "bg-gray-800 border border-gray-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl"
@@ -2864,14 +2922,14 @@ viewSessionModal model =
             , onModalEscapeKeyDown CloseModal
             , tabindex 0
             ]
-            [ h2 [ class "text-2xl font-bold mb-4 dark:text-white", id "session-modal-title" ] [ text "Log Training Session" ]
-            , p [ class "text-gray-600 dark:text-gray-400" ] [ text "Session logging coming soon!" ]
+            [ h2 [ class "text-2xl font-bold mb-4 dark:text-white", id "session-modal-title" ] [ text t.logTrainingSession ]
+            , p [ class "text-gray-600 dark:text-gray-400" ] [ text t.sessionLoggingSoon ]
             , button
                 [ onClick CloseModal
                 , class "mt-4 px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                , attribute "aria-label" "Close modal"
+                , attribute "aria-label" t.close
                 ]
-                [ text "Close" ]
+                [ text t.close ]
             ]
         ]
 
@@ -2894,10 +2952,10 @@ viewHeroQuickView model heroId =
                     , button
                         [ onClick CloseModal
                         , class "px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-                        , attribute "aria-label" "Close modal"
+                        , attribute "aria-label" model.userConfig.t.close
                         ]
-                        [ text "Close" ]
-                    ]
+                        [ text model.userConfig.t.close ]
+                ]
                 ]
 
         Nothing ->
@@ -3025,32 +3083,36 @@ getBeltColorClass belt =
 
 viewFooter : Model -> Html Msg
 viewFooter model =
+    let
+        t =
+            model.userConfig.t
+    in
     footer [ class "bg-gray-900 text-white py-12 mt-20" ]
         [ div [ class "container mx-auto px-4" ]
             [ div [ class "grid grid-cols-1 md:grid-cols-4 gap-8 mb-8" ]
                 [ div []
                     [ h3 [ class "text-xl font-bold mb-4" ] [ text "BJJ Heroes" ]
-                    , p [ class "text-gray-400" ] [ text "Train like champions with guidance from the greatest athletes in BJJ history." ]
+                    , p [ class "text-gray-400" ] [ text t.footerTagline ]
                     ]
                 , div []
-                    [ h4 [ class "font-bold mb-4" ] [ text "Explore" ]
+                    [ h4 [ class "font-bold mb-4" ] [ text t.footerExplore ]
                     , ul [ class "space-y-2" ]
-                        [ footerLink "Champions" (NavigateTo (HeroesRoute Nothing))
-                        , footerLink "Events" (NavigateTo (Events AllEvents))
-                        , footerLink "Training" (NavigateTo Training)
+                        [ footerLink t.heroes (NavigateTo (HeroesRoute Nothing))
+                        , footerLink t.events (NavigateTo (Events AllEvents))
+                        , footerLink t.training (NavigateTo Training)
                         ]
                     ]
                 , div []
-                    [ h4 [ class "font-bold mb-4" ] [ text "Resources" ]
+                    [ h4 [ class "font-bold mb-4" ] [ text t.footerResources ]
                     , ul [ class "space-y-2" ]
-                        [ li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text "Technique Library" ] ]
-                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text "Training Tips" ] ]
-                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text "Competition Rules" ] ]
-                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text "Blog" ] ]
+                        [ li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text t.footerTechniqueLibrary ] ]
+                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text t.footerTrainingTips ] ]
+                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text t.footerCompetitionRules ] ]
+                        , li [] [ a [ href "#", class "text-gray-400 hover:text-white transition-colors" ] [ text t.footerBlog ] ]
                         ]
                     ]
                 , div []
-                    [ h4 [ class "font-bold mb-4" ] [ text "Connect" ]
+                    [ h4 [ class "font-bold mb-4" ] [ text t.footerConnect ]
                     , div [ class "flex space-x-4" ]
                         [ span [ class "text-2xl cursor-pointer hover:text-blue-400 transition-colors" ] [ text "📘" ]
                         , span [ class "text-2xl cursor-pointer hover:text-blue-400 transition-colors" ] [ text "🐦" ]
@@ -3060,7 +3122,7 @@ viewFooter model =
                     ]
                 ]
             , div [ class "border-t border-gray-800 pt-8 text-center text-gray-400" ]
-                [ p [] [ text "© 2024 BJJ Heroes. Train Like Champions. All rights reserved." ]
+                [ p [] [ text t.footerCopyright ]
                 ]
             ]
         ]

@@ -16,6 +16,7 @@ initHeroes =
             , nickname = "The King"
             , nationality = "USA"
             , team = "New Wave Jiu Jitsu"
+            , gender = Types.Male
             , weight = Types.SuperHeavy
             , style = Types.LegLocks
             , achievements = gordonAchievements
@@ -54,6 +55,7 @@ initHeroes =
             , nickname = "Buchecha"
             , nationality = "Brazil"
             , team = "Checkmat"
+            , gender = Types.Male
             , weight = Types.UltraHeavy
             , style = Types.Pressure
             , achievements = buchechaAchievements
@@ -92,6 +94,7 @@ initHeroes =
             , nickname = "Rafa"
             , nationality = "Brazil"
             , team = "Art of Jiu Jitsu"
+            , gender = Types.Male
             , weight = Types.Feather
             , style = Types.Guard
             , achievements = rafaAchievements
@@ -130,6 +133,7 @@ initHeroes =
             , nickname = "Deco"
             , nationality = "Brazil"
             , team = "Atos Jiu-Jitsu"
+            , gender = Types.Male
             , weight = Types.MediumHeavy
             , style = Types.Balanced
             , achievements = galvaoAchievements
@@ -168,6 +172,7 @@ initHeroes =
             , nickname = "Lo"
             , nationality = "Brazil"
             , team = "NS Brotherhood"
+            , gender = Types.Male
             , weight = Types.Middle
             , style = Types.Passing
             , achievements = loAchievements
@@ -231,6 +236,11 @@ championSeeds =
     menChampionSeeds ++ womenChampionSeeds
 
 
+womenChampionIds : Set String
+womenChampionIds =
+    womenChampionSeeds |> List.map .id |> Set.fromList
+
+
 championSeedToHero : ChampionSeed -> Types.Hero
 championSeedToHero seed =
     { id = seed.id
@@ -238,6 +248,11 @@ championSeedToHero seed =
     , nickname = seed.nickname
     , nationality = seed.nationality
     , team = seed.team
+    , gender =
+        if Set.member seed.id womenChampionIds then
+            Types.Female
+        else
+            Types.Male
     , weight = seed.weight
     , style = seed.style
     , achievements = []

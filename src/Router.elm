@@ -97,6 +97,18 @@ parseHeroFilter str =
         "pressure" ->
             Just (ByStyle Pressure)
 
+        "male" ->
+            Just (ByGender Male)
+
+        "female" ->
+            Just (ByGender Female)
+
+        "adcc" ->
+            Just (ByTitle TitleADCC)
+
+        "worlds" ->
+            Just (ByTitle TitleWorlds)
+
         nationality ->
             if String.startsWith "country-" nationality then
                 Just (ByNationality (String.dropLeft 8 nationality))
@@ -190,6 +202,22 @@ heroFilterToQuery filter =
 
         ByStyle style ->
             "?filter=" ++ styleToString style
+        
+        ByGender gender ->
+            case gender of
+                Male ->
+                    "?filter=male"
+
+                Female ->
+                    "?filter=female"
+
+        ByTitle titleFilter ->
+            case titleFilter of
+                TitleADCC ->
+                    "?filter=adcc"
+
+                TitleWorlds ->
+                    "?filter=worlds"
 
 
 weightToString : WeightClass -> String

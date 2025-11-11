@@ -1,10 +1,11 @@
 module Pages.Heroes exposing (viewDetail, viewList)
 
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, h1, h2, h3, h4, p, span, text)
-import Html.Attributes exposing (class, classList)
-import Html.Events exposing (onClick, stopPropagationOn)
+import Html exposing (Html, button, div, h1, h2, h3, h4, label, option, p, select, span, text)
+import Html.Attributes exposing (class, classList, value)
+import Html.Events exposing (onClick, onInput, stopPropagationOn)
 import Html.Keyed as Keyed
+import String
 import I18n
 import Json.Decode as Decode
 import Set
@@ -59,26 +60,134 @@ viewHeroFilters model currentFilter =
 
         t =
             model.userConfig.t
+
+        options =
+            heroFilterSelectOptions language t
+
+        selectedValue =
+            heroFilterSelectValue currentFilter
     in
-    div [ class "filter-row" ]
-        [ filterButton t.eventsFilterAll (currentFilter == Nothing || currentFilter == Just AllHeroes) (ApplyFilter AllHeroes)
-        , filterButton (weightClassLabel language SuperHeavy) (currentFilter == Just (ByWeight SuperHeavy)) (ApplyFilter (ByWeight SuperHeavy))
-        , filterButton (styleLabel language LegLocks) (currentFilter == Just (ByStyle LegLocks)) (ApplyFilter (ByStyle LegLocks))
-        , filterButton (styleLabel language Guard) (currentFilter == Just (ByStyle Guard)) (ApplyFilter (ByStyle Guard))
-        , filterButton (styleLabel language Passing) (currentFilter == Just (ByStyle Passing)) (ApplyFilter (ByStyle Passing))
-        ]
+    div [ class "filter-row flex items-center gap-3 flex-wrap" ]
+        [ label [ class "text-sm font-semibold text-gray-600 dark:text-gray-300" ]
+            [ text (filterLabel language) ]
+        , select
+            [ class "px-4 py-2 rounded-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-sm font-medium text-gray-700 dark:text-gray-200"
+            , value selectedValue
+            , onInput
+                (\val ->
+                    case heroFilterFromValue val of
+                        Nothing ->
+                            ApplyFilter AllHeroes
 
-
-filterButton : String -> Bool -> FrontendMsg -> Html FrontendMsg
-filterButton label isActive msg =
-    button
-        [ onClick msg
-        , classList
-            [ ( "filter-pill filter-pill--active", isActive )
-            , ( "filter-pill", not isActive )
+                        Just filter ->
+                            ApplyFilter filter
+                )
             ]
+            (List.map (\( value, label ) -> option [ Html.Attributes.value value ] [ text label ]) options)
         ]
-        [ text label ]
+
+
+filterLabel : I18n.Language -> String
+filterLabel language =
+    case language of
+        I18n.FR ->
+            "Filtrer par"
+
+        I18n.EN ->
+            "Filter by"
+
+
+heroFilterSelectOptions : I18n.Language -> I18n.Translations -> List ( String, String )
+heroFilterSelectOptions language t =
+    [ ( "all", t.eventsFilterAll )
+    , ( "gender-male", genderLabel language Male )
+    , ( "gender-female", genderLabel language Female )
+    , ( "title-adcc", titleLabel language TitleADCC )
+    , ( "title-worlds", titleLabel language TitleWorlds )
+    ]
+
+
+heroFilterSelectValue : Maybe HeroFilter -> String
+heroFilterSelectValue maybeFilter =
+    case maybeFilter of
+        Nothing ->
+            "all"
+
+        Just filter ->
+            heroFilterValue filter
+
+
+heroFilterValue : HeroFilter -> String
+heroFilterValue filter =
+    case filter of
+        AllHeroes ->
+            "all"
+
+        ByGender Male ->
+            "gender-male"
+
+        ByGender Female ->
+            "gender-female"
+
+        ByTitle TitleADCC ->
+            "title-adcc"
+
+        ByTitle TitleWorlds ->
+            "title-worlds"
+
+        _ ->
+            "all"
+
+
+heroFilterFromValue : String -> Maybe HeroFilter
+heroFilterFromValue value =
+    case value of
+        "gender-male" ->
+            Just (ByGender Male)
+
+        "gender-female" ->
+            Just (ByGender Female)
+
+        "title-adcc" ->
+            Just (ByTitle TitleADCC)
+
+        "title-worlds" ->
+            Just (ByTitle TitleWorlds)
+
+        _ ->
+            Nothing
+
+
+genderLabel : I18n.Language -> Gender -> String
+genderLabel language gender =
+    case ( language, gender ) of
+        ( I18n.FR, Male ) ->
+            "Hommes"
+
+        ( I18n.FR, Female ) ->
+            "Femmes"
+
+        ( I18n.EN, Male ) ->
+            "Male"
+
+        ( I18n.EN, Female ) ->
+            "Female"
+
+
+titleLabel : I18n.Language -> TitleFilter -> String
+titleLabel language titleFilter =
+    case ( language, titleFilter ) of
+        ( I18n.FR, TitleADCC ) ->
+            "Titres ADCC"
+
+        ( I18n.FR, TitleWorlds ) ->
+            "Titres mondiaux"
+
+        ( I18n.EN, TitleADCC ) ->
+            "ADCC Titles"
+
+        ( I18n.EN, TitleWorlds ) ->
+            "World Titles"
 
 
 filterHeroes : Maybe HeroFilter -> List Hero -> List Hero
@@ -98,6 +207,21 @@ filterHeroes maybeFilter heroes =
 
         Just (ByNationality nationality) ->
             List.filter (\h -> h.nationality == nationality) heroes
+        
+        Just (ByGender gender) ->
+            List.filter (\h -> h.gender == gender) heroes
+        
+        Just (ByTitle titleFilter) ->
+            let
+                hasTitle containsTitle hero =
+                    List.any (\t -> String.toLower t |> String.contains (String.toLower containsTitle)) hero.record.titles
+            in
+            case titleFilter of
+                TitleADCC ->
+                    List.filter (hasTitle "adcc") heroes
+
+                TitleWorlds ->
+                    List.filter (\h -> hasTitle "world" h || hasTitle "ibjjf" h) heroes
 
 
 viewHeroCard : FrontendModel -> Hero -> Html FrontendMsg
