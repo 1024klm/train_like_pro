@@ -331,7 +331,7 @@ en =
     -- Navigation
     , home = "Home"
     , dashboard = "Dashboard"
-    , heroes = "Heroes"
+    , heroes = "Champions"
     , events = "Events"
     , training = "Training"
     , profile = "Profile"
@@ -435,7 +435,7 @@ en =
     , externalLink = "External link will open in new tab"
     
     -- Actions
-    , explorHeroes = "Explore Heroes"
+    , explorHeroes = "Explore Champions"
     , createTrainingPlan = "Create Training Plan"
     , startSession = "Start Session"
     , viewDetails = "View Details"
@@ -473,7 +473,7 @@ en =
     , seconds = "seconds"
     
     -- Hero Page
-    , featuredHeroes = "Featured Heroes"
+    , featuredHeroes = "Featured Champions"
     , learnFromLegends = "Learn from the legends who shaped the sport"
     , trainLikeChampion = "Train Like a Champion"
     , biography = "Biography"
@@ -636,7 +636,7 @@ fr =
     -- Navigation
     , home = "Accueil"
     , dashboard = "Tableau de bord"
-    , heroes = "Héros"
+    , heroes = "Champions"
     , events = "Événements"
     , training = "Entraînement"
     , profile = "Profil"
@@ -740,7 +740,7 @@ fr =
     , externalLink = "Le lien externe s'ouvrira dans un nouvel onglet"
     
     -- Actions
-    , explorHeroes = "Explorer les Héros"
+    , explorHeroes = "Explorer les Champions"
     , createTrainingPlan = "Créer un Plan d'Entraînement"
     , startSession = "Démarrer Session"
     , viewDetails = "Voir les Détails"
@@ -778,7 +778,7 @@ fr =
     , seconds = "secondes"
     
     -- Hero Page
-    , featuredHeroes = "Héros en Vedette"
+    , featuredHeroes = "Champions en vedette"
     , learnFromLegends = "Apprenez des légendes qui ont façonné le sport"
     , trainLikeChampion = "Entraînez-vous Comme un Champion"
     , biography = "Biographie"

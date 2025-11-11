@@ -700,7 +700,7 @@ viewTitle model =
             "Roadmap - Train Like Pro"
 
         HeroesRoute _ ->
-            "Heroes - BJJ Heroes"
+            "Champions - BJJ Heroes"
 
         HeroDetail id ->
             Dict.get id model.heroes
@@ -2107,7 +2107,7 @@ viewProfileFavorites model =
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text "Favorites" ]
         , div [ class "space-y-4" ]
-            [ favoriteSection "Heroes" (Set.toList model.favorites.heroes) "🥋"
+            [ favoriteSection "Champions" (Set.toList model.favorites.heroes) "🥋"
             , favoriteSection "Events" (Set.toList model.favorites.events) "📅"
             ]
         ]
@@ -3035,7 +3035,7 @@ viewFooter model =
                 , div []
                     [ h4 [ class "font-bold mb-4" ] [ text "Explore" ]
                     , ul [ class "space-y-2" ]
-                        [ footerLink "Heroes" (NavigateTo (HeroesRoute Nothing))
+                        [ footerLink "Champions" (NavigateTo (HeroesRoute Nothing))
                         , footerLink "Events" (NavigateTo (Events AllEvents))
                         , footerLink "Training" (NavigateTo Training)
                         ]

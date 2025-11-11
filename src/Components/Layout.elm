@@ -329,7 +329,7 @@ primaryNavigationItems : List NavItem
 primaryNavigationItems =
     [ { id = "nav-home", labelEn = "Home", labelFr = "Accueil", icon = "🏠", route = Home }
     , { id = "nav-dashboard", labelEn = "Dashboard", labelFr = "Tableau", icon = "📊", route = Dashboard }
-    , { id = "nav-heroes", labelEn = "Heroes", labelFr = "Héros", icon = "🥋", route = HeroesRoute Nothing }
+    , { id = "nav-heroes", labelEn = "Champions", labelFr = "Champions", icon = "🥋", route = HeroesRoute Nothing }
     , { id = "nav-events", labelEn = "Events", labelFr = "Évènements", icon = "🗓", route = Events AllEvents }
     , { id = "nav-training", labelEn = "Training", labelFr = "Entraînement", icon = "💪", route = TrainingView }
     , { id = "nav-profile", labelEn = "Profile", labelFr = "Profil", icon = "👤", route = Profile }

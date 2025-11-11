@@ -10,7 +10,7 @@ import Data.CFJJBEvents exposing (cfjjbEvents)
 initHeroes : Dict String Types.Hero
 initHeroes =
     Dict.fromList
-        [ ( "gordon-ryan"
+        (    [ ( "gordon-ryan"
           , { id = "gordon-ryan"
             , name = "Gordon Ryan"
             , nickname = "The King"
@@ -201,7 +201,640 @@ initHeroes =
             }
           )
         ]
+            ++ championSeedEntries
+        )
 
+
+type alias ChampionSeed =
+    { id : String
+    , name : String
+    , nickname : String
+    , nationality : String
+    , team : String
+    , weight : Types.WeightClass
+    , style : Types.FightingStyle
+    , bio : String
+    , titles : List String
+    , favoritePosition : String
+    , favoriteSubmission : String
+    }
+
+
+championSeedEntries : List ( String, Types.Hero )
+championSeedEntries =
+    championSeeds
+        |> List.map (\seed -> let hero = championSeedToHero seed in ( hero.id, hero ))
+
+
+championSeeds : List ChampionSeed
+championSeeds =
+    menChampionSeeds ++ womenChampionSeeds
+
+
+championSeedToHero : ChampionSeed -> Types.Hero
+championSeedToHero seed =
+    { id = seed.id
+    , name = seed.name
+    , nickname = seed.nickname
+    , nationality = seed.nationality
+    , team = seed.team
+    , weight = seed.weight
+    , style = seed.style
+    , achievements = []
+    , imageUrl = "/images/heroes/" ++ seed.id ++ ".jpg"
+    , coverImageUrl = "/images/heroes/" ++ seed.id ++ "-cover.jpg"
+    , bio = seed.bio
+    , record =
+        { wins = 0
+        , losses = 0
+        , draws = 0
+        , submissions = 0
+        , points = 0
+        , advantages = 0
+        , titles = seed.titles
+        }
+    , techniques = []
+    , socialMedia = emptySocialMedia
+    , videos = []
+    , stats =
+        { winRate = 0
+        , submissionRate = 0
+        , averageMatchTime = 0
+        , favoritePosition = seed.favoritePosition
+        , favoriteSubmission = seed.favoriteSubmission
+        }
+    }
+
+
+emptySocialMedia : Types.SocialMedia
+emptySocialMedia =
+    { instagram = Nothing
+    , youtube = Nothing
+    , twitter = Nothing
+    , website = Nothing
+    }
+
+
+menChampionSeeds : List ChampionSeed
+menChampionSeeds =
+    [ { id = "craig-jones"
+      , name = "Craig Jones"
+      , nickname = "Aussie Submission Hunter"
+      , nationality = "Australia"
+      , team = "B-Team Jiu Jitsu"
+      , weight = Types.MediumHeavy
+      , style = Types.LegLocks
+      , bio = "Australian leg lock specialist and co-founder of B-Team Jiu Jitsu. Known for creative entries and polished coaching."
+      , titles = [ "ADCC Silver Medalist", "Multiple Polaris Champion" ]
+      , favoritePosition = "Inside Sankaku"
+      , favoriteSubmission = "Inside Heel Hook"
+      }
+    , { id = "kade-ruotolo"
+      , name = "Kade Ruotolo"
+      , nickname = "Kade"
+      , nationality = "USA"
+      , team = "Ruotolo Brothers / Atos"
+      , weight = Types.Light
+      , style = Types.Submission
+      , bio = "Lightning-fast twin with an endless pace who mixes wrestling, scrambles, and front headlock attacks."
+      , titles = [ "ADCC 2022 Lightweight Champion", "ONE Lightweight Submission Grappling Champion" ]
+      , favoritePosition = "Front Headlock"
+      , favoriteSubmission = "Darce Choke"
+      }
+    , { id = "tye-ruotolo"
+      , name = "Tye Ruotolo"
+      , nickname = "Tye"
+      , nationality = "USA"
+      , team = "Ruotolo Brothers / Atos"
+      , weight = Types.Middle
+      , style = Types.Balanced
+      , bio = "Relentless passing machine who blends judo-style throws with modern leg entanglements."
+      , titles = [ "WNO Champion", "ADCC Bronze Medalist" ]
+      , favoritePosition = "Knee Slice Headquarters"
+      , favoriteSubmission = "Armbar"
+      }
+    , { id = "nick-rodriguez"
+      , name = "Nick Rodriguez"
+      , nickname = "Nicky Rod"
+      , nationality = "USA"
+      , team = "B-Team Jiu Jitsu"
+      , weight = Types.SuperHeavy
+      , style = Types.Wrestling
+      , bio = "New Jersey wrestler turned submission grappler with explosive body-lock passing."
+      , titles = [ "2x ADCC Silver Medalist" ]
+      , favoritePosition = "Body Lock Half Guard"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "victor-hugo"
+      , name = "Victor Hugo"
+      , nickname = "Victor"
+      , nationality = "Brazil"
+      , team = "Six Blades Jiu-Jitsu"
+      , weight = Types.UltraHeavy
+      , style = Types.Submission
+      , bio = "Towering guard player known for mixing modern lapel guards with slick triangles despite his size."
+      , titles = [ "IBJJF Absolute Champion", "ADCC Medalist" ]
+      , favoritePosition = "Closed Guard"
+      , favoriteSubmission = "Triangle Choke"
+      }
+    , { id = "felipe-pena"
+      , name = "Felipe Pena"
+      , nickname = "Preguiça"
+      , nationality = "Brazil"
+      , team = "Gracie Barra"
+      , weight = Types.Heavy
+      , style = Types.Balanced
+      , bio = "One of the few athletes to beat Gordon Ryan in superfights. Dangerous back takes and endurance."
+      , titles = [ "ADCC Absolute Champion", "IBJJF World Champion" ]
+      , favoritePosition = "Back Control"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "roger-gracie"
+      , name = "Roger Gracie"
+      , nickname = "Roger"
+      , nationality = "United Kingdom"
+      , team = "Gracie Barra"
+      , weight = Types.Heavy
+      , style = Types.Pressure
+      , bio = "Considered the greatest gi competitor ever, famous for fundamental mount and collar chokes."
+      , titles = [ "10x IBJJF World Champion", "ADCC Absolute Champion" ]
+      , favoritePosition = "Mount"
+      , favoriteSubmission = "Cross Collar Choke"
+      }
+    , { id = "lucas-lepri"
+      , name = "Lucas Lepri"
+      , nickname = "Lepri"
+      , nationality = "Brazil"
+      , team = "Alliance"
+      , weight = Types.Light
+      , style = Types.Passing
+      , bio = "Precision passer with razor-sharp knee cuts and structured guard passing systems."
+      , titles = [ "7x IBJJF World Champion" ]
+      , favoritePosition = "Knee Cut Passing"
+      , favoriteSubmission = "Bow and Arrow Choke"
+      }
+    , { id = "mica-galvao"
+      , name = "Mica Galvão"
+      , nickname = "Mica"
+      , nationality = "Brazil"
+      , team = "Melqui Galvão Jiu-Jitsu"
+      , weight = Types.Feather
+      , style = Types.Submission
+      , bio = "Prodigy from Manaus blending berimbolos, wrestling, and relentless finishing instincts."
+      , titles = [ "IBJJF World Champion", "ADCC Silver Medalist" ]
+      , favoritePosition = "Open Guard"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "jt-torres"
+      , name = "JT Torres"
+      , nickname = "JT"
+      , nationality = "USA"
+      , team = "Essential BJJ"
+      , weight = Types.Light
+      , style = Types.Balanced
+      , bio = "Two-time ADCC champion known for pace, pressure, and tactical mindset."
+      , titles = [ "2x ADCC Champion" ]
+      , favoritePosition = "Half Guard Top"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "mikey-musumeci"
+      , name = "Mikey Musumeci"
+      , nickname = "Darth Rigatoni"
+      , nationality = "USA"
+      , team = "Evolve / ONE"
+      , weight = Types.LightFeather
+      , style = Types.Guard
+      , bio = "Technical mastermind famous for lapel innovations and the Musumeci footlock."
+      , titles = [ "5x IBJJF World Champion", "ONE Flyweight Submission Grappling Champion" ]
+      , favoritePosition = "Lapel Guard"
+      , favoriteSubmission = "Musumeci Footlock"
+      }
+    , { id = "roberto-cyborg-abreu"
+      , name = "Roberto \"Cyborg\" Abreu"
+      , nickname = "Cyborg"
+      , nationality = "Brazil"
+      , team = "Fight Sports"
+      , weight = Types.UltraHeavy
+      , style = Types.Pressure
+      , bio = "Inventor of the tornado guard, blending acrobatic sweeps with crushing top pressure."
+      , titles = [ "ADCC Absolute Champion" ]
+      , favoritePosition = "Tornado Guard"
+      , favoriteSubmission = "Arm Triangle"
+      }
+    , { id = "nicholas-meregali"
+      , name = "Nicholas Meregali"
+      , nickname = "Meregali"
+      , nationality = "Brazil"
+      , team = "New Wave Jiu Jitsu"
+      , weight = Types.SuperHeavy
+      , style = Types.Pressure
+      , bio = "Modern gi and no-gi star combining long-frame guards with crushing collar pressure."
+      , titles = [ "IBJJF World Champion", "ADCC Champion" ]
+      , favoritePosition = "Collar-and-Sleeve Guard"
+      , favoriteSubmission = "Bow and Arrow Choke"
+      }
+    , { id = "yuri-simoes"
+      , name = "Yuri Simões"
+      , nickname = "Yuri"
+      , nationality = "Brazil"
+      , team = "Brasa CTA"
+      , weight = Types.MediumHeavy
+      , style = Types.Balanced
+      , bio = "Triple ADCC champion renowned for raw power, wrestling conversions, and grit."
+      , titles = [ "3x ADCC Champion" ]
+      , favoritePosition = "Body Lock Passing"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "joao-gabriel-rocha"
+      , name = "João Gabriel Rocha"
+      , nickname = "João Gabriel"
+      , nationality = "Brazil"
+      , team = "Double Five"
+      , weight = Types.UltraHeavy
+      , style = Types.Pressure
+      , bio = "Beloved competitor who pairs resilience with heavy top control and cross-face pressure."
+      , titles = [ "IBJJF World Medalist", "ADCC Medalist" ]
+      , favoritePosition = "Top Half Guard"
+      , favoriteSubmission = "Kimura"
+      }
+    , { id = "kaynan-duarte"
+      , name = "Kaynan Duarte"
+      , nickname = "Kaynan"
+      , nationality = "Brazil"
+      , team = "Atos Jiu-Jitsu"
+      , weight = Types.Heavy
+      , style = Types.Balanced
+      , bio = "Versatile champion equally comfortable guard pulling or blasting wrestling takedowns."
+      , titles = [ "ADCC Champion", "IBJJF World Champion" ]
+      , favoritePosition = "Mount"
+      , favoriteSubmission = "Arm Triangle"
+      }
+    , { id = "isaac-doederlein"
+      , name = "Isaac Doederlein"
+      , nickname = "Isaac"
+      , nationality = "USA"
+      , team = "Alliance"
+      , weight = Types.Feather
+      , style = Types.Guard
+      , bio = "Lightweight technician with signature lapel lasso and precise triangles."
+      , titles = [ "IBJJF World Champion" ]
+      , favoritePosition = "Lapel Lasso Guard"
+      , favoriteSubmission = "Triangle Choke"
+      }
+    , { id = "lachlan-giles"
+      , name = "Lachlan Giles"
+      , nickname = "Lachlan"
+      , nationality = "Australia"
+      , team = "Absolute MMA"
+      , weight = Types.Middle
+      , style = Types.LegLocks
+      , bio = "Coach-scientist who shocked ADCC with giant-slaying heel hooks from 50/50."
+      , titles = [ "ADCC Absolute Bronze Medalist" ]
+      , favoritePosition = "50/50 Guard"
+      , favoriteSubmission = "Outside Heel Hook"
+      }
+    , { id = "rafael-lovato-jr"
+      , name = "Rafael Lovato Jr"
+      , nickname = "Lovato Jr"
+      , nationality = "USA"
+      , team = "Lovato Jiu-Jitsu"
+      , weight = Types.MediumHeavy
+      , style = Types.Pressure
+      , bio = "Legendary American champion with textbook mount pressure and MMA success."
+      , titles = [ "IBJJF World Champion", "Bellator Middleweight Champion" ]
+      , favoritePosition = "High Mount"
+      , favoriteSubmission = "Armbar"
+      }
+    , { id = "ronaldo-junior"
+      , name = "Ronaldo Junior"
+      , nickname = "Jacare Jr"
+      , nationality = "Brazil"
+      , team = "Atos Jiu-Jitsu"
+      , weight = Types.Middle
+      , style = Types.Passing
+      , bio = "Audience favorite for non-stop toreando and cartwheel passing blitzes."
+      , titles = [ "IBJJF Pan Champion" ]
+      , favoritePosition = "Torreando Passing"
+      , favoriteSubmission = "Loop Choke"
+      }
+    , { id = "tainan-dalpra"
+      , name = "Tainan Dalpra"
+      , nickname = "Tainan"
+      , nationality = "Brazil"
+      , team = "Art of Jiu Jitsu"
+      , weight = Types.Middle
+      , style = Types.Passing
+      , bio = "AOJ superstar famed for relentless forward pressure and pristine posture."
+      , titles = [ "2x IBJJF World Champion" ]
+      , favoritePosition = "Knee Cut Passing"
+      , favoriteSubmission = "Collar Choke"
+      }
+    , { id = "diogo-reis"
+      , name = "Diogo \"Baby Shark\" Reis"
+      , nickname = "Baby Shark"
+      , nationality = "Brazil"
+      , team = "Melqui Galvão Jiu-Jitsu"
+      , weight = Types.Feather
+      , style = Types.Wrestling
+      , bio = "High-pace ADCC champion whose chain wrestling blends perfectly with back-take sequences."
+      , titles = [ "ADCC 2022 66kg Champion" ]
+      , favoritePosition = "Front Headlock"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "ethan-crelinsten"
+      , name = "Ethan Crelinsten"
+      , nickname = "Ethan"
+      , nationality = "Canada"
+      , team = "B-Team Jiu Jitsu"
+      , weight = Types.Light
+      , style = Types.LegLocks
+      , bio = "Known for guillotines and back attacks set up from aggressive wrestling."
+      , titles = [ "ADCC North American Trials Champion" ]
+      , favoritePosition = "Back Control"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "nicky-ryan"
+      , name = "Nicky Ryan"
+      , nickname = "Nicky"
+      , nationality = "USA"
+      , team = "B-Team Jiu Jitsu"
+      , weight = Types.Light
+      , style = Types.Guard
+      , bio = "Youngest ADCC competitor at 16, now a polished guard player with vicious triangles."
+      , titles = [ "ADCC Trials Champion" ]
+      , favoritePosition = "Butterfly Guard"
+      , favoriteSubmission = "Triangle Choke"
+      }
+    , { id = "jozef-chen"
+      , name = "Jozef Chen"
+      , nickname = "Jozef"
+      , nationality = "USA"
+      , team = "B-Team Jiu Jitsu"
+      , weight = Types.Light
+      , style = Types.Balanced
+      , bio = "Rising technician praised for analytical approach and composure beyond his years."
+      , titles = [ "ADCC European Trials Champion" ]
+      , favoritePosition = "Closed Guard"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "haisam-rida"
+      , name = "Haisam Rida"
+      , nickname = "Giraffe"
+      , nationality = "Ghana"
+      , team = "Carpe Diem"
+      , weight = Types.Heavy
+      , style = Types.Submission
+      , bio = "Fan favorite known for flying submissions and upset victories on the ADCC stage."
+      , titles = [ "ADCC Quarterfinalist" ]
+      , favoritePosition = "Closed Guard"
+      , favoriteSubmission = "Flying Armbar"
+      }
+    , { id = "giancarlo-bodoni"
+      , name = "Giancarlo Bodoni"
+      , nickname = "Giancarlo"
+      , nationality = "USA"
+      , team = "New Wave Jiu Jitsu"
+      , weight = Types.MediumHeavy
+      , style = Types.Pressure
+      , bio = "John Danaher's latest champion boasting tight arm triangles and methodical passing."
+      , titles = [ "ADCC 2022 88kg Champion" ]
+      , favoritePosition = "Mount"
+      , favoriteSubmission = "Arm Triangle"
+      }
+    ]
+
+
+womenChampionSeeds : List ChampionSeed
+womenChampionSeeds =
+    [ { id = "ffion-davies"
+      , name = "Ffion Davies"
+      , nickname = "Ffion"
+      , nationality = "Wales"
+      , team = "Essential BJJ"
+      , weight = Types.Light
+      , style = Types.Guard
+      , bio = "Trailblazing Welsh champion combining aggressive guard pulls with fearless takedowns."
+      , titles = [ "IBJJF World Champion", "ADCC Champion" ]
+      , favoritePosition = "Closed Guard"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "helena-crevar"
+      , name = "Helena Crevar"
+      , nickname = "Helena"
+      , nationality = "USA"
+      , team = "New Wave Jiu Jitsu"
+      , weight = Types.Middle
+      , style = Types.Wrestling
+      , bio = "Teen phenom with ruthless wrestling pressure and north-south chokes."
+      , titles = [ "ADCC Trials Champion" ]
+      , favoritePosition = "Body Lock Passing"
+      , favoriteSubmission = "North-South Choke"
+      }
+    , { id = "adele-fornarino"
+      , name = "Adele Fornarino"
+      , nickname = "Adele"
+      , nationality = "Australia"
+      , team = "Absolute MMA"
+      , weight = Types.Feather
+      , style = Types.Guard
+      , bio = "Creative Australian guard player known for berimbolos and triangle setups."
+      , titles = [ "ADCC Oceania Trials Champion" ]
+      , favoritePosition = "De La Riva Guard"
+      , favoriteSubmission = "Armbar"
+      }
+    , { id = "ana-carolina-vieira"
+      , name = "Ana Carolina Vieira"
+      , nickname = "Baby"
+      , nationality = "Brazil"
+      , team = "GFTeam"
+      , weight = Types.Middle
+      , style = Types.Balanced
+      , bio = "Multiple-time world champion with patient pressure passing and relentless armbars."
+      , titles = [ "IBJJF World Champion" ]
+      , favoritePosition = "Mount"
+      , favoriteSubmission = "Armbar"
+      }
+    , { id = "beatriz-mesquita"
+      , name = "Beatriz Mesquita"
+      , nickname = "Bia"
+      , nationality = "Brazil"
+      , team = "Gracie Humaitá"
+      , weight = Types.Light
+      , style = Types.Balanced
+      , bio = "All-time great with dynamic judo entries, guard passing, and finishing ability."
+      , titles = [ "10x IBJJF World Champion", "ADCC Champion" ]
+      , favoritePosition = "Closed Guard"
+      , favoriteSubmission = "Armbar"
+      }
+    , { id = "gabrieli-pessanha"
+      , name = "Gabrieli Pessanha"
+      , nickname = "Gabi"
+      , nationality = "Brazil"
+      , team = "Infight"
+      , weight = Types.UltraHeavy
+      , style = Types.Pressure
+      , bio = "Modern queen of the absolute division with crushing top pressure and sweeps."
+      , titles = [ "IBJJF Grand Slam Champion" ]
+      , favoritePosition = "Mount"
+      , favoriteSubmission = "Collar Choke"
+      }
+    , { id = "mayssa-bastos"
+      , name = "Mayssa Bastos"
+      , nickname = "Mayssa"
+      , nationality = "Brazil"
+      , team = "Unity Jiu Jitsu"
+      , weight = Types.LightFeather
+      , style = Types.Guard
+      , bio = "Tiny technician famous for berimbolos, matrix entries, and technical finishes."
+      , titles = [ "IBJJF World Champion" ]
+      , favoritePosition = "Lapel Guard"
+      , favoriteSubmission = "Toe Hold"
+      }
+    , { id = "elisabeth-clay"
+      , name = "Elisabeth Clay"
+      , nickname = "Liz Clay"
+      , nationality = "USA"
+      , team = "Ares BJJ"
+      , weight = Types.Middle
+      , style = Types.Guard
+      , bio = "Leg-locking powerhouse with ruthless 50/50 attacks."
+      , titles = [ "ADCC Medalist" ]
+      , favoritePosition = "50/50 Guard"
+      , favoriteSubmission = "Inside Heel Hook"
+      }
+    , { id = "bianca-basilio"
+      , name = "Bianca Basilio"
+      , nickname = "Bia Basilio"
+      , nationality = "Brazil"
+      , team = "Atos Jiu-Jitsu"
+      , weight = Types.Feather
+      , style = Types.Submission
+      , bio = "Explosive athlete with flying armbars and relentless pace."
+      , titles = [ "ADCC Champion", "IBJJF World Champion" ]
+      , favoritePosition = "Open Guard"
+      , favoriteSubmission = "Armbar"
+      }
+    , { id = "tayane-porfirio"
+      , name = "Tayane Porfirio"
+      , nickname = "Tayane"
+      , nationality = "Brazil"
+      , team = "Alliance"
+      , weight = Types.UltraHeavy
+      , style = Types.Pressure
+      , bio = "Gi dominant champion with unstoppable mount and pressure passing."
+      , titles = [ "IBJJF Grand Slam Champion" ]
+      , favoritePosition = "Mount"
+      , favoriteSubmission = "Cross Collar Choke"
+      }
+    , { id = "luiza-monteiro"
+      , name = "Luiza Monteiro"
+      , nickname = "Luiza"
+      , nationality = "Brazil"
+      , team = "Atos Jiu-Jitsu"
+      , weight = Types.Light
+      , style = Types.Passing
+      , bio = "Veteran competitor using nonstop toreando chains to open guards."
+      , titles = [ "IBJJF World Champion" ]
+      , favoritePosition = "Torreando Passing"
+      , favoriteSubmission = "Bow and Arrow Choke"
+      }
+    , { id = "nathalie-ribeiro"
+      , name = "Nathalie Ribeiro"
+      , nickname = "Tuco"
+      , nationality = "Brazil"
+      , team = "Checkmat"
+      , weight = Types.Feather
+      , style = Types.Guard
+      , bio = "Known for creative lasso guards and tight triangle chains."
+      , titles = [ "IBJJF World Champion" ]
+      , favoritePosition = "Lasso Guard"
+      , favoriteSubmission = "Triangle Choke"
+      }
+    , { id = "brianna-ste-marie"
+      , name = "Brianna Ste-Marie"
+      , nickname = "Brianna"
+      , nationality = "Canada"
+      , team = "Renzo Gracie"
+      , weight = Types.Light
+      , style = Types.Balanced
+      , bio = "Canada's top competitor with suffocating closed guard and clinch takedowns."
+      , titles = [ "ADCC Silver Medalist" ]
+      , favoritePosition = "Closed Guard"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "julia-maele"
+      , name = "Julia Maele"
+      , nickname = "Julia"
+      , nationality = "Norway"
+      , team = "Kimura Nova União"
+      , weight = Types.Middle
+      , style = Types.Wrestling
+      , bio = "European standout mixing judo grips with top pressure."
+      , titles = [ "IBJJF European Champion" ]
+      , favoritePosition = "Top Half Guard"
+      , favoriteSubmission = "Arm Triangle"
+      }
+    , { id = "amy-campo"
+      , name = "Amy Campo"
+      , nickname = "Amy"
+      , nationality = "USA"
+      , team = "Zenith Jiu-Jitsu"
+      , weight = Types.MediumHeavy
+      , style = Types.Pressure
+      , bio = "ADCC champion famous for fearless scrambles and back control."
+      , titles = [ "ADCC 2022 Champion" ]
+      , favoritePosition = "Back Control"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "kendall-reusing"
+      , name = "Kendall Reusing"
+      , nickname = "Kendall"
+      , nationality = "USA"
+      , team = "Gracie Barra"
+      , weight = Types.UltraHeavy
+      , style = Types.Wrestling
+      , bio = "Former wrestler translating body-locks into dominant top pressure."
+      , titles = [ "ADCC North American Trials Champion" ]
+      , favoritePosition = "Body Lock Passing"
+      , favoriteSubmission = "Arm Triangle"
+      }
+    , { id = "danielle-kelly"
+      , name = "Danielle Kelly"
+      , nickname = "Danielle"
+      , nationality = "USA"
+      , team = "Silver Fox BJJ"
+      , weight = Types.Light
+      , style = Types.Submission
+      , bio = "ONE Championship star blending aggressive guard play with MMA-ready attacks."
+      , titles = [ "ONE Atomweight Submission Grappling Champion" ]
+      , favoritePosition = "Closed Guard"
+      , favoriteSubmission = "Rear Naked Choke"
+      }
+    , { id = "tammi-musumeci"
+      , name = "Tammi Musumeci"
+      , nickname = "Tammi"
+      , nationality = "USA"
+      , team = "Evolve / Pedigo Submission Fighting"
+      , weight = Types.Light
+      , style = Types.Guard
+      , bio = "Multiple-time world champ with spider guard mastery and fierce competitiveness."
+      , titles = [ "IBJJF World Champion" ]
+      , favoritePosition = "Spider Guard"
+      , favoriteSubmission = "Armbar"
+      }
+    , { id = "maggie-grindatti"
+      , name = "Maggie Grindatti"
+      , nickname = "Maggie"
+      , nationality = "USA"
+      , team = "Fight Sports"
+      , weight = Types.MediumHeavy
+      , style = Types.Pressure
+      , bio = "American standout using heavy top pressure and no-gi experience."
+      , titles = [ "IBJJF No-Gi World Champion" ]
+      , favoritePosition = "Top Half Guard"
+      , favoriteSubmission = "Americana"
+      }
+    ]
 
 gordonAchievements : List Types.Achievement
 gordonAchievements =

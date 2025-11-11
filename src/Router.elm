@@ -12,8 +12,8 @@ routeParser =
     oneOf
         [ Parser.map Home top
         , Parser.map Dashboard (s "dashboard")
-        , Parser.map HeroesRoute (s "heroes" <?> heroFilterQuery)
-        , Parser.map (HeroesRoute Nothing) (s "heroes")
+        , Parser.map HeroesRoute (s "champions" <?> heroFilterQuery)
+        , Parser.map (HeroesRoute Nothing) (s "champions")
         , Parser.map HeroDetail (s "hero" </> string)
         , Parser.map (Events AllEvents) (s "events")
         , Parser.map (Events UpcomingEvents) (s "events" </> s "upcoming")
@@ -120,10 +120,10 @@ toPath route =
         HeroesRoute maybeFilter ->
             case maybeFilter of
                 Nothing ->
-                    "/heroes"
+                    "/champions"
 
                 Just filter ->
-                    "/heroes" ++ heroFilterToQuery filter
+                    "/champions" ++ heroFilterToQuery filter
 
         HeroDetail id ->
             "/hero/" ++ id

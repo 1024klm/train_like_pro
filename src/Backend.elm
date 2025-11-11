@@ -73,10 +73,7 @@ updateFromFrontend sessionId clientId msg model =
         GetInitialData ->
             let
                 seededHeroes =
-                    if Dict.isEmpty model.heroes then
-                        Data.initHeroes
-                    else
-                        model.heroes
+                    Dict.union Data.initHeroes model.heroes
 
                 seededEvents =
                     if Dict.isEmpty model.events then
@@ -226,7 +223,7 @@ routeToAnalyticsKey route =
     case route of
         Home -> "home"
         Dashboard -> "dashboard"
-        HeroesRoute _ -> "heroes"
+        HeroesRoute _ -> "champions"
         HeroDetail id -> "hero:" ++ id
         Events _ -> "events"
         EventDetail id -> "event:" ++ id

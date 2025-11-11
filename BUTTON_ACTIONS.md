@@ -9,7 +9,7 @@ This document lists all interactive buttons in the application and their associa
 | Button | Action | Status |
 |--------|--------|--------|
 | Dashboard | `NavigateTo Dashboard` | ✅ Navigates to dashboard |
-| Heroes | `NavigateTo (HeroesRoute Nothing)` | ✅ Navigates to heroes page |
+| Champions | `NavigateTo (HeroesRoute Nothing)` | ✅ Navigates to champions page |
 | Academies | `NavigateTo (Academies Nothing)` | ✅ Navigates to academies |
 | Events | `NavigateTo (Events AllEvents)` | ✅ Navigates to events |
 | Training | `NavigateTo Training` | ✅ Navigates to training |
@@ -53,7 +53,7 @@ This document lists all interactive buttons in the application and their associa
 
 | Button | Action | Status |
 |--------|--------|--------|
-| Explore Heroes | `NavigateTo (HeroesRoute Nothing)` | ✅ Navigates to heroes |
+| Explore Champions | `NavigateTo (HeroesRoute Nothing)` | ✅ Navigates to champions |
 | Start Training | `NavigateTo Training` | ✅ Navigates to training |
 
 ## 🥋 Hero Detail Page (Frontend.elm)

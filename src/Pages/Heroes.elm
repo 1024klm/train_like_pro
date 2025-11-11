@@ -103,9 +103,6 @@ filterHeroes maybeFilter heroes =
 viewHeroCard : FrontendModel -> Hero -> Html FrontendMsg
 viewHeroCard model hero =
     let
-        t =
-            model.userConfig.t
-
         isFavorite =
             Set.member hero.id model.favorites.heroes
 
@@ -114,6 +111,7 @@ viewHeroCard model hero =
 
         weightLabel =
             weightClassToString hero.weight
+            
     in
     div
         [ onClick (SelectHero hero.id)
