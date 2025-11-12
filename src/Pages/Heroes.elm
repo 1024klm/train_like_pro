@@ -275,26 +275,54 @@ viewHeroCard model hero =
         isFavorite =
             Set.member hero.id model.favorites.heroes
 
+        language =
+            model.userConfig.language
+
+        t =
+            model.userConfig.t
+
         recordLabel =
-            String.fromInt hero.record.wins ++ " - " ++ String.fromInt hero.record.losses
+            heroRecordLabel language hero.record
 
         weightLabel =
             weightClassToString hero.weight
-            
+
+        taglineView =
+            case heroTagline hero of
+                Just line ->
+                    [ p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text line ] ]
+
+                Nothing ->
+                    []
+
+        chipsView =
+            let
+                chips =
+                    heroMetaChips hero
+            in
+            if List.isEmpty chips then
+                []
+
+            else
+                [ div [ class "flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300" ]
+                    (List.map heroMetaChip chips)
+                ]
     in
     div
         [ onClick (SelectHero hero.id)
         , class "card list-card list-card--interactive p-6"
         ]
         [ div [ class "flex flex-col items-start md:items-start text-left gap-2" ]
-            [ span [ class "chip chip--outline" ] [ text weightLabel ]
-            , h3 [ class "list-card__title" ] [ text hero.name ]
-            , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text hero.nickname ]
-            , p [ class "list-card__description" ] [ text hero.bio ]
-            ]
+            ( [ span [ class "chip chip--outline" ] [ text weightLabel ]
+              , h3 [ class "list-card__title" ] [ text hero.name ]
+              ]
+                ++ taglineView
+                ++ chipsView
+                ++ [ p [ class "list-card__description" ] [ text hero.bio ] ]
+            )
         , div [ class "list-card__footer flex items-center justify-between gap-4 w-full" ]
             [ span [ class "list-card__meta" ] [ text (hero.nationality ++ " · " ++ recordLabel) ]
-            , span [ class "text-primary-500 font-medium" ] [ text "View Details" ]
+            , span [ class "text-primary-500 font-medium" ] [ text t.viewDetails ]
             , button
                 [ onClick (ToggleFavorite HeroFavorite hero.id)
                 , stopPropagationOn "click" (Decode.succeed ( NoOpFrontendMsg, True ))
@@ -306,6 +334,64 @@ viewHeroCard model hero =
                 [ text (if isFavorite then "★" else "☆") ]
             ]
         ]
+
+
+heroTagline : Hero -> Maybe String
+heroTagline hero =
+    let
+        parts =
+            [ nonEmpty hero.nickname, nonEmpty hero.team ]
+                |> List.filterMap identity
+    in
+    case parts of
+        [] ->
+            Nothing
+
+        _ ->
+            Just (String.join " · " parts)
+
+
+heroMetaChips : Hero -> List String
+heroMetaChips hero =
+    [ nonEmpty hero.stats.favoritePosition
+    , nonEmpty hero.stats.favoriteSubmission
+    , hero.record.titles |> List.head |> Maybe.map String.trim |> Maybe.andThen nonEmpty
+    ]
+        |> List.filterMap identity
+
+
+heroMetaChip : String -> Html msg
+heroMetaChip label =
+    span
+        [ class "inline-flex items-center px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-medium text-gray-700 dark:text-gray-200" ]
+        [ text label ]
+
+
+heroRecordLabel : I18n.Language -> CompetitionRecord -> String
+heroRecordLabel language record =
+    if record.wins == 0 && record.losses == 0 && record.draws == 0 then
+        case language of
+            I18n.FR ->
+                "Record : non unifié"
+
+            I18n.EN ->
+                "Record: not tracked"
+
+    else
+        String.fromInt record.wins ++ " - " ++ String.fromInt record.losses
+
+
+nonEmpty : String -> Maybe String
+nonEmpty str =
+    let
+        trimmed =
+            String.trim str
+    in
+    if trimmed == "" then
+        Nothing
+
+    else
+        Just trimmed
 
 
 weightClassToString : WeightClass -> String
