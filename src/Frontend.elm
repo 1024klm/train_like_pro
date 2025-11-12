@@ -2473,7 +2473,7 @@ viewTechniqueLibraryPage model =
                 ++ passingSection
                 ++ sweepSection
     in
-    div [ class "page-stack" ]
+    div [ class "page-stack page-stack--full" ]
         ( [ pageIntro t.techniqueLibraryTitle t.techniqueLibraryDescription
           , viewTechniqueStats language finishingTotal guardTotal
           , viewTechniqueCategorySelector language sectionFilter
@@ -2643,7 +2643,7 @@ viewTechniqueCategorySelector language selection =
             ]
         , select
             [ id selectId
-            , class "w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            , class "sh-select w-full"
             , onInput (SetTechniqueLibraryFilter << valueToTechniqueSection)
             , Attr.value currentValue
             ]

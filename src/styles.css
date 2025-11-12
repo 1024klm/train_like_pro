@@ -312,6 +312,39 @@ section {
 }
 
 @layer components {
+  /* SHADCN-LIKE PRIMITIVES -------------------------------------------------- */
+  .sh-btn {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-slate-900 text-white hover:bg-slate-900/90 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-50/90;
+  }
+
+  .sh-btn-outline {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-slate-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/60 transition-colors h-10 px-4 py-2;
+  }
+
+  .sh-card {
+    @apply bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm;
+  }
+  .sh-card-header {
+    @apply p-6 border-b border-slate-200 dark:border-slate-700;
+  }
+  .sh-card-title {
+    @apply text-lg font-semibold leading-none tracking-tight;
+  }
+  .sh-card-content {
+    @apply p-6;
+  }
+  .sh-card-footer {
+    @apply p-6 border-t border-slate-200 dark:border-slate-700;
+  }
+
+  .sh-input {
+    @apply form-input;
+  }
+
+  .sh-select {
+    @apply w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500;
+  }
+
   /* NAVBAR PROFESSIONNEL */
   .navbar-modern {
     @apply fixed top-0 left-0 right-0 z-50 bg-white;
@@ -601,11 +634,11 @@ section {
   }
   
   .section-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8;
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10;
   }
   
   .features-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8;
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10;
   }
 
   /* GRADIENTS DE TEXTE */
@@ -984,24 +1017,25 @@ section {
   
   /* Container wide for better centering */
   .container-wide {
-    max-width: 84rem; /* 1344px */
+    max-width: none;
+    width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 2rem; /* 32px */
-    padding-right: 2rem; /* 32px */
+    padding-left: 1rem; /* 16px */
+    padding-right: 1rem; /* 16px */
   }
   
   @media (min-width: 640px) {
     .container-wide {
-      padding-left: 3rem; /* 48px */
-      padding-right: 3rem; /* 48px */
+      padding-left: 1.5rem; /* 24px */
+      padding-right: 1.5rem; /* 24px */
     }
   }
   
   @media (min-width: 1024px) {
     .container-wide {
-      padding-left: 4rem; /* 64px */
-      padding-right: 4rem; /* 64px */
+      padding-left: 2rem; /* 32px */
+      padding-right: 2rem; /* 32px */
     }
   }
 
@@ -1016,21 +1050,30 @@ section {
 
   /* HOMEPAGE PROFESSIONAL SECTIONS */
   .section-stack {
-    @apply py-16 px-6 lg:px-8 bg-white dark:bg-gray-900;
-    max-width: 1280px;
-    margin-left: auto;
-    margin-right: auto;
+    @apply py-20 px-4 lg:px-6 bg-white dark:bg-gray-900;
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .section-header {
-    @apply mb-12 flex items-start justify-between flex-wrap gap-6;
+    @apply mb-16 flex items-start justify-between flex-wrap gap-6;
   }
 
   .page-stack {
-    @apply space-y-12 px-6 lg:px-8 py-12;
-    max-width: 1280px;
-    margin-left: auto;
-    margin-right: auto;
+    @apply space-y-12 px-4 lg:px-6 py-12;
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .page-stack--full {
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
 
   .page-intro {
@@ -1072,7 +1115,7 @@ section {
 
   /* CARD BASE */
   .card {
-    @apply bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300;
+    @apply bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm transition-all duration-300 p-8;
   }
 
   .card:hover {
@@ -1081,7 +1124,7 @@ section {
 
   /* PATH CARDS GRID */
   .path-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8;
   }
 
   .path-card {
@@ -1127,7 +1170,7 @@ section {
 
   /* PLAN CARD */
   .plan-card {
-    @apply p-8 space-y-6;
+    @apply p-10 space-y-8;
   }
 
   .plan-card__header {
@@ -1200,11 +1243,11 @@ section {
 
   /* STATS CARD */
   .stats-card {
-    @apply p-8 space-y-6;
+    @apply p-10 space-y-8;
   }
 
   .stats-grid {
-    @apply grid grid-cols-2 lg:grid-cols-4 gap-6;
+    @apply grid grid-cols-2 lg:grid-cols-4 gap-8;
   }
 
   .stat-card {
@@ -1229,7 +1272,7 @@ section {
 
   /* GOALS CARD */
   .goals-card {
-    @apply p-8 space-y-6;
+    @apply p-10 space-y-8;
   }
 
   .goals-card__header {
