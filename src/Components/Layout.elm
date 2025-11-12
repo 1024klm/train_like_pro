@@ -331,6 +331,7 @@ primaryNavigationItems =
     , { id = "nav-dashboard", labelEn = "Dashboard", labelFr = "Tableau", icon = "📊", route = Dashboard }
     , { id = "nav-heroes", labelEn = "Champions", labelFr = "Champions", icon = "🥋", route = HeroesRoute Nothing }
     , { id = "nav-events", labelEn = "Events", labelFr = "Évènements", icon = "🗓", route = Events AllEvents }
+    , { id = "nav-techniques", labelEn = "Techniques", labelFr = "Techniques", icon = "📘", route = TechniqueLibrary }
     , { id = "nav-training", labelEn = "Training", labelFr = "Entraînement", icon = "💪", route = TrainingView }
     , { id = "nav-profile", labelEn = "Profile", labelFr = "Profil", icon = "👤", route = Profile }
     ]

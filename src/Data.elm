@@ -1020,6 +1020,292 @@ loTechniques =
       }
     ]
 
+type alias TechniqueEntry =
+    { id : String
+    , name : String
+    , description : String
+    , details : List String
+    }
+
+
+type alias TechniqueGroup =
+    { id : String
+    , icon : String
+    , title : String
+    , subtitle : String
+    , entries : List TechniqueEntry
+    }
+
+
+finishingTechniqueGroups : List TechniqueGroup
+finishingTechniqueGroups =
+    [ chokersGroup
+    , armlockGroup
+    , leglockGroup
+    , hybridGroup
+    ]
+
+
+guardTechniqueGroups : List TechniqueGroup
+guardTechniqueGroups =
+    [ basicsGuardGroup
+    , seatedGuardGroup
+    , entanglementGuardGroup
+    , lapelGuardGroup
+    , invertedGuardGroup
+    , topControlGuardGroup
+    , hybridGuardPositions
+    , specialtyGuardGroup
+    ]
+
+
+guardTechniqueNotes : List String
+guardTechniqueNotes =
+    [ "De nombreuses gardes se connectent entre elles : par exemple De La Riva mène souvent au berimbolo puis au dos."
+    , "Certaines gardes sont surtout en kimono (Spider, Lasso, Worm) alors que d'autres restent no-gi friendly (X-guard, SLX, Truck)."
+    , "Maîtriser 3 à 5 gardes solides (fermée, demi/deep half, papillon, De La Riva, X-guard) couvre l’essentiel des options compétitives."
+    , "Les gardes modernes mixent balayages + entanglements de jambes + berimbolos : comprendre les transitions vaut plus que mémoriser chaque nom."
+    ]
+
+
+chokersGroup : TechniqueGroup
+chokersGroup =
+    { id = "chokes"
+    , icon = "🔒"
+    , title = "Étranglements (Chokes)"
+    , subtitle = "Depuis la garde, le dos ou le dessus"
+    , entries =
+        [ choke "rear-naked" "Rear Naked Choke (Mata Leão)" "L’étranglement arrière classique sans prise au col." [ "Verrouillage main-biceps", "Pression de la tête pour fermer l’espace" ]
+        , choke "bow-arrow" "Bow and Arrow Choke" "Se termine en tirant sur le col comme un arc pour couper la circulation." [ "Contrôle des hanches au-dessus", "Extension du tronc pour finaliser" ]
+        , choke "cross-collar" "Cross Collar Choke" "Étranglement croisé dans le gi utilisant les revers." [ "Poignets profonds", "Tirer les coudes vers les hanches" ]
+        , choke "ezekiel" "Ezekiel Choke" "Étranglement depuis la monture ou la garde fermée avec l’avant-bras." [ "Main dans la manche", "Tranchant de l’avant-bras sur la trachée" ]
+        , choke "loop" "Loop Choke" "Variation rapide depuis la prise de guillotine en gi." [ "Bras sous la nuque", "Rotation autour de la tête de l’adversaire" ]
+        , choke "guillotine" "Guillotine" "Étranglement frontal, parfait contre les projections basses." [ "Verrou main sur main", "Hanches vers l’avant pour couper l’air" ]
+        , choke "arm-triangle" "Arm Triangle (Katagatame)" "Utilise son bras et celui de l’adversaire pour enfermer le cou." [ "Front collé au tapis", "Angles à 90° du tronc" ]
+        , choke "darce" "D’Arce Choke" "Étranglement enroulé autour du cou et du bras depuis le front-headlock." [ "Main en profondeur sous l’aisselle", "Verrouillage main-biceps" ]
+        , choke "anaconda" "Anaconda Choke" "Variation inversée du d’Arce avec roulade." [ "Roulade contrôlée vers le côté", "Compression des coudes" ]
+        , choke "north-south" "North-South Choke" "Étranglement en north-south avec grip main à main." [ "Épaules au sol", "Poitrine reposée sur la mâchoire" ]
+        , choke "clock" "Clock Choke" "Étranglement de l’horloge depuis la prise de dos en turtle." [ "Poing profond dans le col", "Marche autour du corps" ]
+        , choke "paper-cutter" "Paper Cutter Choke" "Utilise une main profonde au col et une tranche nette." [ "Prise croisée", "Épaules abaissées pour couper" ]
+        , choke "baseball-bat" "Baseball Bat Choke" "Étranglement en rotation depuis la garde inversée." [ "Poignets inversés comme une batte", "Rotation explosive des hanches" ]
+        , choke "triangle" "Triangle Choke" "Étranglement en triangle classique (Sankaku)." [ "Pied sous le genou opposé", "Orientation des hanches" ]
+        , choke "reverse-triangle" "Reverse Triangle" "Triangle inversé depuis la monture ou le dos." [ "Verrou depuis l’arrière", "Compression des hanches" ]
+        , choke "gogoplata" "Gogoplata" "Utilise le tibia/pied contre la trachée." [ "Pied au-dessus du visage", "Saisir derrière la tête" ]
+        , choke "omoplata-choke" "Omoplata Choke" "Variation étranglement à partir de l’omoplata." [ "Pied derrière la nuque", "Tirer le col vers le bas" ]
+        ]
+    }
+
+
+armlockGroup : TechniqueGroup
+armlockGroup =
+    { id = "armlocks"
+    , icon = "💪"
+    , title = "Clés de bras (Armlocks)"
+    , subtitle = "Hyperextensions sur le coude/épaule"
+    , entries =
+        [ armlock "armbar" "Armbar (Juji Gatame)" "Hyperextension directe du coude depuis la garde ou la monture." [ "Genoux serrés", "Pouce vers le plafond" ]
+        , armlock "kimura" "Kimura" "Clé d’épaule en rotation externe." [ "Poignet contrôlé", "Angle du torse à 90°" ]
+        , armlock "americana" "Americana" "Clé de l’épaule en rotation interne." [ "Poignet collé au tapis", "Glisser le coude vers la tête" ]
+        , armlock "straight-arm" "Straight Arm Lock" "Hyperextension directe en serrant les coudes." [ "Points de pression sur l’articulation", "Pousser les hanches" ]
+        , armlock "bicep-slicer" "Bicep Slicer" "Écrasement du biceps via l’avant-bras ou la tibia." [ "Créer un point dur", "Tirer l’avant-bras vers soi" ]
+        , armlock "wrist-lock" "Wrist Lock" "Clé de poignet en flexion/extension." [ "Contrôler l’avant-bras", "Petit arc de cercle pour finaliser" ]
+        ]
+    }
+
+
+leglockGroup : TechniqueGroup
+leglockGroup =
+    { id = "leglocks"
+    , icon = "🦵"
+    , title = "Attaques de jambes (Leg Locks)"
+    , subtitle = "Clés de cheville, genou et entanglements"
+    , entries =
+        [ leglock "straight-ankle" "Straight Ankle Lock" "Clé de cheville basique avec levier sur le talon." [ "Support sous les hanches", "Pied sur la hanche adverse" ]
+        , leglock "heel-hook" "Heel Hook (inside/outside)" "Rotation du talon pour torsion du genou." [ "Contrôler le genou", "Rotation lente et contrôlée" ]
+        , leglock "toe-hold" "Toe Hold" "Clé du pied en flexion avec prise en croissant." [ "Poignets alignés", "Coude collé au buste" ]
+        , leglock "kneebar" "Kneebar" "Hyperextension du genou façon armbar." [ "Hanches collées au fémur", "Pied coincé sous l’aisselle" ]
+        , leglock "calf-slicer" "Calf Slicer" "Écrasement du mollet contre un point dur." [ "Tibia derrière la jambe", "Verrouillage ferme des jambes" ]
+        , leglock "estima-lock" "Estima Lock" "Clé explosive sur la cheville lors du passage de garde." [ "Serrer les poignets", "Rotation vers l’extérieur" ]
+        , leglock "5050-heel-hook" "50/50 Heel Hook" "Version depuis la position 50/50." [ "Pieds croisés pour empêcher la fuite", "Contrôle des hanches adverse" ]
+        , leglock "outside-ashi" "Outside Ashi Garami" "Entrée spécifique vers le heel hook extérieur." [ "Genou aligné sur la hanche", "Pied opposé en crochet" ]
+        , leglock "inside-ashi" "Inside Ashi Garami" "Entrée inside pour attaquer la jambe proche." [ "Genou enfermé entre les cuisses", "Déplacement sur le côté" ]
+        ]
+    }
+
+
+hybridGroup : TechniqueGroup
+hybridGroup =
+    { id = "hybrids"
+    , icon = "⚙️"
+    , title = "Soumissions hybrides & transitions"
+    , subtitle = "Combinaisons articulaire + strangulation"
+    , entries =
+        [ hybrid "omoplata" "Omoplata" "Clé d’épaule via les jambes pouvant se transformer en étranglement." [ "Tête tournée vers les hanches", "Lever les hanches pour fermer" ]
+        , hybrid "triangle-armbar" "Triangle-Armbar Combos" "Transitions rapides entre triangle et armbar." [ "Maintenir la posture cassée", "Replacer le pied sous le genou" ]
+        , hybrid "mounted-triangle" "Mounted Triangle" "Triangle monté pour option étranglement ou clé de bras." [ "Genou sous l’aisselle", "Poids projeté vers l’avant" ]
+        , hybrid "armbar-back" "Armbar depuis le dos" "Finition en glissant sur la hanche depuis le back control." [ "Crochet intérieur conservé", "Main sur le pouce adverse" ]
+        , hybrid "crucifix" "Crucifix Choke" "Contrôle en croix offrant étranglement et clés." [ "Coincer le bras avec les jambes", "Tirer le col vers l’arrière" ]
+        , hybrid "twister" "Truck / Twister" "Système 10th Planet combinant torsion vertébrale et étranglement." [ "Hook du truck collé", "Verrou sur la nuque" ]
+        , hybrid "peruvian" "Peruvian Necktie" "Étranglement hybride depuis le front headlock." [ "Bras profond sous la nuque", "S’asseoir sur la nuque" ]
+        , hybrid "banana-split" "Banana Split" "Écartèlement des jambes (souvent no-gi/grappling)." [ "Hook sur chaque jambe", "Tirer les hanches vers soi" ]
+        ]
+    }
+
+
+choke : String -> String -> String -> List String -> TechniqueEntry
+choke =
+    techniqueEntry
+
+
+armlock : String -> String -> String -> List String -> TechniqueEntry
+armlock =
+    techniqueEntry
+
+
+leglock : String -> String -> String -> List String -> TechniqueEntry
+leglock =
+    techniqueEntry
+
+
+hybrid : String -> String -> String -> List String -> TechniqueEntry
+hybrid =
+    techniqueEntry
+
+
+techniqueEntry : String -> String -> String -> List String -> TechniqueEntry
+techniqueEntry id name description details =
+    { id = id
+    , name = name
+    , description = description
+    , details = details
+    }
+
+
+basicsGuardGroup : TechniqueGroup
+basicsGuardGroup =
+    { id = "guards-basics"
+    , icon = "🛡️"
+    , title = "Gardes fermées & basiques"
+    , subtitle = "Contrôles fondamentaux pour ralentir ou attaquer"
+    , entries =
+        [ guardEntry "closed-guard" "Closed Guard" "Jambes croisées autour du torse pour contrôler posture et distance." [ "Armbar, triangle, kimura", "Balayages hip bump et pendule" ]
+        , guardEntry "open-guard" "Open Guard" "Pieds non croisés, base pour transiter vers d’autres gardes." [ "Balayages basiques", "Entrées vers De La Riva, X" ]
+        , guardEntry "half-guard" "Half Guard" "Une jambe entre les jambes de l’adversaire, variations gi/no-gi." [ "Kimura, back take", "Passage vers deep half" ]
+        , guardEntry "deep-half" "Deep Half Guard" "Version enfouie sous l’adversaire pour renverser facilement." [ "Balayages explosifs", "Sorties vers X-guard" ]
+        ]
+    }
+
+
+seatedGuardGroup : TechniqueGroup
+seatedGuardGroup =
+    { id = "guards-seated"
+    , icon = "🧘"
+    , title = "Gardes assises & papillon"
+    , subtitle = "Idéales pour attaquer en no-gi et en compétitions modernes"
+    , entries =
+        [ guardEntry "butterfly" "Butterfly Guard" "Crochets sous les cuisses avec contrôle du haut du corps." [ "Balayages papillon", "Guillotine, prise de dos" ]
+        , guardEntry "seated-open" "Seated Open Guard" "Position assise, contrôles manches/pantalons ou col." [ "Balayages rapides", "Entrées vers X et leg locks" ]
+        , guardEntry "single-leg-x" "Single Leg X" "Contrôle d’une jambe depuis la position assise." [ "Balayages vers montée", "Transitions leg lock" ]
+        , guardEntry "shin-to-shin" "Shin-to-Shin Guard" "Tibia contre le tibia adverse pour lancer les attaques de jambes." [ "Entrées SLX", "Balayages sur base debout" ]
+        ]
+    }
+
+
+entanglementGuardGroup : TechniqueGroup
+entanglementGuardGroup =
+    { id = "guards-entanglements"
+    , icon = "🦾"
+    , title = "Gardes d’enchevêtrement de jambes"
+    , subtitle = "Plateformes pour sweeps et leg locks"
+    , entries =
+        [ guardEntry "x-guard" "X-Guard" "Position basse avec jambes en croix sous l’adversaire." [ "Balayages latéraux", "Entrées sur leg lock" ]
+        , guardEntry "5050" "50/50 Guard" "Garde symétrique jambes entremêlées." [ "Heel hook, toe hold", "Balayages contrôlés" ]
+        , guardEntry "outside-ashi" "Outside / Inside Ashi" "Familles Ashi Garami pour verrouiller une jambe." [ "Heel hook inside/outside", "Transitions kneebar" ]
+        , guardEntry "saddle-truck" "Saddle / Truck" "Contrôles façon 10th Planet pour twister ou prendre le dos." [ "Twister / back take", "Heel hooks combinés" ]
+        ]
+    }
+
+
+lapelGuardGroup : TechniqueGroup
+lapelGuardGroup =
+    { id = "guards-lapel"
+    , icon = "🪢"
+    , title = "Gardes De La Riva & lapels"
+    , subtitle = "Utilisation des manches et revers pour piéger"
+    , entries =
+        [ guardEntry "de-la-riva" "De La Riva" "Pied accroché autour de la cuisse extérieure, base gi." [ "Balayages, berimbolo", "Prise de dos" ]
+        , guardEntry "reverse-dlr" "Reverse De La Riva" "Crochet inversé pour casser la base et inverser." [ "Counter knee slice", "Entrées leg drag" ]
+        , guardEntry "spider" "Spider Guard" "Pieds sur biceps/hips avec contrôle des manches." [ "Triangles, lasso", "Balayages directionnels" ]
+        , guardEntry "lasso" "Lasso Guard" "Pied enroulé autour du bras pour figer l’adversaire." [ "Sweeps lasso", "Transitions vers dos" ]
+        , guardEntry "lapel-guard" "Lapel / Collar Guard" "Utilisation du col pour multiplier les leviers." [ "Bow & arrow setups", "Berimbolo gi" ]
+        , guardEntry "worm-guard" "Worm Guard" "Système Kenan basé sur le lapel pour entanglements." [ "Sweeps gyroscopiques", "Contrôle des hanches" ]
+        ]
+    }
+
+
+invertedGuardGroup : TechniqueGroup
+invertedGuardGroup =
+    { id = "guards-inverted"
+    , icon = "🌀"
+    , title = "Gardes inversées & modernes"
+    , subtitle = "Approches aériennes pour renversements et prises de dos"
+    , entries =
+        [ guardEntry "inverted" "Inverted Guard" "Vie sur les épaules pour attaquer triangle / berimbolo." [ "Berimbolo", "Entrées sur dos" ]
+        , guardEntry "inverted-x" "Inverted X / Butterfly Inverted" "Variation inversée des gardes papillon/X." [ "Regarder vers les pieds", "Revenir sur le dos" ]
+        , guardEntry "rubber-guard" "Rubber Guard" "Garde haute avec jambe enroulée autour du cou." [ "Gogoplata", "Omoplata, triangle" ]
+        , guardEntry "knee-shield" "Knee Shield (Z-Guard)" "Genou en bouclier pour garder la distance." [ "Shrimp + underhook", "Attaques sur kimura et sweeps" ]
+        , guardEntry "tornado" "Tornado / Helicopter Guard" "Entrées dynamiques type tornado pour legs et dos." [ "Balayages tornado", "Truck entries" ]
+        ]
+    }
+
+
+topControlGuardGroup : TechniqueGroup
+topControlGuardGroup =
+    { id = "guards-top-control"
+    , icon = "🧱"
+    , title = "Contrôles depuis le dessus"
+    , subtitle = "Options pour immobiliser avant de passer"
+    , entries =
+        [ guardEntry "reverse-dlr-top" "Reverse De La Riva Top" "Contrôler la jambe en position debout ou à genoux." [ "Entrées leg drag", "X-pass" ]
+        , guardEntry "top-x" "Top X Entries" "Variante pour verrouiller les hanches avant la montée." [ "Casser la base", "Passage sur l’autre côté" ]
+        , guardEntry "mount-type-guards" "Mount-Type Guards" "Postures fermées en haut avant d’attaquer." [ "Transitions vers armbar", "Isolations d’épaules" ]
+        , guardEntry "combat-base" "Combat Base / Knee Slice" "Position à genoux pour préparer knee slice." [ "Pression sur le torse", "Passage en diagonale" ]
+        ]
+    }
+
+
+hybridGuardPositions : TechniqueGroup
+hybridGuardPositions =
+    { id = "guards-hybrid"
+    , icon = "⚔️"
+    , title = "Gardes hybrides & compétitions"
+    , subtitle = "Mix berimbolo, leg entanglements et back takes"
+    , entries =
+        [ guardEntry "berimbolo" "Berimbolo" "Séquence De La Riva → dos / 50/50." [ "Inversions contrôlées", "Finir sur seatbelt" ]
+        , guardEntry "truck" "Truck / Twister" "Chemin 10th Planet orienté soumissions hybrides." [ "Twister, back take", "Entrées sur jambes" ]
+        , guardEntry "single-leg-x-sweep" "Single Leg X transitions" "Basculer entre SLX, 50/50 et leg locks." [ "Balayages sur base debout", "Switch vers saddle" ]
+        ]
+    }
+
+
+specialtyGuardGroup : TechniqueGroup
+specialtyGuardGroup =
+    { id = "guards-specialty"
+    , icon = "🧩"
+    , title = "Variantes spécialisées"
+    , subtitle = "Gardiens utiles pour ralentir ou surprendre"
+    , entries =
+        [ guardEntry "quarter-guard" "Quarter Guard" "Entre demi-garde et open guard pour casser le rythme." [ "Retarder le passage", "Créer un underhook" ]
+        , guardEntry "lockdown" "Lockdown" "Contrôle croisé des chevilles depuis demi-garde." [ "Balayage electric chair", "Transitions no-gi" ]
+        , guardEntry "situp-lockdown" "Sit-up to Lockdown" "Combinaison moderne pour agripper la jambe." [ "Goon sweep", "Entrées sur truck" ]
+        ]
+    }
+
+
+guardEntry : String -> String -> String -> List String -> TechniqueEntry
+guardEntry =
+    techniqueEntry
+
 
 gordonVideos : List Types.Video
 gordonVideos =
