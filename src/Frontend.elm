@@ -73,6 +73,7 @@ init url key =
             , clientId = ""
             , mobileMenuOpen = False
             , searchQuery = ""
+            , techniqueLibraryFilter = Nothing
             , activeFilters =
                 { heroFilter = Nothing
                 , academyLocation = Nothing
@@ -365,6 +366,11 @@ update msg model =
                     model.animations
             in
             ( { model | animations = { animations | scrollProgress = animations.scrollProgress + 0.01 } }
+            , Cmd.none
+            )
+
+        SetTechniqueLibraryFilter selection ->
+            ( { model | techniqueLibraryFilter = selection }
             , Cmd.none
             )
 
@@ -2420,22 +2426,114 @@ viewTechniqueLibraryPage model =
 
         guardTotal =
             guardGroups |> List.concatMap .entries |> List.length
+
+        sectionFilter =
+            model.techniqueLibraryFilter
+
+        finishingSection =
+            if sectionVisible sectionFilter FinishingSection then
+                [ section [ class "card space-y-6" ]
+                    [ viewTechniqueSectionHeading language FinishingSection
+                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) finishingGroups)
+                    , viewTechniqueSummary language finishingTechniqueSummary
+                    ]
+                ]
+
+            else
+                []
+
+        guardSection =
+            if sectionVisible sectionFilter GuardSection then
+                [ section [ class "card space-y-6" ]
+                    [ viewTechniqueSectionHeading language GuardSection
+                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) guardGroups)
+                    ]
+                ]
+
+            else
+                []
+
+        passingSection =
+            if sectionVisible sectionFilter PassingSection then
+                [ viewTechniqueComingSoon language PassingSection ]
+
+            else
+                []
+
+        sweepSection =
+            if sectionVisible sectionFilter SweepSection then
+                [ viewTechniqueComingSoon language SweepSection ]
+
+            else
+                []
+
+        techniqueSections =
+            finishingSection
+                ++ guardSection
+                ++ passingSection
+                ++ sweepSection
     in
     div [ class "page-stack" ]
-        [ pageIntro t.techniqueLibraryTitle t.techniqueLibraryDescription
-        , viewTechniqueStats language finishingTotal guardTotal
-        , viewTechniqueQuickNav language
-        , section [ class "card space-y-6" ]
-            [ viewTechniqueSectionHeading language FinishingSection
-            , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) finishingGroups)
-            , viewTechniqueSummary language finishingTechniqueSummary
-            ]
-        , section [ class "card space-y-6" ]
-            [ viewTechniqueSectionHeading language GuardSection
-            , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) guardGroups)
-            ]
-        , viewTechniqueNotes language Data.guardTechniqueNotes
-        ]
+        ( [ pageIntro t.techniqueLibraryTitle t.techniqueLibraryDescription
+          , viewTechniqueStats language finishingTotal guardTotal
+          , viewTechniqueCategorySelector language sectionFilter
+          ]
+            ++ techniqueSections
+            ++ [ viewTechniqueNotes language Data.guardTechniqueNotes ]
+        )
+
+
+sectionVisible : Maybe TechniqueSection -> TechniqueSection -> Bool
+sectionVisible filter selection =
+    case filter of
+        Nothing ->
+            True
+
+        Just picked ->
+            picked == selection
+
+
+techniqueSectionValue : Maybe TechniqueSection -> String
+techniqueSectionValue maybeSection =
+    case maybeSection of
+        Nothing ->
+            "all"
+
+        Just section ->
+            case section of
+                FinishingSection ->
+                    "finishing"
+
+                GuardSection ->
+                    "guard"
+
+                PassingSection ->
+                    "passing"
+
+                SweepSection ->
+                    "sweep"
+
+
+valueToTechniqueSection : String -> Maybe TechniqueSection
+valueToTechniqueSection value =
+    case value of
+        "all" ->
+            Nothing
+
+        "finishing" ->
+            Just FinishingSection
+
+        "guard" ->
+            Just GuardSection
+
+        "passing" ->
+            Just PassingSection
+
+        "sweep" ->
+            Just SweepSection
+
+        _ ->
+            Nothing
 
 localizeText : I18n.Language -> Data.LocalizedString -> String
 localizeText language value =
@@ -2467,6 +2565,9 @@ viewTechniqueStats language finishingTotal guardTotal =
                     , notes = "Practical notes"
                     , sections = "Sections"
                     }
+
+        totalSections =
+            4
     in
     section [ class "card space-y-4" ]
         [ h3 [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text labels.heading ]
@@ -2474,7 +2575,7 @@ viewTechniqueStats language finishingTotal guardTotal =
             [ techStatCard "🗡️" labels.submissions (String.fromInt finishingTotal)
             , techStatCard "🛡️" labels.guards (String.fromInt guardTotal)
             , techStatCard "📝" labels.notes (String.fromInt (List.length Data.guardTechniqueNotes))
-            , techStatCard "📚" labels.sections "2"
+            , techStatCard "📚" labels.sections (String.fromInt totalSections)
             ]
         ]
 
@@ -2491,32 +2592,64 @@ techStatCard icon label value =
         ]
 
 
-viewTechniqueQuickNav : I18n.Language -> Html Msg
-viewTechniqueQuickNav language =
+viewTechniqueCategorySelector : I18n.Language -> Maybe TechniqueSection -> Html Msg
+viewTechniqueCategorySelector language selection =
     let
-        ( finishingLabel, guardLabel, titleLabel ) =
+        selectId =
+            "technique-library-filter"
+
+        ( titleLabel, helperLabel, options ) =
             case language of
                 I18n.FR ->
-                    ( "Aller aux soumissions", "Aller aux gardes", "Navigation rapide" )
+                    ( "Choisis ta catégorie"
+                    , "Mets l'accent sur une famille de techniques."
+                    , [ ( Nothing, "Toutes les catégories" )
+                      , ( Just FinishingSection, "Soumissions" )
+                      , ( Just GuardSection, "Gardes" )
+                      , ( Just PassingSection, "Passages (bientôt)" )
+                      , ( Just SweepSection, "Renversements (bientôt)" )
+                      ]
+                    )
 
                 I18n.EN ->
-                    ( "Jump to submissions", "Jump to guards", "Quick navigation" )
+                    ( "Choose your focus"
+                    , "Highlight one family of techniques at a time."
+                    , [ ( Nothing, "All categories" )
+                      , ( Just FinishingSection, "Submissions" )
+                      , ( Just GuardSection, "Guards" )
+                      , ( Just PassingSection, "Passing (soon)" )
+                      , ( Just SweepSection, "Sweeps (soon)" )
+                      ]
+                    )
+
+        currentValue =
+            techniqueSectionValue selection
+
+        optionView ( optionSelection, labelText ) =
+            let
+                optionValue =
+                    techniqueSectionValue optionSelection
+            in
+            option
+                [ Attr.value optionValue
+                , Attr.selected (optionValue == currentValue)
+                ]
+                [ text labelText ]
     in
-    section [ class "card flex flex-wrap items-center gap-3" ]
-        [ span [ class "text-sm font-semibold text-gray-600 dark:text-gray-300" ] [ text titleLabel ]
-        , quickNavChip "#finishing-techniques" finishingLabel "🗡️"
-        , quickNavChip "#guard-techniques" guardLabel "🛡️"
+    section [ class "card space-y-3" ]
+        [ div [ class "flex flex-wrap items-center justify-between gap-3" ]
+            [ label [ Attr.for selectId, class "text-base font-semibold text-slate-900 dark:text-white" ] [ text titleLabel ]
+            , span [ class "text-xs text-gray-500 dark:text-gray-400" ] [ text helperLabel ]
+            ]
+        , select
+            [ id selectId
+            , class "w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            , onInput (SetTechniqueLibraryFilter << valueToTechniqueSection)
+            , Attr.value currentValue
+            ]
+            (List.map optionView options)
         ]
 
-
-quickNavChip : String -> String -> String -> Html Msg
-quickNavChip href label iconGlyph =
-    a
-        [ Attr.href href
-        , class "chip chip--outline inline-flex items-center gap-2" ]
-        [ span [] [ text iconGlyph ]
-        , span [] [ text label ]
-        ]
 
 viewTechniqueGroup : I18n.Language -> Data.TechniqueGroup -> Html Msg
 viewTechniqueGroup language group =
@@ -2569,22 +2702,38 @@ viewTechniqueSummary language rows =
             )
         ]
 
+techniqueSectionId : TechniqueSection -> String
+techniqueSectionId section =
+    case section of
+        FinishingSection ->
+            "finishing-techniques"
 
-type TechniqueSection
-    = FinishingSection
-    | GuardSection
+        GuardSection ->
+            "guard-techniques"
+
+        PassingSection ->
+            "passing-techniques"
+
+        SweepSection ->
+            "sweep-techniques"
 
 
 viewTechniqueSectionHeading : I18n.Language -> TechniqueSection -> Html Msg
-viewTechniqueSectionHeading language section =
+viewTechniqueSectionHeading language techSection =
     let
         title =
-            case ( language, section ) of
+            case ( language, techSection ) of
                 ( I18n.FR, FinishingSection ) ->
                     "Soumissions de finition"
 
                 ( I18n.FR, GuardSection ) ->
                     "Gardes et contrôles"
+
+                ( I18n.FR, PassingSection ) ->
+                    "Passages et passing"
+
+                ( I18n.FR, SweepSection ) ->
+                    "Renversements"
 
                 ( I18n.EN, FinishingSection ) ->
                     "Finishing submissions"
@@ -2592,31 +2741,89 @@ viewTechniqueSectionHeading language section =
                 ( I18n.EN, GuardSection ) ->
                     "Guards and controls"
 
-        sectionId =
-            case section of
-                FinishingSection ->
-                    "finishing-techniques"
+                ( I18n.EN, PassingSection ) ->
+                    "Passing systems"
 
-                GuardSection ->
-                    "guard-techniques"
+                ( I18n.EN, SweepSection ) ->
+                    "Sweeps"
+
+        sectionId =
+            techniqueSectionId techSection
 
         subtitle =
-            case ( language, section ) of
+            case ( language, techSection ) of
                 ( I18n.FR, FinishingSection ) ->
                     "Étudie les étranglements, clés et hybrides essentiels."
 
                 ( I18n.FR, GuardSection ) ->
                     "Maîtrise les gardes traditionnelles et modernes pour contrôler le combat."
 
+                ( I18n.FR, PassingSection ) ->
+                    "Cartographie des passings modernes : demi-garde, body lock, toreando..."
+
+                ( I18n.FR, SweepSection ) ->
+                    "Tous les renversements clés arrivent très bientôt."
+
                 ( I18n.EN, FinishingSection ) ->
                     "Study the most used chokes, joint locks, and hybrids."
 
                 ( I18n.EN, GuardSection ) ->
                     "Master the classic and modern guard systems to control the match."
+
+                ( I18n.EN, PassingSection ) ->
+                    "Mapping modern passes: half guard, body lock, toreando, and more."
+
+                ( I18n.EN, SweepSection ) ->
+                    "All essential sweeps are coming online shortly."
     in
     div [ Attr.id sectionId, class "space-y-1" ]
         [ h2 [ class "text-2xl font-bold text-slate-900 dark:text-white" ] [ text title ]
         , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text subtitle ]
+        ]
+
+
+viewTechniqueComingSoon : I18n.Language -> TechniqueSection -> Html Msg
+viewTechniqueComingSoon language techSection =
+    let
+        ( badgeLabel, message, icon ) =
+            case ( language, techSection ) of
+                ( I18n.FR, PassingSection ) ->
+                    ( "À venir"
+                    , "Nous finalisons les séquences de passings : demi-garde, body lock, toreando, etc."
+                    , "🚧"
+                    )
+
+                ( I18n.FR, SweepSection ) ->
+                    ( "À venir"
+                    , "Tous les renversements majeurs (papillon, X-guard, De La Riva...) arrivent très bientôt."
+                    , "🔄"
+                    )
+
+                ( I18n.EN, PassingSection ) ->
+                    ( "Coming soon"
+                    , "We are mapping the full suite of passing chains: half guard, body lock, toreando, and more."
+                    , "🚧"
+                    )
+
+                ( I18n.EN, SweepSection ) ->
+                    ( "Coming soon"
+                    , "A complete sweep atlas (butterfly, X-guard, de la Riva...) is on the way."
+                    , "🔄"
+                    )
+
+                _ ->
+                    ( "Coming soon", "New content is on the way.", "🚧" )
+    in
+    section [ class "card space-y-4" ]
+        [ viewTechniqueSectionHeading language techSection
+        , div [ class "surface-card p-5 flex items-start gap-3" ]
+            [ span [ class "text-3xl" ] [ text icon ]
+            , div [ class "space-y-2" ]
+                [ span [ class "inline-flex items-center rounded-full bg-indigo-50 dark:bg-slate-800 px-3 py-1 text-xs font-semibold text-indigo-700 dark:text-indigo-300" ]
+                    [ text badgeLabel ]
+                , p [ class "text-sm text-gray-600 dark:text-gray-300" ] [ text message ]
+                ]
+            ]
         ]
 
 

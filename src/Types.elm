@@ -173,6 +173,13 @@ type TechniqueCategory
     | SweepTechnique
 
 
+type TechniqueSection
+    = FinishingSection
+    | GuardSection
+    | PassingSection
+    | SweepSection
+
+
 type Difficulty
     = Beginner
     | Intermediate
@@ -704,6 +711,7 @@ type alias FrontendModel =
     -- Navigation
     , mobileMenuOpen : Bool
     , searchQuery : String
+    , techniqueLibraryFilter : Maybe TechniqueSection
     , activeFilters : Filters
     
     -- Data
@@ -897,6 +905,7 @@ type FrontendMsg
     | ShowNotification NotificationType String
     | DismissNotification String
     | ScrollToSection String
+    | SetTechniqueLibraryFilter (Maybe TechniqueSection)
     | AnimationTick Time.Posix
     | ClaimPlanXP String Int
 
