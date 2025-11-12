@@ -2427,15 +2427,25 @@ viewTechniqueLibraryPage model =
         , viewTechniqueQuickNav language
         , section [ class "card space-y-6" ]
             [ viewTechniqueSectionHeading language FinishingSection
-            , div [ class "space-y-6" ] (List.map viewTechniqueGroup finishingGroups)
+            , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) finishingGroups)
             , viewTechniqueSummary language finishingTechniqueSummary
             ]
         , section [ class "card space-y-6" ]
             [ viewTechniqueSectionHeading language GuardSection
-            , div [ class "space-y-6" ] (List.map viewTechniqueGroup guardGroups)
+            , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) guardGroups)
             ]
         , viewTechniqueNotes language Data.guardTechniqueNotes
         ]
+
+localizeText : I18n.Language -> Data.LocalizedString -> String
+localizeText language value =
+    case language of
+        I18n.FR ->
+            value.fr
+
+        I18n.EN ->
+            value.en
+
 
 viewTechniqueStats : I18n.Language -> Int -> Int -> Html Msg
 viewTechniqueStats language finishingTotal guardTotal =
@@ -2508,28 +2518,28 @@ quickNavChip href label iconGlyph =
         , span [] [ text label ]
         ]
 
-viewTechniqueGroup : Data.TechniqueGroup -> Html Msg
-viewTechniqueGroup group =
+viewTechniqueGroup : I18n.Language -> Data.TechniqueGroup -> Html Msg
+viewTechniqueGroup language group =
     div [ class "space-y-3" ]
         [ div [ class "flex items-center gap-3" ]
             [ span [ class "text-3xl" ] [ text group.icon ]
             , div []
-                [ h3 [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text group.title ]
-                , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text group.subtitle ]
+                [ h3 [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text (localizeText language group.title) ]
+                , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text (localizeText language group.subtitle) ]
                 ]
             ]
         , div [ class "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" ]
-            (List.map viewTechniqueEntry group.entries)
+            (List.map (viewTechniqueEntry language) group.entries)
         ]
 
 
-viewTechniqueEntry : Data.TechniqueEntry -> Html Msg
-viewTechniqueEntry entry =
+viewTechniqueEntry : I18n.Language -> Data.TechniqueEntry -> Html Msg
+viewTechniqueEntry language entry =
     div [ class "surface-card p-4 space-y-2" ]
-        [ h4 [ class "text-base font-semibold text-slate-900 dark:text-white" ] [ text entry.name ]
-        , p [ class "text-sm text-gray-500 dark:text-gray-400 leading-relaxed" ] [ text entry.description ]
+        [ h4 [ class "text-base font-semibold text-slate-900 dark:text-white" ] [ text (localizeText language entry.name) ]
+        , p [ class "text-sm text-gray-500 dark:text-gray-400 leading-relaxed" ] [ text (localizeText language entry.description) ]
         , ul [ class "list-disc list-inside text-xs text-gray-500 dark:text-gray-400 space-y-1" ]
-            (List.map (\detail -> li [] [ text detail ]) entry.details)
+            (List.map (\detail -> li [] [ text (localizeText language detail) ]) entry.details)
         ]
 
 
@@ -2550,9 +2560,9 @@ viewTechniqueSummary language rows =
             (List.map
                 (\row ->
                     div [ class "surface-card p-4 space-y-1" ]
-                        [ p [ class "text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400" ] [ text row.category ]
-                        , p [ class "text-base font-semibold text-slate-900 dark:text-white" ] [ text row.examples ]
-                        , p [ class "text-xs text-gray-500 dark:text-gray-400" ] [ text row.target ]
+                        [ p [ class "text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400" ] [ text (localizeText language row.category) ]
+                        , p [ class "text-base font-semibold text-slate-900 dark:text-white" ] [ text (localizeText language row.examples) ]
+                        , p [ class "text-xs text-gray-500 dark:text-gray-400" ] [ text (localizeText language row.target) ]
                         ]
                 )
                 rows
@@ -2610,7 +2620,7 @@ viewTechniqueSectionHeading language section =
         ]
 
 
-viewTechniqueNotes : I18n.Language -> List String -> Html Msg
+viewTechniqueNotes : I18n.Language -> List Data.LocalizedString -> Html Msg
 viewTechniqueNotes language notes =
     let
         title =
@@ -2624,7 +2634,7 @@ viewTechniqueNotes language notes =
     section [ class "card space-y-4" ]
         [ h3 [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text title ]
         , ul [ class "list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300" ]
-            (List.map (\note -> li [] [ text note ]) notes)
+            (List.map (\note -> li [] [ text (localizeText language note) ]) notes)
         ]
 
 
@@ -2645,33 +2655,33 @@ viewProgressPage model =
 
 
 type alias TechniqueSummaryRow =
-    { category : String
-    , examples : String
-    , target : String
+    { category : Data.LocalizedString
+    , examples : Data.LocalizedString
+    , target : Data.LocalizedString
     }
 
 
 finishingTechniqueSummary : List TechniqueSummaryRow
 finishingTechniqueSummary =
-    [ { category = "Étranglements"
-      , examples = "RNC, Guillotine, Triangle"
-      , target = "Cou / respiration"
+    [ { category = Data.localized "Chokes" "Étranglements"
+      , examples = Data.localized "RNC, Guillotine, Triangle" "RNC, Guillotine, Triangle"
+      , target = Data.localized "Neck / breathing" "Cou / respiration"
       }
-    , { category = "Clés bras"
-      , examples = "Armbar, Kimura, Americana"
-      , target = "Coude / épaule"
+    , { category = Data.localized "Arm locks" "Clés bras"
+      , examples = Data.localized "Armbar, Kimura, Americana" "Armbar, Kimura, Americana"
+      , target = Data.localized "Elbow / shoulder" "Coude / épaule"
       }
-    , { category = "Clés jambes"
-      , examples = "Heel Hook, Toe Hold, Kneebar"
-      , target = "Cheville / genou"
+    , { category = Data.localized "Leg locks" "Clés jambes"
+      , examples = Data.localized "Heel Hook, Toe Hold, Kneebar" "Heel Hook, Toe Hold, Kneebar"
+      , target = Data.localized "Ankle / knee" "Cheville / genou"
       }
-    , { category = "Écrasements"
-      , examples = "Bicep Slicer, Calf Slicer"
-      , target = "Muscles / nerfs"
+    , { category = Data.localized "Compression locks" "Écrasements"
+      , examples = Data.localized "Bicep Slicer, Calf Slicer" "Bicep Slicer, Calf Slicer"
+      , target = Data.localized "Muscles / nerves" "Muscles / nerfs"
       }
-    , { category = "Hybrides"
-      , examples = "Omoplata, Twister, Peruvian Necktie"
-      , target = "Mix strangulation + articulation"
+    , { category = Data.localized "Hybrid attacks" "Hybrides"
+      , examples = Data.localized "Omoplata, Twister, Peruvian Necktie" "Omoplata, Twister, Peruvian Necktie"
+      , target = Data.localized "Blend of strangle + joint control" "Mix strangulation + articulation"
       }
     ]
 
