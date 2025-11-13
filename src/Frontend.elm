@@ -2527,11 +2527,12 @@ viewTechniqueLibraryPage model =
     in
     div [ class "page-stack page-stack--full" ]
         ([ pageIntro t.techniqueLibraryTitle t.techniqueLibraryDescription
-         , viewTechniqueStats language finishingTotal guardTotal sweepTotal
-         , viewTechniqueCategorySelector language sectionFilter
+         , div [ class "grid gap-6 lg:grid-cols-2" ]
+            [ viewTechniqueStats language finishingTotal guardTotal sweepTotal
+            , viewTechniqueCategorySelector language sectionFilter
+            ]
          ]
             ++ techniqueSections
-            ++ [ viewTechniqueNotes language (Data.guardTechniqueNotes ++ Data.sweepTechniqueNotes) ]
         )
 
 
@@ -2695,7 +2696,7 @@ viewTechniqueCategorySelector language selection =
                 ]
                 [ text labelText ]
     in
-    section [ class "card space-y-3" ]
+    section [ class "card space-y-5" ]
         [ div [ class "flex flex-wrap items-center justify-between gap-3" ]
             [ label [ Attr.for selectId, class "text-base font-semibold text-slate-900 dark:text-white" ] [ text titleLabel ]
             , span [ class "text-xs text-gray-500 dark:text-gray-400" ] [ text helperLabel ]
@@ -2707,6 +2708,7 @@ viewTechniqueCategorySelector language selection =
             , Attr.value currentValue
             ]
             (List.map optionView options)
+        , viewTechniqueNotes language (Data.guardTechniqueNotes ++ Data.sweepTechniqueNotes)
         ]
 
 
