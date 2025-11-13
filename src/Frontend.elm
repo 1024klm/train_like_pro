@@ -23,13 +23,13 @@ import LocalStorage
 import Pages.Dashboard
 import Pages.Heroes
 import Pages.TrainingSession
+import Process
 import Router
 import Router.Helpers exposing (onPreventDefaultClick)
 import Set exposing (Set)
 import Task
 import Theme
 import Time
-import Process
 import Types exposing (..)
 import Url
 
@@ -377,7 +377,7 @@ update msg model =
         StartSession ->
             let
                 newSession =
-                    { startTime = Time.millisToPosix 0  -- Will be set properly by backend
+                    { startTime = Time.millisToPosix 0 -- Will be set properly by backend
                     , currentTechnique = Nothing
                     , techniques = []
                     , totalXP = 0
@@ -396,18 +396,18 @@ update msg model =
                 Just session ->
                     let
                         finalSession =
-                            { id = "session-" ++ String.fromInt model.sessionTimer  -- Temporary ID
+                            { id = "session-" ++ String.fromInt model.sessionTimer -- Temporary ID
                             , date = session.startTime
                             , planId = Nothing
-                            , duration = model.sessionTimer // 60  -- Convert seconds to minutes
+                            , duration = model.sessionTimer // 60 -- Convert seconds to minutes
                             , techniques = session.techniques
                             , notes = session.notes
-                            , sessionType = TechniqueSession  -- Default session type
+                            , sessionType = TechniqueSession -- Default session type
                             , rating = Nothing
                             , completed = True
                             , xpEarned = session.totalXP
-                            , mood = Good  -- Default mood
-                            , energy = Normal  -- Default energy
+                            , mood = Good -- Default mood
+                            , energy = Normal -- Default energy
                             }
                     in
                     ( { model
@@ -434,6 +434,7 @@ update msg model =
                         actualStartTime =
                             if session.startTime == placeholder then
                                 currentTime
+
                             else
                                 session.startTime
 
@@ -443,12 +444,14 @@ update msg model =
                         elapsedSeconds =
                             if elapsedMillis > 0 then
                                 elapsedMillis // 1000
+
                             else
                                 0
 
                         updatedSession =
                             if session.startTime == actualStartTime then
                                 session
+
                             else
                                 { session | startTime = actualStartTime }
                     in
@@ -512,21 +515,30 @@ update msg model =
                                     , quality = 3
                                     , partner = Nothing
                                     , notes = ""
-                                    , xpEarned = 1 * 3 * 5  -- reps * quality * base_xp
-                                    } :: session.techniques
+                                    , xpEarned = 1 * 3 * 5 -- reps * quality * base_xp
+                                    }
+                                        :: session.techniques
 
                                 existingTech :: _ ->
                                     -- Update existing
-                                    List.map (\t ->
-                                        if t.techniqueId == techniqueId then
-                                            let
-                                                newReps = t.repetitions + 1
-                                                newXP = newReps * t.quality * 5  -- reps * quality * base_xp
-                                            in
-                                            { t | repetitions = newReps, xpEarned = newXP }
-                                        else
-                                            t
-                                    ) session.techniques
+                                    List.map
+                                        (\t ->
+                                            if t.techniqueId == techniqueId then
+                                                let
+                                                    newReps =
+                                                        t.repetitions + 1
+
+                                                    newXP =
+                                                        newReps * t.quality * 5
+
+                                                    -- reps * quality * base_xp
+                                                in
+                                                { t | repetitions = newReps, xpEarned = newXP }
+
+                                            else
+                                                t
+                                        )
+                                        session.techniques
 
                         newTotalXP =
                             List.sum (List.map .xpEarned updatedTechniques)
@@ -543,16 +555,24 @@ update msg model =
                 Just session ->
                     let
                         updatedTechniques =
-                            List.map (\t ->
-                                if t.techniqueId == techniqueId && t.repetitions > 0 then
-                                    let
-                                        newReps = t.repetitions - 1
-                                        newXP = newReps * t.quality * 5  -- reps * quality * base_xp
-                                    in
-                                    { t | repetitions = newReps, xpEarned = newXP }
-                                else
-                                    t
-                            ) session.techniques
+                            List.map
+                                (\t ->
+                                    if t.techniqueId == techniqueId && t.repetitions > 0 then
+                                        let
+                                            newReps =
+                                                t.repetitions - 1
+
+                                            newXP =
+                                                newReps * t.quality * 5
+
+                                            -- reps * quality * base_xp
+                                        in
+                                        { t | repetitions = newReps, xpEarned = newXP }
+
+                                    else
+                                        t
+                                )
+                                session.techniques
 
                         newTotalXP =
                             List.sum (List.map .xpEarned updatedTechniques)
@@ -569,15 +589,21 @@ update msg model =
                 Just session ->
                     let
                         updatedTechniques =
-                            List.map (\t ->
-                                if t.techniqueId == techniqueId then
-                                    let
-                                        newXP = t.repetitions * quality * 5  -- reps * quality * base_xp
-                                    in
-                                    { t | quality = quality, xpEarned = newXP }
-                                else
-                                    t
-                            ) session.techniques
+                            List.map
+                                (\t ->
+                                    if t.techniqueId == techniqueId then
+                                        let
+                                            newXP =
+                                                t.repetitions * quality * 5
+
+                                            -- reps * quality * base_xp
+                                        in
+                                        { t | quality = quality, xpEarned = newXP }
+
+                                    else
+                                        t
+                                )
+                                session.techniques
 
                         newTotalXP =
                             List.sum (List.map .xpEarned updatedTechniques)
@@ -607,7 +633,9 @@ scrollToTop =
     Task.perform (\_ -> NoOpFrontendMsg) (Task.succeed ())
 
 
+
 -- Helper to dispatch a message as a Cmd
+
 
 send : Msg -> Cmd Msg
 send message =
@@ -622,12 +650,14 @@ updateFromBackend msg model =
                 seededHeroes =
                     if Dict.isEmpty data.heroes then
                         Data.initHeroes
+
                     else
                         data.heroes
 
                 seededEvents =
                     if Dict.isEmpty data.events then
                         Data.initEvents
+
                     else
                         data.events
             in
@@ -1359,9 +1389,12 @@ techniqueCheckItem model name system completed xp =
 
             else
                 "+"
-        itemId = name ++ "-" ++ system
 
-        alreadyClaimed = Set.member itemId model.claimedPlanItems
+        itemId =
+            name ++ "-" ++ system
+
+        alreadyClaimed =
+            Set.member itemId model.claimedPlanItems
 
         onClaim =
             if alreadyClaimed || completed then
@@ -1644,21 +1677,23 @@ viewEventListCard model event =
             ]
         , div [ class "list-card__footer flex items-center justify-center gap-4" ]
             [ button
-                [ onClick (ToggleFavorite EventFavorite event.id)
-                , Html.Events.stopPropagationOn "click" (Decode.succeed ( NoOpFrontendMsg, True ))
+                [ Html.Events.stopPropagationOn "click" (Decode.succeed ( ToggleFavorite EventFavorite event.id, True ))
                 , classList
                     [ ( "list-card__favorite list-card__favorite--active", isFavorite )
                     , ( "list-card__favorite", not isFavorite )
                     ]
                 ]
-                [ text (if isFavorite then "★" else "☆") ]
+                [ text
+                    (if isFavorite then
+                        "★"
+
+                     else
+                        "☆"
+                    )
+                ]
             , span [ class "list-card__link" ] [ text ctaLabel ]
             ]
         ]
-
-
-
-
 
 
 pageIntro : String -> String -> Html Msg
@@ -2301,12 +2336,13 @@ viewSignUpPage model =
                         ]
                         [ text t.createAccount ]
                     , div [ class "text-center text-sm text-gray-600 dark:text-gray-400" ]
-                        [ text (
-                            if I18n.languageToString model.userConfig.language == "FR" then
+                        [ text
+                            (if I18n.languageToString model.userConfig.language == "FR" then
                                 "Tu as déjà un compte ? "
-                            else
+
+                             else
                                 "Already have an account? "
-                          )
+                            )
                         , button
                             [ onClick (NavigateTo LoginPage)
                             , class "text-purple-600 dark:text-purple-400 font-semibold hover:underline"
@@ -2490,10 +2526,10 @@ viewTechniqueLibraryPage model =
                 ++ sweepSection
     in
     div [ class "page-stack page-stack--full" ]
-        ( [ pageIntro t.techniqueLibraryTitle t.techniqueLibraryDescription
-          , viewTechniqueStats language finishingTotal guardTotal sweepTotal
-          , viewTechniqueCategorySelector language sectionFilter
-          ]
+        ([ pageIntro t.techniqueLibraryTitle t.techniqueLibraryDescription
+         , viewTechniqueStats language finishingTotal guardTotal sweepTotal
+         , viewTechniqueCategorySelector language sectionFilter
+         ]
             ++ techniqueSections
             ++ [ viewTechniqueNotes language (Data.guardTechniqueNotes ++ Data.sweepTechniqueNotes) ]
         )
@@ -2550,6 +2586,7 @@ valueToTechniqueSection value =
 
         _ ->
             Nothing
+
 
 localizeText : I18n.Language -> Data.LocalizedString -> String
 localizeText language value =
@@ -2723,6 +2760,7 @@ viewTechniqueSummary language rows =
                 rows
             )
         ]
+
 
 techniqueSectionId : TechniqueSection -> String
 techniqueSectionId section =
@@ -3408,7 +3446,7 @@ roundFloat decimals value =
         factor =
             10 ^ decimals
     in
-    (toFloat (round (value * toFloat factor))) / toFloat factor
+    toFloat (round (value * toFloat factor)) / toFloat factor
 
 
 viewNotFoundPage : Model -> Html Msg
@@ -3495,7 +3533,7 @@ viewHeroQuickView model heroId =
                         , attribute "aria-label" model.userConfig.t.close
                         ]
                         [ text model.userConfig.t.close ]
-                ]
+                    ]
                 ]
 
         Nothing ->

@@ -1,20 +1,26 @@
 module Pages.Heroes exposing (viewDetail, viewList)
 
 import Dict exposing (Dict)
-import Html exposing (Html, button, div, h1, h2, h3, h4, input, label, option, p, select, span, text)
-import Html.Attributes exposing (class, classList, placeholder, type_, value)
+import Html exposing (Html, a, button, div, h1, h2, h3, h4, img, input, label, li, option, p, select, span, text, ul)
+import Html.Attributes exposing (alt, class, classList, href, placeholder, rel, src, style, target, type_, value)
 import Html.Events exposing (onClick, onInput, stopPropagationOn)
 import Html.Keyed as Keyed
-import String
 import I18n
 import Json.Decode as Decode
 import Set
+import String
 import Types exposing (..)
 
 
 viewList : FrontendModel -> Maybe HeroFilter -> Html FrontendMsg
 viewList model filter =
     let
+        favoriteHeroes =
+            model.favorites.heroes
+                |> Set.toList
+                |> List.filterMap (\heroId -> Dict.get heroId model.heroes)
+                |> List.sortBy .name
+
         heroesList =
             model.heroes
                 |> Dict.values
@@ -28,11 +34,40 @@ viewList model filter =
             , h1 [ class "page-intro__title" ] [ text model.userConfig.t.heroes ]
             , p [ class "page-intro__subtitle" ] [ text model.userConfig.t.learnFromLegends ]
             ]
+        , viewFavoriteHeroes model favoriteHeroes
         , viewHeroFilters model filter
         , Keyed.node "div"
             [ class "grid grid-cols-1 md:grid-cols-3 gap-6" ]
             (heroesList |> List.map (\h -> ( h.id, viewHeroCard model h )))
         ]
+
+
+viewFavoriteHeroes : FrontendModel -> List Hero -> Html FrontendMsg
+viewFavoriteHeroes model favorites =
+    if List.isEmpty favorites then
+        text ""
+
+    else
+        let
+            t =
+                model.userConfig.t
+        in
+        div [ class "card space-y-5" ]
+            [ div [ class "flex items-center justify-between gap-3" ]
+                [ div []
+                    [ span [ class "chip chip--outline" ] [ text t.favorites ]
+                    , h2 [ class "text-2xl font-bold mt-2 text-gray-900 dark:text-white" ] [ text t.favorites ]
+                    ]
+                , if List.length favorites > 3 then
+                    span [ class "text-sm font-medium text-gray-500 dark:text-gray-400" ]
+                        [ text (String.fromInt (List.length favorites) ++ " / " ++ String.fromInt (Dict.size model.heroes)) ]
+
+                  else
+                    text ""
+                ]
+            , div [ class "flex gap-4 overflow-x-auto pb-2" ]
+                (favorites |> List.map (viewFavoriteHeroCard model))
+            ]
 
 
 viewDetail : FrontendModel -> String -> Html FrontendMsg
@@ -43,7 +78,7 @@ viewDetail model heroId =
     in
     case Dict.get heroId model.heroes of
         Just hero ->
-            div [ class "space-y-6" ]
+            div [ class "space-y-10 pb-16" ]
                 [ viewHeroHeader hero model
                 , viewHeroContent hero model
                 ]
@@ -252,10 +287,10 @@ filterHeroes maybeFilter heroes =
 
         Just (ByNationality nationality) ->
             List.filter (\h -> h.nationality == nationality) heroes
-        
+
         Just (ByGender gender) ->
             List.filter (\h -> h.gender == gender) heroes
-        
+
         Just (ByTitle titleFilter) ->
             let
                 hasTitle containsTitle hero =
@@ -313,9 +348,9 @@ viewHeroCard model hero =
         , class "card list-card list-card--interactive p-6"
         ]
         [ div [ class "flex flex-col items-start md:items-start text-left gap-2" ]
-            ( [ span [ class "chip chip--outline" ] [ text weightLabel ]
-              , h3 [ class "list-card__title" ] [ text hero.name ]
-              ]
+            ([ span [ class "chip chip--outline" ] [ text weightLabel ]
+             , h3 [ class "list-card__title" ] [ text hero.name ]
+             ]
                 ++ taglineView
                 ++ chipsView
                 ++ [ p [ class "list-card__description" ] [ text hero.bio ] ]
@@ -324,14 +359,70 @@ viewHeroCard model hero =
             [ span [ class "list-card__meta" ] [ text (hero.nationality ++ " · " ++ recordLabel) ]
             , span [ class "text-primary-500 font-medium" ] [ text t.viewDetails ]
             , button
-                [ onClick (ToggleFavorite HeroFavorite hero.id)
-                , stopPropagationOn "click" (Decode.succeed ( NoOpFrontendMsg, True ))
+                [ stopPropagationOn "click" (Decode.succeed ( ToggleFavorite HeroFavorite hero.id, True ))
                 , classList
                     [ ( "list-card__favorite list-card__favorite--active", isFavorite )
                     , ( "list-card__favorite", not isFavorite )
                     ]
                 ]
-                [ text (if isFavorite then "★" else "☆") ]
+                [ text
+                    (if isFavorite then
+                        "★"
+
+                     else
+                        "☆"
+                    )
+                ]
+            ]
+        ]
+
+
+viewFavoriteHeroCard : FrontendModel -> Hero -> Html FrontendMsg
+viewFavoriteHeroCard model hero =
+    let
+        language =
+            model.userConfig.language
+
+        recordLabel =
+            heroRecordLabel language hero.record
+
+        isFavorite =
+            Set.member hero.id model.favorites.heroes
+    in
+    div
+        [ onClick (SelectHero hero.id)
+        , class "group flex min-w-[260px] flex-1 items-center gap-4 rounded-2xl border border-purple-100 bg-white/90 p-4 shadow-md transition hover:-translate-y-1 hover:shadow-purple-lg dark:border-purple-900/40 dark:bg-gray-900/80"
+        ]
+        [ img
+            [ src hero.imageUrl
+            , alt hero.name
+            , class "h-16 w-16 rounded-2xl object-cover ring-2 ring-purple-100 transition group-hover:ring-purple-400 dark:ring-purple-900/60"
+            ]
+            []
+        , div [ class "flex-1 space-y-1" ]
+            [ h3 [ class "text-base font-semibold text-gray-900 dark:text-white" ] [ text hero.name ]
+            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text (hero.nationality ++ " · " ++ recordLabel) ]
+            , case heroTagline hero of
+                Just line ->
+                    p [ class "text-sm text-purple-600 dark:text-purple-300" ] [ text line ]
+
+                Nothing ->
+                    text ""
+            ]
+        , button
+            [ stopPropagationOn "click" (Decode.succeed ( ToggleFavorite HeroFavorite hero.id, True ))
+            , classList
+                [ ( "list-card__favorite list-card__favorite--active", isFavorite )
+                , ( "list-card__favorite", not isFavorite )
+                ]
+            ]
+            [ text
+                (if isFavorite then
+                    "★"
+
+                 else
+                    "☆"
+                )
             ]
         ]
 
@@ -540,33 +631,104 @@ viewHeroHeader hero model =
 
         isFavorite =
             Set.member hero.id model.favorites.heroes
-    in
-    div [ class "relative h-96 bg-gradient-to-br from-red-600 to-red-800" ]
-        [ div [ class "absolute inset-0 bg-black/40" ] []
-        , div [ class "container mx-auto px-4 h-full flex items-end pb-8" ]
-            [ div [ class "text-white" ]
-                [ h1 [ class "text-5xl font-bold mb-2" ] [ text hero.name ]
-                , p [ class "text-2xl mb-4 opacity-90" ] [ text hero.nickname ]
-                , div [ class "flex items-center space-x-4" ]
-                    [ span [ class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg" ]
-                        [ text hero.team ]
-                    , span [ class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg" ]
-                        [ text (weightClassLabel language hero.weight) ]
-                    , button
-                        [ onClick (ToggleFavorite HeroFavorite hero.id)
-                        , class "px-4 py-2 bg-white/20 backdrop-blur rounded-lg hover:bg-white/30 transition-colors"
-                        ]
-                        [ text
-                            (if isFavorite then
-                                "❤️ " ++ t.favorited
 
-                             else
-                                "🤍 " ++ t.addToFavorites
-                            )
-                        ]
+        headerStats =
+            [ heroHeaderStat t.winRate (String.fromFloat hero.stats.winRate ++ "%")
+            , heroHeaderStat t.submissionRate (String.fromFloat hero.stats.submissionRate ++ "%")
+            , heroHeaderStat t.achievements (String.fromInt (List.length hero.record.titles))
+            ]
+    in
+    div
+        [ class "relative overflow-hidden rounded-3xl border border-purple-100/60 bg-gray-900 text-white shadow-purple-xl dark:border-purple-900/50"
+        , class "transition-all duration-300"
+        ]
+        [ div
+            [ class "absolute inset-0 opacity-70"
+            , style "background-image" ("linear-gradient(135deg, rgba(30,27,75,0.8), rgba(67,56,202,0.85)), url(" ++ hero.coverImageUrl ++ ")")
+            , style "background-size" "cover"
+            , style "background-position" "center"
+            ]
+            []
+        , div [ class "absolute inset-0 bg-black/30" ] []
+        , div [ class "relative grid gap-10 p-6 md:p-10 lg:grid-cols-[240px,1fr]" ]
+            [ div [ class "flex flex-col items-center gap-6 text-center lg:items-start lg:text-left" ]
+                [ img
+                    [ src hero.imageUrl
+                    , alt hero.name
+                    , class "h-48 w-48 rounded-3xl border-4 border-white/50 object-cover shadow-2xl ring-4 ring-white/10"
                     ]
+                    []
+                , div [ class "flex flex-wrap justify-center gap-2 lg:justify-start" ]
+                    (heroHeaderBadges language hero)
+                ]
+            , div [ class "space-y-6" ]
+                [ div [ class "space-y-2" ]
+                    [ span [ class "text-xs font-semibold uppercase tracking-[0.4em] text-white/70" ] [ text t.trainLikeChampion ]
+                    , h1 [ class "text-4xl font-bold tracking-tight md:text-5xl" ] [ text hero.name ]
+                    , if String.isEmpty hero.nickname then
+                        text ""
+
+                      else
+                        p [ class "text-xl text-white/80" ] [ text ("“" ++ hero.nickname ++ "”") ]
+                    , p [ class "text-base text-white/80" ] [ text hero.bio ]
+                    ]
+                , div [ class "grid gap-4 md:grid-cols-3" ] headerStats
+                , heroHeaderActions hero model isFavorite
                 ]
             ]
+        ]
+
+
+heroHeaderStat : String -> String -> Html FrontendMsg
+heroHeaderStat label value =
+    div [ class "rounded-2xl border border-white/20 bg-white/10 px-4 py-4 text-center backdrop-blur shadow-lg" ]
+        [ p [ class "text-xs font-semibold uppercase tracking-[0.35em] text-white/60" ] [ text label ]
+        , p [ class "mt-2 text-2xl font-semibold" ] [ text value ]
+        ]
+
+
+heroHeaderBadges : I18n.Language -> Hero -> List (Html FrontendMsg)
+heroHeaderBadges language hero =
+    [ ( "🌍", hero.nationality )
+    , ( "🏛", hero.team )
+    , ( "⚖️", weightClassLabel language hero.weight )
+    , ( "🎯", styleLabel language hero.style )
+    ]
+        |> List.filter (\( _, value ) -> not (String.isEmpty value))
+        |> List.map
+            (\( icon, value ) ->
+                span
+                    [ class "inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-sm font-medium text-white/90 backdrop-blur" ]
+                    [ span [ class "text-lg" ] [ text icon ]
+                    , span [] [ text value ]
+                    ]
+            )
+
+
+heroHeaderActions : Hero -> FrontendModel -> Bool -> Html FrontendMsg
+heroHeaderActions hero model isFavorite =
+    let
+        t =
+            model.userConfig.t
+    in
+    div [ class "flex flex-wrap gap-3" ]
+        [ button
+            [ onClick (ToggleFavorite HeroFavorite hero.id)
+            , class "inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-purple-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+            ]
+            [ text
+                (if isFavorite then
+                    "❤️ " ++ t.favorited
+
+                 else
+                    "🤍 " ++ t.addToFavorites
+                )
+            ]
+        , button
+            [ onClick (NavigateTo (HeroesRoute Nothing))
+            , class "inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+            ]
+            [ text ("← " ++ t.heroes) ]
         ]
 
 
@@ -575,16 +737,19 @@ viewHeroContent hero model =
     let
         t =
             model.userConfig.t
+
+        language =
+            model.userConfig.language
     in
-    div [ class "space-y-6 lg:space-y-0" ]
-        [ div [ class "grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6" ]
-            [ div [ class "lg:col-span-2 space-y-8" ]
-                [ viewHeroBio t hero
+    div [ class "space-y-8" ]
+        [ div [ class "grid gap-6 lg:grid-cols-[2fr,1fr]" ]
+            [ div [ class "space-y-6" ]
+                [ viewHeroBio t language hero
                 , viewHeroRecord t hero
                 , viewHeroTechniques t hero
                 , viewHeroVideos t hero
                 ]
-            , div [ class "space-y-8" ]
+            , div [ class "space-y-6" ]
                 [ viewHeroStats t hero
                 , viewHeroSocial t hero
                 , viewHeroAchievements t hero
@@ -593,48 +758,82 @@ viewHeroContent hero model =
         ]
 
 
-viewHeroBio : I18n.Translations -> Hero -> Html FrontendMsg
-viewHeroBio t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.biography ]
-        , p [ class "text-gray-600 dark:text-gray-300 leading-relaxed" ] [ text hero.bio ]
+viewHeroBio : I18n.Translations -> I18n.Language -> Hero -> Html FrontendMsg
+viewHeroBio t language hero =
+    let
+        meta =
+            [ ( "🌍", hero.nationality )
+            , ( "🏛️", hero.team )
+            , ( "⚖️", weightClassLabel language hero.weight )
+            , ( "🎯", styleLabel language hero.style )
+            ]
+                |> List.filter (\( _, value ) -> not (String.isEmpty value))
+    in
+    div [ class "rounded-2xl border border-gray-200/80 bg-white/95 p-6 shadow-xl shadow-purple-100/40 dark:border-gray-800 dark:bg-gray-900/70 dark:shadow-purple-900/30" ]
+        [ h2 [ class "text-2xl font-bold text-gray-900 dark:text-white" ] [ text t.biography ]
+        , p [ class "mt-3 text-gray-600 dark:text-gray-300 leading-relaxed" ] [ text hero.bio ]
+        , if List.isEmpty meta then
+            text ""
+
+          else
+            div [ class "mt-6 grid gap-3 sm:grid-cols-2" ]
+                (List.map heroMetaRow meta)
+        ]
+
+
+heroMetaRow : ( String, String ) -> Html FrontendMsg
+heroMetaRow ( icon, value ) =
+    div [ class "flex items-center gap-3 rounded-xl border border-gray-100/80 bg-white/60 px-3 py-2 text-sm font-semibold text-gray-700 shadow-inner dark:border-gray-800 dark:bg-gray-900/60 dark:text-gray-200" ]
+        [ span [ class "text-xl" ] [ text icon ]
+        , span [] [ text value ]
         ]
 
 
 viewHeroRecord : I18n.Translations -> Hero -> Html FrontendMsg
 viewHeroRecord t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.competitionRecord ]
-        , div [ class "grid grid-cols-3 gap-4 mb-6" ]
+    div [ class "rounded-2xl border border-gray-200/80 bg-white/95 p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900/70" ]
+        [ div [ class "flex flex-col gap-2" ]
+            [ h2 [ class "text-2xl font-bold text-gray-900 dark:text-white" ] [ text t.competitionRecord ]
+            , p [ class "text-sm text-gray-500 dark:text-gray-400" ]
+                [ text (hero.name ++ " · " ++ String.fromInt hero.record.wins ++ "-" ++ String.fromInt hero.record.losses ++ "-" ++ String.fromInt hero.record.draws) ]
+            ]
+        , div [ class "mt-6 grid gap-4 md:grid-cols-3" ]
             [ recordStat t.wins (String.fromInt hero.record.wins) "text-green-600"
             , recordStat t.losses (String.fromInt hero.record.losses) "text-red-600"
             , recordStat t.draws (String.fromInt hero.record.draws) "text-gray-600"
             ]
-        , div [ class "space-y-2" ]
-            (List.map
-                (\title ->
-                    div [ class "flex items-center space-x-2" ]
-                        [ span [ class "text-xl" ] [ text "🏆" ]
-                        , span [ class "text-gray-700 dark:text-gray-300" ] [ text title ]
-                        ]
-                )
-                hero.record.titles
-            )
+        , if List.isEmpty hero.record.titles then
+            text ""
+
+          else
+            div [ class "mt-6 space-y-3" ]
+                [ h3 [ class "text-sm font-semibold uppercase tracking-[0.4em] text-gray-500 dark:text-gray-400" ] [ text t.achievements ]
+                , div [ class "flex flex-wrap gap-2" ]
+                    (List.map viewTitleChip hero.record.titles)
+                ]
+        ]
+
+
+viewTitleChip : String -> Html FrontendMsg
+viewTitleChip title =
+    span [ class "inline-flex items-center gap-2 rounded-full border border-purple-200/70 bg-purple-50/70 px-3 py-1 text-xs font-semibold text-purple-800 shadow-sm dark:border-purple-900/50 dark:bg-purple-900/30 dark:text-purple-200" ]
+        [ span [ class "text-sm" ] [ text "🏆" ]
+        , span [] [ text title ]
         ]
 
 
 recordStat : String -> String -> String -> Html FrontendMsg
 recordStat label value colorClass =
-    div [ class "text-center" ]
+    div [ class "rounded-2xl border border-gray-100/80 bg-white/70 px-4 py-5 text-center shadow-inner dark:border-gray-800 dark:bg-gray-900/60" ]
         [ p [ class ("text-3xl font-bold " ++ colorClass) ] [ text value ]
-        , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text label ]
+        , p [ class "mt-1 text-sm text-gray-500 dark:text-gray-400" ] [ text label ]
         ]
 
 
 viewHeroTechniques : I18n.Translations -> Hero -> Html FrontendMsg
 viewHeroTechniques translations hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text translations.signatureTechniques ]
+    div [ class "rounded-2xl border border-gray-200/80 bg-white/95 p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900/70" ]
+        [ h2 [ class "text-2xl font-bold text-gray-900 dark:text-white" ] [ text translations.signatureTechniques ]
         , Keyed.node "div"
             [ class "space-y-4" ]
             (hero.techniques
@@ -646,35 +845,84 @@ viewHeroTechniques translations hero =
 
 viewTechnique : Technique -> Html FrontendMsg
 viewTechnique technique =
-    div [ class "border-l-4 border-red-500 pl-4" ]
-        [ h3 [ class "font-bold dark:text-white" ] [ text technique.name ]
-        , p [ class "text-sm text-gray-600 dark:text-gray-400" ] [ text technique.description ]
+    let
+        detailItems =
+            technique.keyDetails
+                |> List.map
+                    (\detail ->
+                        li [ class "flex items-baseline gap-2 text-gray-600 dark:text-gray-300" ]
+                            [ span [ class "text-purple-500" ] [ text "•" ]
+                            , span [] [ text detail ]
+                            ]
+                    )
+    in
+    div [ class "rounded-2xl border border-gray-100/80 bg-white/80 p-5 shadow-inner transition hover:-translate-y-0.5 hover:border-purple-200 dark:border-gray-800 dark:bg-gray-900/60" ]
+        [ div [ class "flex items-center justify-between gap-4" ]
+            [ h3 [ class "text-lg font-semibold text-gray-900 dark:text-white" ] [ text technique.name ]
+            , span [ class "text-xs font-semibold uppercase tracking-[0.3em] text-purple-600 dark:text-purple-300" ]
+                [ text ("+" ++ String.fromInt technique.xpValue ++ " XP") ]
+            ]
+        , p [ class "mt-2 text-sm text-gray-600 dark:text-gray-300" ] [ text technique.description ]
+        , if List.isEmpty technique.keyDetails then
+            text ""
+
+          else
+            ul [ class "mt-3 space-y-1 text-sm" ] detailItems
         ]
 
 
 viewHeroVideos : I18n.Translations -> Hero -> Html FrontendMsg
 viewHeroVideos t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.videos ]
+    div [ class "rounded-2xl border border-gray-200/80 bg-white/95 p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900/70" ]
+        [ h2 [ class "text-2xl font-bold text-gray-900 dark:text-white" ] [ text t.videos ]
         , Keyed.node "div"
-            [ class "grid grid-cols-1 md:grid-cols-2 gap-4" ]
+            [ class "grid grid-cols-1 gap-4 md:grid-cols-2" ]
             (hero.videos |> List.sortBy .date |> List.map (\v -> ( v.id, viewVideoCard v )))
         ]
 
 
 viewVideoCard : Video -> Html FrontendMsg
 viewVideoCard video =
-    div [ class "bg-gray-700/50 backdrop-blur-sm rounded-lg p-4 hover:shadow-md transition-all cursor-pointer border border-gray-600/30 hover:border-blue-500/50" ]
-        [ h3 [ class "font-medium dark:text-white mb-2" ] [ text video.title ]
-        , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text video.date ]
+    a
+        [ href video.url
+        , target "_blank"
+        , rel "noreferrer noopener"
+        , class "group flex items-center gap-4 rounded-2xl border border-gray-100/80 bg-white/80 p-4 shadow-inner transition hover:-translate-y-0.5 hover:border-purple-300 dark:border-gray-800 dark:bg-gray-900/60"
         ]
+        [ videoThumbnailBlock video
+        , div [ class "flex-1" ]
+            [ h3 [ class "font-semibold text-gray-900 dark:text-white" ] [ text video.title ]
+            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text video.date ]
+            ]
+        ]
+
+
+videoThumbnailBlock : Video -> Html FrontendMsg
+videoThumbnailBlock video =
+    let
+        thumbnail =
+            String.trim video.thumbnail
+    in
+    div [ class "h-20 w-28 overflow-hidden rounded-xl bg-gray-200 text-center dark:bg-gray-800" ]
+        (if String.isEmpty thumbnail then
+            [ div [ class "flex h-full items-center justify-center text-sm font-semibold text-purple-700 dark:text-purple-200" ] [ text "BJJ" ] ]
+
+         else
+            [ img
+                [ src thumbnail
+                , alt video.title
+                , class "h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                ]
+                []
+            ]
+        )
 
 
 viewHeroStats : I18n.Translations -> Hero -> Html FrontendMsg
 viewHeroStats t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.statistics ]
-        , div [ class "space-y-3" ]
+    div [ class "rounded-2xl border border-gray-200/80 bg-white/95 p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900/70" ]
+        [ h2 [ class "text-2xl font-bold text-gray-900 dark:text-white" ] [ text t.statistics ]
+        , div [ class "mt-4 space-y-3" ]
             [ statRow t.winRate (String.fromFloat hero.stats.winRate ++ "%")
             , statRow t.submissionRate (String.fromFloat hero.stats.submissionRate ++ "%")
             , statRow t.avgMatchTime (String.fromFloat hero.stats.averageMatchTime ++ " min")
@@ -686,69 +934,82 @@ viewHeroStats t hero =
 
 statRow : String -> String -> Html FrontendMsg
 statRow label value =
-    div [ class "flex justify-between" ]
+    div [ class "flex items-center justify-between rounded-xl border border-gray-100/80 bg-white/60 px-4 py-3 text-sm shadow-inner dark:border-gray-800 dark:bg-gray-900/60" ]
         [ span [ class "text-gray-600 dark:text-gray-400" ] [ text label ]
-        , span [ class "font-medium dark:text-white" ] [ text value ]
+        , span [ class "font-semibold text-gray-900 dark:text-white" ] [ text value ]
         ]
 
 
 viewHeroSocial : I18n.Translations -> Hero -> Html FrontendMsg
 viewHeroSocial t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.socialMedia ]
-        , div [ class "space-y-3" ]
-            [ case hero.socialMedia.instagram of
+    let
+        instagramView =
+            case hero.socialMedia.instagram of
                 Just handle ->
-                    socialLink "Instagram" handle "📷"
+                    [ socialLink "Instagram" handle "📷" ]
 
                 Nothing ->
-                    text ""
-            , case hero.socialMedia.youtube of
+                    []
+
+        youtubeView =
+            case hero.socialMedia.youtube of
                 Just channel ->
-                    socialLink "YouTube" channel "📺"
+                    [ socialLink "YouTube" channel "📺" ]
 
                 Nothing ->
-                    text ""
-            , case hero.socialMedia.website of
+                    []
+
+        websiteView =
+            case hero.socialMedia.website of
                 Just url ->
-                    socialLink t.website url "🌐"
+                    [ socialLink t.website url "🌐" ]
 
                 Nothing ->
-                    text ""
-            ]
+                    []
+
+        socialItems =
+            instagramView ++ youtubeView ++ websiteView
+    in
+    div [ class "rounded-2xl border border-gray-200/80 bg-white/95 p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900/70" ]
+        [ h2 [ class "text-2xl font-bold text-gray-900 dark:text-white" ] [ text t.socialMedia ]
+        , if List.isEmpty socialItems then
+            text ""
+
+          else
+            div [ class "mt-4 space-y-3" ] socialItems
         ]
 
 
 socialLink : String -> String -> String -> Html FrontendMsg
 socialLink platform handle icon =
-    div [ class "flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-lg cursor-pointer" ]
-        [ span [ class "text-xl" ] [ text icon ]
+    div [ class "flex items-center gap-3 rounded-2xl border border-gray-100/80 bg-white/70 px-4 py-3 text-sm shadow-inner transition hover:-translate-y-0.5 hover:border-purple-200 dark:border-gray-800 dark:bg-gray-900/60" ]
+        [ span [ class "text-2xl" ] [ text icon ]
         , div [ class "flex-1" ]
-            [ p [ class "font-medium dark:text-white" ] [ text platform ]
-            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text handle ]
+            [ p [ class "font-semibold text-gray-900 dark:text-white" ] [ text platform ]
+            , p [ class "text-gray-500 dark:text-gray-400" ] [ text handle ]
             ]
         ]
 
 
 viewHeroAchievements : I18n.Translations -> Hero -> Html FrontendMsg
 viewHeroAchievements t hero =
-    div [ class "bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50" ]
-        [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.achievements ]
+    div [ class "rounded-2xl border border-gray-200/80 bg-white/95 p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900/70" ]
+        [ h2 [ class "text-2xl font-bold text-gray-900 dark:text-white" ] [ text t.achievements ]
         , if List.isEmpty hero.achievements then
             p [ class "text-gray-500 dark:text-gray-400" ] [ text t.noAchievementsYet ]
 
           else
-            div [ class "space-y-3" ]
+            div [ class "mt-4 space-y-3" ]
                 (List.map viewAchievement hero.achievements)
         ]
 
 
 viewAchievement : Achievement -> Html FrontendMsg
 viewAchievement achievement =
-    div [ class "flex items-center space-x-3" ]
+    div [ class "flex items-center gap-3 rounded-2xl border border-gray-100/80 bg-white/70 px-4 py-3 shadow-inner dark:border-gray-800 dark:bg-gray-900/60" ]
         [ span [ class "text-2xl" ] [ text achievement.icon ]
         , div [ class "flex-1" ]
-            [ p [ class "font-medium dark:text-white" ] [ text achievement.name ]
+            [ p [ class "font-semibold text-gray-900 dark:text-white" ] [ text achievement.name ]
             , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text achievement.description ]
             ]
         ]
