@@ -118,7 +118,7 @@ viewTodaysFocus : FrontendModel -> Html FrontendMsg
 viewTodaysFocus model =
     div [ class "bg-white backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-sm" ]
         [ div [ class "flex items-center gap-3 mb-6" ]
-            [ div [ class "w-12 h-12 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl flex items-center justify-center" ]
+            [ div [ class "w-12 h-12 bg-gradient-to-r from-purple-500 to-red-500 rounded-xl flex items-center justify-center" ]
                 [ i [ class "fas fa-crosshairs text-white text-xl" ] [] ]
             , div []
                 [ h2 [ class "text-2xl font-bold text-gray-900" ] [ text model.userConfig.t.todaysFocus ]
@@ -237,7 +237,7 @@ viewStartSessionPrompt model =
 viewQuickStats : FrontendModel -> Html FrontendMsg
 viewQuickStats model =
     div [ class "grid grid-cols-2 lg:grid-cols-4 gap-4" ]
-        [ quickStatCard model.userConfig.t.trainingStreak (I18n.formatStreak model.userConfig.language model.userProgress.currentStreak) "fas fa-fire" "from-orange-500 to-red-500"
+        [ quickStatCard model.userConfig.t.trainingStreak (I18n.formatStreak model.userConfig.language model.userProgress.currentStreak) "fas fa-fire" "from-purple-500 to-red-500"
         , quickStatCard model.userConfig.t.xpToday "245 XP" "fas fa-bolt" "from-cyan-500 to-blue-500"
         , quickStatCard model.userConfig.t.techniques (String.fromInt (Dict.size model.userProgress.techniqueMastery)) "fas fa-fist-raised" "from-purple-500 to-pink-500"
         , quickStatCard model.userConfig.t.rank "#127" "fas fa-trophy" "from-yellow-500 to-orange-500"
