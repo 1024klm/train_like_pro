@@ -2301,7 +2301,12 @@ viewSignUpPage model =
                         ]
                         [ text t.createAccount ]
                     , div [ class "text-center text-sm text-gray-600 dark:text-gray-400" ]
-                        [ text t.alreadyHaveAccount
+                        [ text (
+                            if I18n.languageToString model.userConfig.language == "FR" then
+                                "Tu as déjà un compte ? "
+                            else
+                                "Already have an account? "
+                          )
                         , button
                             [ onClick (NavigateTo LoginPage)
                             , class "text-purple-600 dark:text-purple-400 font-semibold hover:underline"
@@ -2421,11 +2426,17 @@ viewTechniqueLibraryPage model =
         guardGroups =
             Data.guardTechniqueGroups
 
+        sweepGroups =
+            Data.sweepTechniqueGroups
+
         finishingTotal =
             finishingGroups |> List.concatMap .entries |> List.length
 
         guardTotal =
             guardGroups |> List.concatMap .entries |> List.length
+
+        sweepTotal =
+            sweepGroups |> List.concatMap .entries |> List.length
 
         sectionFilter =
             model.techniqueLibraryFilter
@@ -2462,7 +2473,12 @@ viewTechniqueLibraryPage model =
 
         sweepSection =
             if sectionVisible sectionFilter SweepSection then
-                [ viewTechniqueComingSoon language SweepSection ]
+                [ section [ class "card space-y-6" ]
+                    [ viewTechniqueSectionHeading language SweepSection
+                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) sweepGroups)
+                    , viewTechniqueSummary language sweepTechniqueSummary
+                    ]
+                ]
 
             else
                 []
@@ -2475,11 +2491,11 @@ viewTechniqueLibraryPage model =
     in
     div [ class "page-stack page-stack--full" ]
         ( [ pageIntro t.techniqueLibraryTitle t.techniqueLibraryDescription
-          , viewTechniqueStats language finishingTotal guardTotal
+          , viewTechniqueStats language finishingTotal guardTotal sweepTotal
           , viewTechniqueCategorySelector language sectionFilter
           ]
             ++ techniqueSections
-            ++ [ viewTechniqueNotes language Data.guardTechniqueNotes ]
+            ++ [ viewTechniqueNotes language (Data.guardTechniqueNotes ++ Data.sweepTechniqueNotes) ]
         )
 
 
@@ -2545,8 +2561,8 @@ localizeText language value =
             value.en
 
 
-viewTechniqueStats : I18n.Language -> Int -> Int -> Html Msg
-viewTechniqueStats language finishingTotal guardTotal =
+viewTechniqueStats : I18n.Language -> Int -> Int -> Int -> Html Msg
+viewTechniqueStats language finishingTotal guardTotal sweepTotal =
     let
         labels =
             case language of
@@ -2554,6 +2570,7 @@ viewTechniqueStats language finishingTotal guardTotal =
                     { heading = "Aperçu"
                     , submissions = "Soumissions listées"
                     , guards = "Gardes détaillées"
+                    , sweeps = "Renversements listés"
                     , notes = "Notes pratiques"
                     , sections = "Sections"
                     }
@@ -2562,19 +2579,24 @@ viewTechniqueStats language finishingTotal guardTotal =
                     { heading = "Overview"
                     , submissions = "Listed submissions"
                     , guards = "Detailed guards"
+                    , sweeps = "Listed sweeps"
                     , notes = "Practical notes"
                     , sections = "Sections"
                     }
 
         totalSections =
             4
+
+        notesCount =
+            Data.guardTechniqueNotes ++ Data.sweepTechniqueNotes |> List.length
     in
     section [ class "card space-y-4" ]
         [ h3 [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text labels.heading ]
-        , div [ class "grid gap-4 md:grid-cols-2 lg:grid-cols-4" ]
+        , div [ class "grid gap-4 sm:grid-cols-2 lg:grid-cols-5" ]
             [ techStatCard "🗡️" labels.submissions (String.fromInt finishingTotal)
             , techStatCard "🛡️" labels.guards (String.fromInt guardTotal)
-            , techStatCard "📝" labels.notes (String.fromInt (List.length Data.guardTechniqueNotes))
+            , techStatCard "🔄" labels.sweeps (String.fromInt sweepTotal)
+            , techStatCard "📝" labels.notes (String.fromInt notesCount)
             , techStatCard "📚" labels.sections (String.fromInt totalSections)
             ]
         ]
@@ -2607,7 +2629,7 @@ viewTechniqueCategorySelector language selection =
                       , ( Just FinishingSection, "Soumissions" )
                       , ( Just GuardSection, "Gardes" )
                       , ( Just PassingSection, "Passages (bientôt)" )
-                      , ( Just SweepSection, "Renversements (bientôt)" )
+                      , ( Just SweepSection, "Renversements" )
                       ]
                     )
 
@@ -2618,7 +2640,7 @@ viewTechniqueCategorySelector language selection =
                       , ( Just FinishingSection, "Submissions" )
                       , ( Just GuardSection, "Guards" )
                       , ( Just PassingSection, "Passing (soon)" )
-                      , ( Just SweepSection, "Sweeps (soon)" )
+                      , ( Just SweepSection, "Sweeps" )
                       ]
                     )
 
@@ -2762,7 +2784,7 @@ viewTechniqueSectionHeading language techSection =
                     "Cartographie des passings modernes : demi-garde, body lock, toreando..."
 
                 ( I18n.FR, SweepSection ) ->
-                    "Tous les renversements clés arrivent très bientôt."
+                    "Atlas complet des renversements classés par garde et mécanique."
 
                 ( I18n.EN, FinishingSection ) ->
                     "Study the most used chokes, joint locks, and hybrids."
@@ -2774,7 +2796,7 @@ viewTechniqueSectionHeading language techSection =
                     "Mapping modern passes: half guard, body lock, toreando, and more."
 
                 ( I18n.EN, SweepSection ) ->
-                    "All essential sweeps are coming online shortly."
+                    "Complete sweep atlas organized by guard families and mechanics."
     in
     div [ Attr.id sectionId, class "space-y-1" ]
         [ h2 [ class "text-2xl font-bold text-slate-900 dark:text-white" ] [ text title ]
@@ -2889,6 +2911,63 @@ finishingTechniqueSummary =
     , { category = Data.localized "Hybrid attacks" "Hybrides"
       , examples = Data.localized "Omoplata, Twister, Peruvian Necktie" "Omoplata, Twister, Peruvian Necktie"
       , target = Data.localized "Blend of strangle + joint control" "Mix strangulation + articulation"
+      }
+    ]
+
+
+sweepTechniqueSummary : List TechniqueSummaryRow
+sweepTechniqueSummary =
+    [ { category = Data.localized "Scissor" "Scissor"
+      , examples = Data.localized "Closed guard" "Garde fermée"
+      , target = Data.localized "Mechanic: Scissor legs" "Mécanique : ciseau jambes"
+      }
+    , { category = Data.localized "Flower" "Flower"
+      , examples = Data.localized "Closed guard" "Garde fermée"
+      , target = Data.localized "Mechanic: Pendulum swing" "Mécanique : pendule"
+      }
+    , { category = Data.localized "Hip Bump" "Hip Bump"
+      , examples = Data.localized "Closed guard" "Garde fermée"
+      , target = Data.localized "Mechanic: Sit-up + hip drive" "Mécanique : relevé + hanches"
+      }
+    , { category = Data.localized "Butterfly" "Butterfly"
+      , examples = Data.localized "Butterfly guard" "Butterfly guard"
+      , target = Data.localized "Mechanic: Hook elevation" "Mécanique : crochet élévateur"
+      }
+    , { category = Data.localized "X-Guard" "X-Guard"
+      , examples = Data.localized "X guard" "X guard"
+      , target = Data.localized "Mechanic: Crossed leg extension" "Mécanique : extension jambes croisées"
+      }
+    , { category = Data.localized "Tripod / Sickle" "Tripod / Sickle"
+      , examples = Data.localized "De La Riva" "De La Riva"
+      , target = Data.localized "Mechanic: Push-pull ankle control" "Mécanique : push-pull sur chevilles"
+      }
+    , { category = Data.localized "Old School" "Old School"
+      , examples = Data.localized "Half guard" "Demi-garde"
+      , target = Data.localized "Mechanic: Underhook + foot trap" "Mécanique : underhook + pied piégé"
+      }
+    , { category = Data.localized "Waiter" "Waiter"
+      , examples = Data.localized "Deep half" "Deep half"
+      , target = Data.localized "Mechanic: Leg lift tray" "Mécanique : soulèvement plateau"
+      }
+    , { category = Data.localized "Single Leg X" "Single Leg X"
+      , examples = Data.localized "SLX" "SLX"
+      , target = Data.localized "Mechanic: Hip extension" "Mécanique : extension hanche"
+      }
+    , { category = Data.localized "Tornado" "Tornado"
+      , examples = Data.localized "Half / inverted" "Demi / inversée"
+      , target = Data.localized "Mechanic: Roll + elevation" "Mécanique : roulade + élévation"
+      }
+    , { category = Data.localized "Berimbolo" "Berimbolo"
+      , examples = Data.localized "De La Riva" "De La Riva"
+      , target = Data.localized "Mechanic: Inverted spin" "Mécanique : spin inversé"
+      }
+    , { category = Data.localized "Kiss of the Dragon" "Kiss of the Dragon"
+      , examples = Data.localized "Reverse DLR" "Reverse DLR"
+      , target = Data.localized "Mechanic: Inside roll" "Mécanique : roulade intérieure"
+      }
+    , { category = Data.localized "Balloon" "Balloon"
+      , examples = Data.localized "Open guard" "Garde ouverte"
+      , target = Data.localized "Mechanic: Aerial momentum" "Mécanique : momentum aérien"
       }
     ]
 
