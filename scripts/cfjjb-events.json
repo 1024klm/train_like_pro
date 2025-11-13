@@ -1,0 +1,542 @@
+[
+  {
+    "name": "Open Région Île de France",
+    "date": "2025-10-04",
+    "location": "Paris",
+    "status": "Validé",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open Région Île de France NO GI",
+    "date": "2025-10-05",
+    "location": "Paris",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open Région Île de France Kids",
+    "date": "2025-10-05",
+    "location": "Paris",
+    "status": "Validé",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open Région Île de France Kids NO GI",
+    "date": "2025-10-05",
+    "location": "Paris",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Nantes",
+    "date": "2025-10-11",
+    "location": "Nantes",
+    "status": "Validé",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open de Nantes NO GI",
+    "date": "2025-10-11",
+    "location": "Nantes",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Nantes Kids",
+    "date": "2025-10-11",
+    "location": "Nantes",
+    "status": "Validé",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open de Nantes Kids NO GI",
+    "date": "2025-10-11",
+    "location": "Nantes",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Toulouse",
+    "date": "2025-10-18",
+    "location": "Saint Orens de Gameville",
+    "status": "Validé",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open de Toulouse NO GI",
+    "date": "2025-10-18",
+    "location": "Saint Orens de Gameville",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Toulouse Kids",
+    "date": "2025-10-18",
+    "location": "Saint Orens de Gameville",
+    "status": "Validé",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open de Toulouse Kids NO GI",
+    "date": "2025-10-18",
+    "location": "Saint Orens de Gameville",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open des  Caraïbes",
+    "date": "2025-11-01",
+    "location": "Le Gosier",
+    "status": "Validé",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open des  Caraïbes NO GI",
+    "date": "2025-11-01",
+    "location": "Le Gosier",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open des  Caraïbes Kids",
+    "date": "2025-11-01",
+    "location": "Le Gosier",
+    "status": "Validé",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open des Hauts de France",
+    "date": "2025-11-08",
+    "location": "Verquin",
+    "status": "Validé",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open des Hauts de France NO GI",
+    "date": "2025-11-08",
+    "location": "Verquin",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open des Hauts de France Kids",
+    "date": "2025-11-08",
+    "location": "Verquin",
+    "status": "Validé",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open des Hauts de France Kids NO GI",
+    "date": "2025-11-08",
+    "location": "Verquin",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open d&#039;Antibes",
+    "date": "2025-11-15",
+    "location": "Antibes",
+    "status": "Validé",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open d&#039;Antibes NO GI",
+    "date": "2025-11-16",
+    "location": "Antibes",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open d&#039;Antibes Kids",
+    "date": "2025-11-16",
+    "location": "Antibes",
+    "status": "Validé",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open d&#039;Antibes Kids NO GI",
+    "date": "2025-11-16",
+    "location": "Antibes",
+    "status": "Validé",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Paris International Open IBJJF Jiu Jitsu Championship",
+    "date": "2025-11-29",
+    "location": "Paris",
+    "status": "Validé",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Paris International Open IBJJF Jiu Jitsu Championship NO GI",
+    "date": "2025-11-29",
+    "location": "Paris",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Paris International Open IBJJF Jiu Jitsu Championship Kids",
+    "date": "2025-11-29",
+    "location": "Paris",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Championnat National Novices",
+    "date": "2025-01-31",
+    "location": "Verquin",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Championnat National Novices NO GI",
+    "date": "2025-01-31",
+    "location": "Verquin",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Grenoble",
+    "date": "2025-03-07",
+    "location": "Grenoble",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open de Grenoble NO GI",
+    "date": "2025-03-07",
+    "location": "Grenoble",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Grenoble Kids",
+    "date": "2025-03-07",
+    "location": "Grenoble",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open de Grenoble Kids NO GI",
+    "date": "2025-03-07",
+    "location": "Grenoble",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Marseille",
+    "date": "2025-04-04",
+    "location": "Marseille",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open de Marseille NO GI",
+    "date": "2025-04-04",
+    "location": "Marseille",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Marseille Kids",
+    "date": "2025-04-04",
+    "location": "Marseille",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open de Marseille Kids NO GI",
+    "date": "2025-04-04",
+    "location": "Marseille",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Championnat National NO GI",
+    "date": "2025-04-11",
+    "location": "Paris",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Championnat National Kids",
+    "date": "2025-04-11",
+    "location": "Paris",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Championnat National Kids NO GI",
+    "date": "2025-04-11",
+    "location": "Paris",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Championnat de La Réunion",
+    "date": "2025-04-18",
+    "location": "Saint Denis",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Championnat de La Réunion NO GI",
+    "date": "2025-04-18",
+    "location": "Saint Denis",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Championnat de La Réunion Kids",
+    "date": "2025-04-18",
+    "location": "Saint Denis",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Championnat de La Réunion Kids NO GI",
+    "date": "2025-04-18",
+    "location": "Saint Denis",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de France",
+    "date": "2025-04-25",
+    "location": "Orleans",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open de France NO GI",
+    "date": "2025-04-25",
+    "location": "Orleans",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de France Kids",
+    "date": "2025-04-25",
+    "location": "Orleans",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open de France Kids NO GI",
+    "date": "2025-04-25",
+    "location": "Orleans",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open du Bassin d&#039;Arcachon",
+    "date": "2025-05-02",
+    "location": "Biganos",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open du Bassin d&#039;Arcachon NO GI",
+    "date": "2025-05-02",
+    "location": "Biganos",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open du Bassin d&#039;Arcachon Kids",
+    "date": "2025-05-02",
+    "location": "Biganos",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open du Bassin d&#039;Arcachon Kids NO GI",
+    "date": "2025-05-02",
+    "location": "Biganos",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Nice",
+    "date": "2025-05-09",
+    "location": "Nice",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open de Nice NO GI",
+    "date": "2025-05-09",
+    "location": "Nice",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Nice Kids",
+    "date": "2025-05-09",
+    "location": "Nice",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open de Nice Kids NO GI",
+    "date": "2025-05-09",
+    "location": "Nice",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Saint Raphaël",
+    "date": "2025-05-23",
+    "location": "Saint Raphael",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  },
+  {
+    "name": "Open de Saint Raphaël NO GI",
+    "date": "2025-05-23",
+    "location": "Saint Raphael",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Open de Saint Raphaël Kids",
+    "date": "2025-05-23",
+    "location": "Saint Raphael",
+    "status": "A confirmer",
+    "categories": [
+      "Kids"
+    ]
+  },
+  {
+    "name": "Open de Saint Raphaël Kids NO GI",
+    "date": "2025-05-23",
+    "location": "Saint Raphael",
+    "status": "A confirmer",
+    "categories": [
+      "NoGi"
+    ]
+  },
+  {
+    "name": "Championnat National",
+    "date": "2025-06-13",
+    "location": "Paris",
+    "status": "A confirmer",
+    "categories": [
+      "Gi"
+    ]
+  }
+]

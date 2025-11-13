@@ -1,20 +1,22 @@
 module Pages.Dashboard exposing (view, viewDashboard)
 
-import Html exposing (..)
-import Html.Attributes exposing (class, id, href, src, alt, type_, attribute, style, title)
-import Html.Events exposing (onClick)
-import Router.Helpers exposing (onPreventDefaultClick)
-import Html.Lazy exposing (lazy, lazy2, lazy3)
-import Types exposing (..)
-import GameMechanics.XP as XP
 import Dict exposing (Dict)
-import Set exposing (Set)
-import Time
+import GameMechanics.XP as XP
+import Html exposing (..)
+import Html.Attributes exposing (alt, attribute, class, href, id, src, style, title, type_)
+import Html.Events exposing (onClick)
+import Html.Lazy exposing (lazy, lazy2, lazy3)
 import I18n
+import Router.Helpers exposing (onPreventDefaultClick)
+import Set exposing (Set)
 import Theme exposing (darkTheme)
+import Time
+import Types exposing (..)
+
 
 
 -- MAIN DASHBOARD VIEW
+
 
 view : FrontendModel -> Html FrontendMsg
 view model =
@@ -23,25 +25,16 @@ view model =
 
 viewDashboard : FrontendModel -> Html FrontendMsg
 viewDashboard model =
-    div [ class "min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100" ]
-        [ -- Hero Header with XP and Level
-          viewHeroHeader model
-          
-          -- Main Dashboard Grid
-        , div [ class "px-4 lg:px-6 pb-8 space-y-6" ]
-            [ -- Quick Stats Row
-              viewQuickStats model
-              
-              -- Main Content Grid
-            , div [ class "grid grid-cols-1 lg:grid-cols-3 gap-6" ]
-                [ -- Left Column (2/3 width)
-                  div [ class "lg:col-span-2 space-y-6" ]
+    div [ class "min-h-screen bg-slate-50 dark:bg-slate-950" ]
+        [ div [ class "mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 md:px-6" ]
+            [ viewHeroHeader model
+            , viewQuickStats model
+            , div [ class "grid gap-6 lg:grid-cols-3" ]
+                [ div [ class "space-y-6 lg:col-span-2" ]
                     [ viewTodaysFocus model
                     , viewActiveRoadmaps model
                     , viewRecentAchievements model
                     ]
-                    
-                  -- Right Column (1/3 width)
                 , div [ class "space-y-6" ]
                     [ viewDailyQuests model model.userProgress.dailyQuests
                     , viewWeeklyProgress model
@@ -52,84 +45,92 @@ viewDashboard model =
         ]
 
 
+
 -- XP HEADER BAR
+
 
 viewHeroHeader : FrontendModel -> Html FrontendMsg
 viewHeroHeader model =
     let
-        progress = model.userProgress
-        (level, levelProgress) = XP.levelFromXP progress.totalXP
-        xpInCurrentLevel = round (levelProgress * 1000)
-        title = XP.getTitleForLevel level
-        (currentBelt, beltProgress) = XP.getBeltProgress progress.totalXP White
+        progress =
+            model.userProgress
+
+        ( level, levelProgress ) =
+            XP.levelFromXP progress.totalXP
+
+        xpInCurrentLevel =
+            round (levelProgress * 1000)
+
+        title =
+            XP.getTitleForLevel level
+
+        ( currentBelt, beltProgress ) =
+            XP.getBeltProgress progress.totalXP White
+
+        ( progressLabel, rewardsLabel ) =
+            case model.userConfig.language of
+                I18n.FR ->
+                    ( "Progression", "Récompenses à venir" )
+
+                I18n.EN ->
+                    ( "Progress", "Next rewards" )
     in
-    div [ class "relative overflow-hidden bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-b border-gray-200" ]
-        [ -- Background Glow Effects
-          div [ class "absolute inset-0 opacity-20" ]
-            [ div [ class "absolute top-0 left-0 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl animate-pulse" ] []
-            , div [ class "absolute bottom-0 right-0 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-pulse delay-1000" ] []
+    shCard "relative overflow-hidden p-6 md:p-8 text-slate-900 shadow-purple-xl bg-gradient-to-r from-white via-violet-50 to-indigo-50"
+        [ div [ class "pointer-events-none absolute inset-0 opacity-40" ]
+            [ div [ class "absolute -top-10 right-4 h-44 w-44 rounded-full bg-purple-200 blur-3xl" ] []
+            , div [ class "absolute bottom-0 left-10 h-36 w-36 rounded-full bg-indigo-200 blur-3xl" ] []
             ]
-            
-          -- Content
-        , div [ class "relative px-4 lg:px-6 py-8" ]
-            [ div [ class "flex flex-col lg:flex-row items-center justify-between gap-6" ]
-                [ -- Left: Level and Title
-                  div [ class "text-center lg:text-left" ]
-                    [ div [ class "flex items-center justify-center lg:justify-start gap-4 mb-3" ]
-                        [ div [ class "text-6xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent" ]
-                            [ text (String.fromInt level) ]
-                        , div [ class "text-left" ]
-                            [ div [ class "text-3xl font-bold text-gray-900" ] [ text "LEVEL" ]
-                            , div [ class "px-4 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-gray-900 rounded-full text-sm font-bold tracking-wider" ]
-                                [ text (String.toUpper title.name) ]
-                            ]
+        , div [ class "relative flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between" ]
+            [ div [ class "space-y-4 text-center lg:text-left" ]
+                [ span [ class "inline-flex items-center rounded-full bg-violet-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.4em] text-violet-700" ] [ text "Level" ]
+                , div [ class "flex items-center justify-center gap-4 lg:justify-start" ]
+                    [ div [ class "text-6xl font-black" ] [ text (String.fromInt level) ]
+                    , div []
+                        [ p [ class "text-sm text-slate-500" ] [ text "Current title" ]
+                        , p [ class "text-2xl font-semibold text-violet-700" ] [ text (String.toUpper title.name) ]
                         ]
-                    , viewBeltBadge currentBelt beltProgress
                     ]
-                    
-                  -- Right: XP Progress
-                , div [ class "w-full lg:w-96" ]
-                    [ div [ class "flex items-center justify-between mb-2" ]
-                        [ span [ class "text-sm font-medium text-gray-600" ] [ text "EXPERIENCE" ]
-                        , span [ class "text-2xl font-bold text-blue-600" ] [ text (String.fromInt progress.totalXP ++ " XP") ]
+                , viewBeltBadge currentBelt beltProgress
+                ]
+            , div [ class "w-full space-y-2 lg:w-96" ]
+                [ div [ class "flex items-center justify-between text-sm text-slate-500" ]
+                    [ span [] [ text "Experience" ]
+                    , span [ class "text-lg font-semibold text-slate-900" ] [ text (String.fromInt progress.totalXP ++ " XP") ]
+                    ]
+                , div [ class "relative h-5 rounded-full bg-violet-100 ring-1 ring-violet-200" ]
+                    [ div
+                        [ class "absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-purple-600"
+                        , attribute "style" ("width: " ++ String.fromFloat (levelProgress * 100) ++ "%")
                         ]
-                    , div [ class "relative h-6 bg-gray-200 rounded-full overflow-hidden backdrop-blur-sm border border-gray-300" ]
-                        [ div 
-                            [ class "h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 transition-all duration-1000 ease-out relative"
-                            , attribute "style" ("width: " ++ String.fromFloat (levelProgress * 100) ++ "%")
-                            ]
-                            [ -- Shimmer Effect
-                              div [ class "absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" ] []
-                            ]
-                        , div [ class "absolute inset-0 flex items-center justify-center" ]
-                            [ span [ class "text-xs font-bold text-gray-700 drop-shadow-sm" ]
-                                [ text (String.fromInt xpInCurrentLevel ++ " / 1000 " ++ model.userConfig.t.xpToLevelUp) ]
-                            ]
-                        ]
+                        []
+                    , span [ class "absolute inset-0 flex items-center justify-center text-xs font-semibold text-slate-900" ]
+                        [ text (String.fromInt xpInCurrentLevel ++ " / 1000 XP") ]
+                    ]
+                , div [ class "flex items-center justify-between text-xs text-slate-500" ]
+                    [ span [] [ text progressLabel ]
+                    , span [] [ text rewardsLabel ]
                     ]
                 ]
             ]
         ]
 
 
+
 -- TODAY'S FOCUS CARD
+
 
 viewTodaysFocus : FrontendModel -> Html FrontendMsg
 viewTodaysFocus model =
-    div [ class "bg-white backdrop-blur-sm border border-gray-200 rounded-2xl p-6 shadow-sm" ]
-        [ div [ class "flex items-center gap-3 mb-6" ]
-            [ div [ class "w-12 h-12 bg-gradient-to-r from-purple-500 to-red-500 rounded-xl flex items-center justify-center" ]
-                [ i [ class "fas fa-crosshairs text-white text-xl" ] [] ]
-            , div []
-                [ h2 [ class "text-2xl font-bold text-gray-900" ] [ text model.userConfig.t.todaysFocus ]
-                , p [ class "text-gray-600 text-sm" ] [ text model.userConfig.t.todaysFocusSubtitle ]
-                ]
+    shCard "p-6 space-y-6"
+        [ div [ class "flex flex-col gap-1" ]
+            [ span [ class "text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" ] [ text "Focus" ]
+            , h2 [ class "text-2xl font-semibold text-slate-900 dark:text-white" ] [ text model.userConfig.t.todaysFocus ]
+            , p [ class "text-sm text-slate-500 dark:text-slate-400" ] [ text model.userConfig.t.todaysFocusSubtitle ]
             ]
-            
         , case model.activeSession of
             Just session ->
                 viewActiveSessionCard model session
-                
+
             Nothing ->
                 viewStartSessionPrompt model
         ]
@@ -138,76 +139,60 @@ viewTodaysFocus model =
 viewActiveSessionCard : FrontendModel -> ActiveSession -> Html FrontendMsg
 viewActiveSessionCard model session =
     div [ class "space-y-4" ]
-        [ -- Active Session Header
-          div [ class "flex items-center justify-between p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-xl" ]
+        [ div [ class "flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4 dark:border-emerald-900/40 dark:bg-emerald-900/30 lg:flex-row lg:items-center lg:justify-between" ]
             [ div [ class "flex items-center gap-3" ]
-                [ div [ class "w-10 h-10 bg-green-500 rounded-full flex items-center justify-center animate-pulse" ]
-                    [ i [ class "fas fa-play text-gray-900", attribute "aria-hidden" "true" ] []
-                    , span [ class "sr-only" ] [ text "Training active" ]
-                    ]
+                [ div [ class "flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500 text-slate-900" ] [ text "▶" ]
                 , div []
-                    [ p [ class "text-sm font-medium text-green-400" ] [ text model.userConfig.t.trainingActive ]
-                    , p [ class "text-2xl font-bold text-gray-900" ] 
-                        [ text (formatTimer 0) ] -- TODO: calculate from session.startTime
+                    [ p [ class "text-xs font-semibold uppercase tracking-[0.3em] text-emerald-800" ] [ text model.userConfig.t.trainingActive ]
+                    , p [ class "text-2xl font-bold text-slate-900 dark:text-white" ] [ text (formatTimer model.sessionTimer) ]
                     ]
                 ]
-            , button 
+            , button
                 [ onClick EndSession
-                , class "px-6 py-2 bg-red-500/80 hover:bg-red-500 text-gray-900 rounded-lg font-medium transition-all hover:scale-105"
+                , class "sh-btn bg-red-500 text-white hover:bg-red-500/90"
                 ]
-                [ i [ class "fas fa-stop mr-2" ] []
-                , text model.userConfig.t.endSession
-                ]
+                [ text model.userConfig.t.endSession ]
             ]
-            
-          -- Current Technique Focus
         , case session.currentTechnique of
             Just techniqueId ->
-                div [ class "p-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-xl" ]
-                    [ div [ class "flex items-center justify-between mb-3" ]
-                        [ h3 [ class "font-bold text-gray-900" ] [ text model.userConfig.t.currentDrill ]
-                        , span [ class "px-3 py-1 bg-blue-500/50 text-blue-200 rounded-full text-xs font-medium" ] [ text "FOCUS" ]
+                div [ class "rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/60" ]
+                    [ div [ class "flex items-center justify-between" ]
+                        [ h3 [ class "text-sm font-semibold text-slate-600 uppercase tracking-[0.3em]" ] [ text model.userConfig.t.currentDrill ]
+                        , span [ class "rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold text-slate-500" ] [ text "Focus" ]
                         ]
-                    , p [ class "text-xl text-blue-300 mb-4" ] [ text techniqueId ]
-                    , div [ class "flex gap-3" ]
-                        [ button 
+                    , p [ class "mt-2 text-2xl font-bold text-slate-900 dark:text-white" ] [ text techniqueId ]
+                    , div [ class "mt-4 flex gap-3" ]
+                        [ button
                             [ onClick (IncrementReps techniqueId)
-                            , class "flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-gray-900 rounded-lg font-bold hover:scale-105 transition-transform"
-                            ] 
-                            [ i [ class "fas fa-plus mr-2" ] []
-                            , text model.userConfig.t.addRep
+                            , class "sh-btn w-full bg-slate-900 text-white hover:bg-slate-800"
                             ]
-                        , button 
+                            [ text model.userConfig.t.addRep ]
+                        , button
                             [ onClick (SetQuality techniqueId 5)
-                            , class "flex-1 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-gray-900 rounded-lg font-bold hover:scale-105 transition-transform"
-                            ] 
-                            [ i [ class "fas fa-star mr-2" ] []
-                            , text model.userConfig.t.perfect
+                            , class "sh-btn w-full bg-amber-400 text-slate-900 hover:bg-amber-300"
                             ]
+                            [ text model.userConfig.t.perfect ]
                         ]
                     ]
-                    
+
             Nothing ->
-                div [ class "p-4 bg-gray-700/50 border border-gray-600 rounded-xl text-center" ]
-                    [ p [ class "text-gray-600 mb-3" ] [ text model.userConfig.t.chooseNextTechnique ]
-                    , button 
-                        [ onClick (OpenModal (TechniqueSelectionModal))
-                        , class "px-4 py-2 bg-blue-500 hover:bg-blue-600 text-gray-900 rounded-lg font-medium cursor-pointer"
+                div [ class "rounded-2xl border border-dashed border-slate-300 p-6 text-center dark:border-slate-700" ]
+                    [ p [ class "text-sm text-slate-500" ] [ text model.userConfig.t.chooseNextTechnique ]
+                    , button
+                        [ onClick (OpenModal TechniqueSelectionModal)
+                        , class "sh-btn mt-4 bg-slate-900 text-white hover:bg-slate-800"
                         , type_ "button"
                         ]
                         [ text model.userConfig.t.selectTechnique ]
                     ]
-                
-          -- Session Stats
         , div [ class "grid grid-cols-2 gap-4" ]
-            [ div [ class "p-4 bg-purple-500/20 border border-purple-500/30 rounded-xl text-center" ]
-                [ p [ class "text-sm text-purple-300 mb-1" ] [ text "SESSION XP" ]
-                , p [ class "text-2xl font-bold text-purple-400" ] 
-                    [ text ("+" ++ String.fromInt session.totalXP) ]
+            [ shCard "p-4 text-center bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/30 dark:to-slate-900/50"
+                [ p [ class "text-xs font-semibold uppercase tracking-[0.3em] text-indigo-500" ] [ text "Session XP" ]
+                , p [ class "text-2xl font-bold text-slate-900 dark:text-white" ] [ text ("+" ++ String.fromInt session.totalXP ++ " XP") ]
                 ]
-            , div [ class "p-4 bg-orange-500/20 border border-orange-500/30 rounded-xl text-center" ]
-                [ p [ class "text-sm text-orange-300 mb-1" ] [ text "TECHNIQUES" ]
-                , p [ class "text-2xl font-bold text-orange-400" ] [ text "3" ]
+            , shCard "p-4 text-center bg-gradient-to-br from-amber-50 to-white dark:from-amber-900/30 dark:to-slate-900/50"
+                [ p [ class "text-xs font-semibold uppercase tracking-[0.3em] text-amber-500" ] [ text "Techniques" ]
+                , p [ class "text-2xl font-bold text-slate-900 dark:text-white" ] [ text (String.fromInt (List.length session.techniques)) ]
                 ]
             ]
         ]
@@ -215,76 +200,85 @@ viewActiveSessionCard model session =
 
 viewStartSessionPrompt : FrontendModel -> Html FrontendMsg
 viewStartSessionPrompt model =
-    div [ class "text-center py-12" ]
-        [ div [ class "w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6" ]
-            [ i [ class "fas fa-dumbbell text-white text-2xl", attribute "aria-hidden" "true" ] []
-            , span [ class "sr-only" ] [ text "Ready to train" ]
-            ]
-        , h3 [ class "text-2xl font-bold text-gray-900 mb-3" ] [ text model.userConfig.t.readyToTrain ]
-        , p [ class "text-gray-600 mb-6" ] [ text model.userConfig.t.readyToTrainSubtitle ]
+    div [ class "text-center py-10" ]
+        [ div [ class "mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-white" ] [ text "⚡" ]
+        , h3 [ class "text-2xl font-semibold text-slate-900 dark:text-white" ] [ text model.userConfig.t.readyToTrain ]
+        , p [ class "mt-2 text-sm text-slate-500" ] [ text model.userConfig.t.readyToTrainSubtitle ]
         , button
             [ onClick StartSession
-            , class "start-session-button start-session-button--large"
+            , class "sh-btn mt-6 bg-slate-900 text-white hover:bg-slate-800"
             ]
-            [ span [ class "start-session-button__icon" ] [ text "⚡" ]
-            , span [ class "start-session-button__label" ] [ text model.userConfig.t.startTraining ]
-            ]
+            [ text model.userConfig.t.startTraining ]
         ]
+
 
 
 -- QUICK STATS
 
+
 viewQuickStats : FrontendModel -> Html FrontendMsg
 viewQuickStats model =
-    div [ class "grid grid-cols-2 lg:grid-cols-4 gap-4" ]
-        [ quickStatCard model.userConfig.t.trainingStreak (I18n.formatStreak model.userConfig.language model.userProgress.currentStreak) "fas fa-fire" "from-purple-500 to-red-500"
-        , quickStatCard model.userConfig.t.xpToday "245 XP" "fas fa-bolt" "from-cyan-500 to-blue-500"
-        , quickStatCard model.userConfig.t.techniques (String.fromInt (Dict.size model.userProgress.techniqueMastery)) "fas fa-fist-raised" "from-purple-500 to-pink-500"
-        , quickStatCard model.userConfig.t.rank "#127" "fas fa-trophy" "from-yellow-500 to-orange-500"
+    div [ class "grid grid-cols-2 gap-4 lg:grid-cols-4" ]
+        [ quickStatCard model.userConfig.t.trainingStreak (I18n.formatStreak model.userConfig.language model.userProgress.currentStreak) "🔥"
+        , quickStatCard model.userConfig.t.xpToday "245 XP" "⚡"
+        , quickStatCard model.userConfig.t.techniques (String.fromInt (Dict.size model.userProgress.techniqueMastery)) "🥋"
+        , quickStatCard model.userConfig.t.rank "#127" "🏆"
         ]
 
-quickStatCard : String -> String -> String -> String -> Html FrontendMsg
-quickStatCard label value iconClass gradient =
-    div [ class ("bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all group shadow-sm") ]
-        [ div [ class "flex items-center justify-between mb-3" ]
-            [ div [ class ("w-10 h-10 bg-gradient-to-r " ++ gradient ++ " rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform") ]
-                [ i [ class (iconClass ++ " text-white text-lg") ] [] ]
-            , span [ class "text-xs font-medium text-gray-500 uppercase tracking-wider" ] [ text label ]
+
+quickStatCard : String -> String -> String -> Html FrontendMsg
+quickStatCard label value icon =
+    shCard "p-4"
+        [ div [ class "flex items-center justify-between gap-3" ]
+            [ div [ class "text-2xl" ] [ text icon ]
+            , span [ class "text-xs font-semibold uppercase tracking-[0.35em] text-slate-500 dark:text-slate-400" ] [ text label ]
             ]
-        , div [ class "text-2xl font-black text-gray-900" ] [ text value ]
+        , div [ class "text-2xl font-bold text-slate-900 dark:text-white" ] [ text value ]
         ]
+
 
 
 -- BELT BADGE
 
+
 viewBeltBadge : BeltLevel -> Float -> Html msg
 viewBeltBadge belt progress =
     let
-        (bgColor, textColor, nextBeltName) = 
+        ( bgColor, textColor, nextBeltName ) =
             case belt of
-                White -> ("bg-gray-100", "text-gray-800", "BLUE BELT")
-                Blue -> ("bg-blue-500", "text-gray-900", "PURPLE BELT")
-                Purple -> ("bg-purple-500", "text-gray-900", "BROWN BELT")
-                Brown -> ("bg-yellow-800", "text-gray-900", "BLACK BELT")
-                Black -> ("bg-black", "text-gray-900", "MASTER")
+                White ->
+                    ( "bg-gray-100", "text-gray-800", "BLUE BELT" )
+
+                Blue ->
+                    ( "bg-blue-500", "text-gray-900", "PURPLE BELT" )
+
+                Purple ->
+                    ( "bg-purple-500", "text-gray-900", "BROWN BELT" )
+
+                Brown ->
+                    ( "bg-yellow-800", "text-gray-900", "BLACK BELT" )
+
+                Black ->
+                    ( "bg-black", "text-gray-900", "MASTER" )
     in
-    div [ class "flex items-center gap-4" ]
-        [ div [ class ("px-4 py-2 " ++ bgColor ++ " " ++ textColor ++ " rounded-lg font-bold") ]
+    div [ class "rounded-2xl bg-white/10 p-4 text-left ring-1 ring-white/15" ]
+        [ div [ class ("inline-flex items-center rounded-full px-4 py-1 text-xs font-semibold tracking-[0.4em] " ++ bgColor ++ " " ++ textColor) ]
             [ text (String.toUpper (beltLevelToString belt)) ]
         , if belt /= Black then
-            div [ class "flex-1 min-w-0" ]
-                [ div [ class "flex items-center justify-between mb-1" ]
-                    [ span [ class "text-xs text-gray-600" ] [ text ("PROGRESS TO " ++ nextBeltName) ]
-                    , span [ class "text-xs text-gray-300 font-medium" ] [ text (String.fromInt (round (progress * 100)) ++ "%") ]
+            div [ class "mt-3 space-y-1" ]
+                [ div [ class "flex items-center justify-between text-xs text-white/70" ]
+                    [ span [] [ text ("Vers " ++ nextBeltName) ]
+                    , span [] [ text (String.fromInt (round (progress * 100)) ++ "%") ]
                     ]
-                , div [ class "h-2 bg-gray-200 rounded-full overflow-hidden" ]
-                    [ div 
-                        [ class ("h-full transition-all duration-500 " ++ beltProgressBarColor belt)
+                , div [ class "h-1.5 rounded-full bg-white/20" ]
+                    [ div
+                        [ class ("h-full rounded-full " ++ beltProgressBarColor belt)
                         , attribute "style" ("width: " ++ String.fromFloat (progress * 100) ++ "%")
                         ]
                         []
                     ]
                 ]
+
           else
             text ""
         ]
@@ -293,75 +287,72 @@ viewBeltBadge belt progress =
 viewWeeklyProgress : FrontendModel -> Html msg
 viewWeeklyProgress model =
     let
-        weeklyXP = model.userProgress.weeklyGoals.currentXP
-        weeklyTarget = model.userProgress.weeklyGoals.totalXPTarget
-        percentage = if weeklyTarget > 0 then
-                        toFloat weeklyXP / toFloat weeklyTarget * 100
-                     else
-                        0
+        weeklyXP =
+            model.userProgress.weeklyGoals.currentXP
+
+        weeklyTarget =
+            model.userProgress.weeklyGoals.totalXPTarget
+
+        percentage =
+            if weeklyTarget > 0 then
+                toFloat weeklyXP / toFloat weeklyTarget * 100
+
+            else
+                0
     in
-    div [ class "bg-white border border-gray-200 shadow-sm rounded-2xl p-6" ]
-        [ div [ class "flex items-center gap-3 mb-6" ]
-            [ div [ class "w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center" ]
-                [ i [ class "fas fa-chart-line text-white text-xl" ] [] ]
-            , div []
-                [ h3 [ class "text-xl font-bold text-gray-900" ] [ text "WEEKLY GOAL" ]
-                , p [ class "text-gray-600 text-sm" ] [ text "XP target progress" ]
-                ]
+    shCard "p-6 space-y-6"
+        [ div []
+            [ span [ class "text-xs font-semibold uppercase tracking-[0.35em] text-emerald-500" ] [ text "Weekly goal" ]
+            , h3 [ class "text-xl font-semibold text-slate-900 dark:text-white" ] [ text "Objectif XP" ]
             ]
-        , div [ class "text-center mb-4" ]
-            [ div [ class "text-4xl font-black text-gray-900 mb-2" ] 
-                [ text (String.fromInt weeklyXP) ]
-            , div [ class "text-gray-600" ] 
-                [ text ("of " ++ String.fromInt weeklyTarget ++ " XP") ]
+        , div [ class "text-center" ]
+            [ p [ class "text-3xl font-bold text-slate-900 dark:text-white" ] [ text (String.fromInt weeklyXP ++ " / " ++ String.fromInt weeklyTarget ++ " XP") ]
+            , p [ class "text-sm text-slate-500" ] [ text "cette semaine" ]
             ]
-        , div [ class "h-4 bg-gray-200 rounded-full overflow-hidden mb-3" ]
-            [ div 
-                [ class "h-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-500"
+        , div [ class "h-3 rounded-full bg-slate-200" ]
+            [ div
+                [ class "h-full rounded-full bg-emerald-500"
                 , attribute "style" ("width: " ++ String.fromFloat percentage ++ "%")
                 ]
                 []
             ]
-        , div [ class "text-center" ]
-            [ span [ class "text-2xl font-bold text-green-400" ] [ text (String.fromInt (round percentage) ++ "%") ]
-            , span [ class "text-gray-600 ml-2" ] [ text "COMPLETE" ]
-            ]
+        , p [ class "text-center text-sm font-semibold text-emerald-600" ] [ text (String.fromInt (round percentage) ++ "% complet") ]
         ]
 
 
 viewTechniqueProgress : FrontendModel -> Html msg
 viewTechniqueProgress model =
     let
-        totalTechniques = Dict.size model.userProgress.techniqueMastery
-        masteredCount = 
+        totalTechniques =
+            Dict.size model.userProgress.techniqueMastery
+
+        masteredCount =
             model.userProgress.techniqueMastery
                 |> Dict.values
                 |> List.filter (\t -> t.mastery == Mastered)
                 |> List.length
-        masteryPercentage = if totalTechniques > 0 then
-                               toFloat masteredCount / toFloat totalTechniques * 100
-                           else
-                               0
+
+        masteryPercentage =
+            if totalTechniques > 0 then
+                toFloat masteredCount / toFloat totalTechniques * 100
+
+            else
+                0
     in
-    div [ class "bg-white border border-gray-200 shadow-sm rounded-2xl p-6" ]
-        [ div [ class "flex items-center gap-3 mb-6" ]
-            [ div [ class "w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center" ]
-                [ i [ class "fas fa-fist-raised text-white text-xl" ] [] ]
-            , div []
-                [ h3 [ class "text-xl font-bold text-gray-900" ] [ text "TECHNIQUES" ]
-                , p [ class "text-gray-600 text-sm" ] [ text "Mastery progress" ]
-                ]
+    shCard "p-6 space-y-6"
+        [ div []
+            [ span [ class "text-xs font-semibold uppercase tracking-[0.35em] text-indigo-500" ] [ text "Techniques" ]
+            , h3 [ class "text-xl font-semibold text-slate-900 dark:text-white" ] [ text "Progression de maîtrise" ]
             ]
-        , div [ class "text-center mb-4" ]
-            [ div [ class "text-4xl font-black text-gray-900 mb-2" ] 
-                [ text (String.fromInt masteredCount ++ "/" ++ String.fromInt totalTechniques) ]
-            , div [ class "text-gray-600" ] 
-                [ text "MASTERED" ]
+        , div [ class "text-center" ]
+            [ p [ class "text-3xl font-bold text-slate-900 dark:text-white" ]
+                [ text (String.fromInt masteredCount ++ " / " ++ String.fromInt totalTechniques) ]
+            , p [ class "text-sm text-slate-500" ] [ text "techniques maîtrisées" ]
             ]
         , viewMasteryBreakdownOld model.userProgress.techniqueMastery
-        , div [ class "mt-4 h-4 bg-gray-200 rounded-full overflow-hidden" ]
-            [ div 
-                [ class "h-full bg-gradient-to-r from-purple-400 to-indigo-500 transition-all duration-500"
+        , div [ class "h-3 rounded-full bg-slate-200" ]
+            [ div
+                [ class "h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
                 , attribute "style" ("width: " ++ String.fromFloat masteryPercentage ++ "%")
                 ]
                 []
@@ -372,10 +363,10 @@ viewTechniqueProgress model =
 viewMasteryBreakdownOld : Dict String TechniqueMastery -> Html msg
 viewMasteryBreakdownOld techniques =
     let
-        counts = 
+        counts =
             techniques
                 |> Dict.values
-                |> List.foldl countMastery 
+                |> List.foldl countMastery
                     { learning = 0
                     , practicing = 0
                     , proficient = 0
@@ -405,217 +396,223 @@ viewNextGoal model =
     case List.head model.userProgress.weeklyGoals.goals of
         Just goal ->
             div []
-                [ p [ class "text-sm font-medium text-gray-900 dark:text-gray-900 mb-2" ] 
+                [ p [ class "text-sm font-medium text-gray-900 dark:text-gray-900 mb-2" ]
                     [ text goal.description ]
                 , div [ class "h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden" ]
-                    [ div 
+                    [ div
                         [ class "h-full bg-gradient-to-r from-yellow-400 to-orange-500 transition-all"
                         , style "width" (String.fromFloat (goal.progress * 100) ++ "%")
                         ]
                         []
                     ]
-                , p [ class "text-xs text-gray-600 dark:text-gray-600 mt-1" ] 
+                , p [ class "text-xs text-gray-600 dark:text-gray-600 mt-1" ]
                     [ text (String.fromInt (round (goal.progress * 100)) ++ "% Complete") ]
                 ]
-                
+
         Nothing ->
             p [ class "text-gray-600 dark:text-gray-600" ] [ text "No active goals" ]
 
 
+
 -- ACTIVE ROADMAPS
+
 
 viewActiveRoadmaps : FrontendModel -> Html FrontendMsg
 viewActiveRoadmaps model =
-    div [ class "bg-white border border-gray-200 shadow-sm rounded-2xl p-6" ]
-        [ div [ class "flex items-center gap-3 mb-6" ]
-            [ div [ class "w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-xl flex items-center justify-center" ]
-                [ i [ class "fas fa-route text-white text-xl" ] [] ]
-            , div []
-                [ h3 [ class "text-xl font-bold text-gray-900" ] [ text "ACTIVE ROADMAPS" ]
-                , p [ class "text-gray-600 text-sm" ] [ text "Your learning pathways" ]
-                ]
+    shCard "p-6 space-y-6"
+        [ div []
+            [ span [ class "text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" ] [ text "Active roadmaps" ]
+            , h3 [ class "text-xl font-semibold text-slate-900 dark:text-white" ] [ text "Tes parcours guidés" ]
+            , p [ class "text-sm text-slate-500" ] [ text "Reste concentré sur les étapes qui comptent." ]
             ]
-            
         , case Dict.toList model.roadmaps of
             [] ->
-                div [ class "text-center py-8" ]
-                    [ div [ class "w-16 h-16 bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4" ]
-                        [ i [ class "fas fa-map text-gray-600 text-2xl" ] [] ]
-                    , p [ class "text-gray-600 mb-6" ] [ text "No active roadmaps. Start your learning journey!" ]
-                    , button 
+                div [ class "rounded-2xl border border-dashed border-slate-200 p-8 text-center dark:border-slate-700" ]
+                    [ p [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text "Aucun roadmap actif" ]
+                    , p [ class "text-sm text-slate-500" ] [ text "Choisis un parcours pour lancer ton voyage." ]
+                    , button
                         [ onPreventDefaultClick (NavigateTo (HeroesRoute Nothing))
-                        , class "px-6 py-3 bg-gradient-to-r from-green-500 to-blue-500 text-white rounded-xl font-bold hover:from-green-600 hover:to-blue-600 transition-all hover:scale-105"
+                        , class "sh-btn mt-4 bg-slate-900 text-white hover:bg-slate-800"
                         ]
-                        [ i [ class "fas fa-plus mr-2" ] []
-                        , text "BROWSE ROADMAPS"
-                        ]
+                        [ text "Parcourir les roadmaps" ]
                     ]
-                    
+
             roadmaps ->
-                div [ class "space-y-4" ]
+                div [ class "space-y-3" ]
                     (List.map viewRoadmapCard roadmaps)
         ]
 
 
-viewRoadmapCard : (String, TechniqueRoadmap) -> Html FrontendMsg
-viewRoadmapCard (id, roadmap) =
-    div 
-        [ class "p-5 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-700/50 transition-all cursor-pointer group hover:scale-105"
+viewRoadmapCard : ( String, TechniqueRoadmap ) -> Html FrontendMsg
+viewRoadmapCard ( id, roadmap ) =
+    let
+        totalNodes =
+            List.length roadmap.nodes
+
+        completedNodes =
+            roadmap.nodes
+                |> List.filter (\node -> node.status == NodeCompleted || node.status == NodeMastered)
+                |> List.length
+
+        progressPct =
+            if totalNodes > 0 then
+                (toFloat completedNodes / toFloat totalNodes) * 100
+
+            else
+                0
+    in
+    div
+        [ class "cursor-pointer rounded-2xl border border-slate-200 bg-white/70 p-5 transition hover:-translate-y-0.5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/50"
         , onClick (SelectRoadmap id)
         ]
-        [ div [ class "flex items-start justify-between mb-3" ]
-            [ div [ class "flex-1" ]
-                [ h4 [ class "font-bold text-white text-lg group-hover:text-blue-400 transition-colors" ] 
-                    [ text roadmap.name ]
-                , p [ class "text-gray-600 text-sm mt-1" ] 
-                    [ text roadmap.description ]
+        [ div [ class "flex items-center justify-between" ]
+            [ div []
+                [ h4 [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text roadmap.name ]
+                , p [ class "text-sm text-slate-500" ] [ text roadmap.description ]
                 ]
-            , div [ class "text-right" ]
-                [ div [ class "px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-sm font-medium mb-2" ]
-                    [ text (String.fromInt roadmap.estimatedWeeks ++ " WEEKS") ]
-                , div [ class "text-right" ]
-                    [ span [ class "text-2xl font-bold text-green-400" ] [ text "25%" ] -- TODO: calculate actual progress
-                    , div [ class "text-xs text-gray-600" ] [ text "COMPLETE" ]
-                    ]
-                ]
+            , span [ class "rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300" ]
+                [ text (String.fromInt roadmap.estimatedWeeks ++ " w") ]
             ]
-        , div [ class "mt-4 h-3 bg-gray-200 rounded-full overflow-hidden" ]
-            [ div 
-                [ class "h-full bg-gradient-to-r from-green-400 to-blue-500 transition-all duration-300"
-                , attribute "style" "width: 25%" -- TODO: calculate actual progress
+        , div [ class "mt-4 h-2 rounded-full bg-slate-200" ]
+            [ div
+                [ class "h-full rounded-full bg-slate-900"
+                , attribute "style" ("width: " ++ String.fromFloat progressPct ++ "%")
                 ]
                 []
             ]
+        , div [ class "mt-3 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.3em] text-slate-400" ]
+            [ span [] [ text (String.fromInt completedNodes ++ "/" ++ String.fromInt totalNodes ++ " nodes") ]
+            , span [] [ text (String.fromInt (round progressPct) ++ "%") ]
+            ]
         ]
+
 
 
 -- DAILY QUESTS
 
+
 viewDailyQuests : FrontendModel -> List Quest -> Html FrontendMsg
 viewDailyQuests model quests =
-    div [ class "bg-white border border-gray-200 shadow-sm rounded-2xl p-6" ]
-        [ div [ class "flex items-center gap-3 mb-6" ]
-            [ div [ class "w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl flex items-center justify-center" ]
-                [ i [ class "fas fa-sword text-white text-xl" ] [] ]
-            , div []
-                [ h3 [ class "text-xl font-bold text-gray-900" ] [ text model.userConfig.t.dailyQuests ]
-                , p [ class "text-gray-600 text-sm" ] [ text model.userConfig.t.dailyQuestsSubtitle ]
-                ]
+    shCard "p-6 space-y-6"
+        [ div []
+            [ span [ class "text-xs font-semibold uppercase tracking-[0.35em] text-rose-500" ] [ text "Quests" ]
+            , h3 [ class "text-xl font-semibold text-slate-900 dark:text-white" ] [ text model.userConfig.t.dailyQuests ]
+            , p [ class "text-sm text-slate-500" ] [ text model.userConfig.t.dailyQuestsSubtitle ]
             ]
-            
         , if List.isEmpty quests then
-            div [ class "text-center py-8" ]
-                [ div [ class "w-16 h-16 bg-green-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4" ]
-                    [ i [ class "fas fa-check-circle text-green-400 text-2xl" ] [] ]
-                , p [ class "text-green-400 font-bold mb-2" ] [ text model.userConfig.t.allQuestsCompleted ]
-                , p [ class "text-gray-600 text-sm" ] [ text model.userConfig.t.comeBackTomorrow ]
+            div [ class "rounded-2xl border border-emerald-100 bg-emerald-50/60 p-6 text-center dark:border-emerald-900/40 dark:bg-emerald-900/20" ]
+                [ p [ class "text-lg font-semibold text-emerald-600" ] [ text model.userConfig.t.allQuestsCompleted ]
+                , p [ class "text-sm text-emerald-800/80" ] [ text model.userConfig.t.comeBackTomorrow ]
                 ]
+
           else
-            div [ class "space-y-3" ]
-                (List.map viewQuest quests)
+            div [ class "space-y-3" ] (List.map viewQuest quests)
         ]
 
 
 viewQuest : Quest -> Html FrontendMsg
 viewQuest quest =
-    div 
-        [ class (if quest.completed then 
-                    "p-4 bg-green-500/20 border border-green-500/30 rounded-xl opacity-80" 
-                 else 
-                    "p-4 bg-gray-100 border border-gray-200 rounded-xl hover:bg-gray-700/50 transition-all group")
+    let
+        completedClass =
+            "border border-emerald-200/60 bg-emerald-50/80 dark:border-emerald-900/40 dark:bg-emerald-900/30 text-emerald-900"
+
+        pendingClass =
+            "border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/50 transition hover:border-slate-300 dark:hover:border-slate-700"
+    in
+    div
+        [ class
+            ("rounded-2xl p-4 "
+                ++ (if quest.completed then
+                        completedClass
+
+                    else
+                        pendingClass
+                   )
+            )
         ]
         [ div [ class "flex items-center gap-4" ]
-            [ -- Quest Icon/Checkbox
-              div [ class "flex-shrink-0" ]
-                [ if quest.completed then
-                    div [ class "w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center" ]
-                        [ i [ class "fas fa-check text-gray-900 text-sm" ] [] ]
-                  else
-                    div [ class "w-8 h-8 bg-gray-600/50 border-2 border-gray-500 rounded-lg group-hover:border-blue-500 transition-colors" ] []
+            [ div
+                [ class
+                    ("flex h-10 w-10 items-center justify-center rounded-xl "
+                        ++ (if quest.completed then
+                                "bg-emerald-500 text-white"
+
+                            else
+                                "bg-slate-100 text-slate-500"
+                           )
+                    )
                 ]
-                
-              -- Quest Details
-            , div [ class "flex-1 min-w-0" ]
-                [ h4 [ class (if quest.completed then "font-bold text-green-400" else "font-bold text-gray-900") ] 
-                    [ text quest.title ]
-                , p [ class "text-sm text-gray-600 mt-1" ] 
-                    [ text quest.description ]
-                , if not quest.completed then
-                    div [ class "mt-3" ]
-                        [ div [ class "flex items-center justify-between mb-1" ]
-                            [ span [ class "text-xs text-gray-600" ] [ text "PROGRESS" ]
-                            , span [ class "text-xs text-blue-400 font-medium" ] [ text (String.fromInt (round (quest.progress * 100)) ++ "%") ]
+                [ text
+                    (if quest.completed then
+                        "✓"
+
+                     else
+                        "•"
+                    )
+                ]
+            , div [ class "flex-1 space-y-1" ]
+                [ h4 [ class "font-semibold text-slate-900 dark:text-white" ] [ text quest.title ]
+                , p [ class "text-sm text-slate-500" ] [ text quest.description ]
+                , if quest.completed then
+                    text ""
+
+                  else
+                    div [ class "mt-2 space-y-1" ]
+                        [ div [ class "flex items-center justify-between text-xs text-slate-500" ]
+                            [ span [] [ text "Progress" ]
+                            , span [] [ text (String.fromInt (round (quest.progress * 100)) ++ "%") ]
                             ]
-                        , div [ class "h-2 bg-gray-200 rounded-full overflow-hidden" ]
-                            [ div 
-                                [ class "h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+                        , div [ class "h-1.5 rounded-full bg-slate-200" ]
+                            [ div
+                                [ class "h-full rounded-full bg-slate-900"
                                 , attribute "style" ("width: " ++ String.fromFloat (quest.progress * 100) ++ "%")
                                 ]
                                 []
                             ]
                         ]
-                  else
-                    text ""
                 ]
-                
-              -- XP Reward
-            , div [ class "flex-shrink-0 text-right" ]
-                [ if quest.completed then
-                    div [ class "text-green-400" ]
-                        [ i [ class "fas fa-check-circle text-2xl" ] [] ]
-                  else
-                    div [ class "px-3 py-2 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg" ]
-                        [ div [ class "text-yellow-400 font-bold text-lg" ] [ text ("+" ++ String.fromInt quest.xpReward) ]
-                        , div [ class "text-yellow-300/60 text-xs font-medium" ] [ text "XP" ]
-                        ]
+            , div [ class "text-right" ]
+                [ span [ class "text-xs font-semibold uppercase tracking-[0.3em] text-slate-400" ] [ text "XP" ]
+                , p [ class "text-lg font-bold text-slate-900 dark:text-white" ] [ text ("+" ++ String.fromInt quest.xpReward) ]
                 ]
             ]
         ]
 
 
+
 -- RECENT ACHIEVEMENTS
+
 
 viewRecentAchievements : FrontendModel -> Html FrontendMsg
 viewRecentAchievements model =
     let
-        recentBadges = 
+        recentBadges =
             model.userProgress.badges
                 |> List.take 6
     in
-    if List.isEmpty recentBadges then
-        div [ class "bg-white border border-gray-200 shadow-sm rounded-2xl p-6" ]
-            [ div [ class "flex items-center gap-3 mb-6" ]
-                [ div [ class "w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center" ]
-                    [ i [ class "fas fa-trophy text-white text-xl" ] [] ]
-                , div []
-                    [ h3 [ class "text-xl font-bold text-gray-900" ] [ text "ACHIEVEMENTS" ]
-                    , p [ class "text-gray-600 text-sm" ] [ text "Your recent victories" ]
-                    ]
-                ]
-            , div [ class "text-center py-8" ]
-                [ div [ class "w-16 h-16 bg-gray-700/50 rounded-2xl flex items-center justify-center mx-auto mb-4" ]
-                    [ i [ class "fas fa-medal text-gray-600 text-2xl" ] [] ]
-                , p [ class "text-gray-600" ] [ text "No achievements yet. Keep training!" ]
-                ]
+    shCard "p-6 space-y-6"
+        ([ div []
+            [ span [ class "text-xs font-semibold uppercase tracking-[0.35em] text-amber-500" ] [ text "Achievements" ]
+            , h3 [ class "text-xl font-semibold text-slate-900 dark:text-white" ] [ text "Tes dernières victoires" ]
             ]
-    else
-        div [ class "bg-white border border-gray-200 shadow-sm rounded-2xl p-6" ]
-            [ div [ class "flex items-center gap-3 mb-6" ]
-                [ div [ class "w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center" ]
-                    [ i [ class "fas fa-trophy text-white text-xl" ] [] ]
-                , div []
-                    [ h3 [ class "text-xl font-bold text-gray-900" ] [ text "ACHIEVEMENTS" ]
-                    , p [ class "text-gray-600 text-sm" ] [ text "Your recent victories" ]
+         ]
+            ++ (if List.isEmpty recentBadges then
+                    [ div [ class "rounded-2xl border border-dashed border-slate-200 p-8 text-center dark:border-slate-700" ]
+                        [ p [ class "text-sm text-slate-500" ] [ text "Aucun badge débloqué pour l'instant. Continue ton entraînement !" ]
+                        ]
                     ]
-                ]
-            , div [ class "grid grid-cols-2 lg:grid-cols-3 gap-4" ]
-                (List.map viewBadge recentBadges)
-            ]
+
+                else
+                    [ div [ class "grid grid-cols-2 gap-4 lg:grid-cols-3" ]
+                        (List.map viewBadge recentBadges)
+                    ]
+               )
+        )
 
 
 viewBadge : Badge -> Html msg
 viewBadge badge =
-    div 
+    div
         [ class "p-4 bg-gradient-to-br from-yellow-500/10 via-orange-500/10 to-red-500/10 border border-yellow-500/20 rounded-xl text-center hover:scale-105 transition-all group"
         , attribute "title" badge.description
         ]
@@ -626,12 +623,15 @@ viewBadge badge =
         ]
 
 
+
 -- HELPER FUNCTIONS
+
 
 weeklyStatsIcon : FrontendModel -> String
 weeklyStatsIcon model =
     if model.userProgress.currentStreak >= 7 then
         "🔥"
+
     else
         "📊"
 
@@ -639,13 +639,22 @@ weeklyStatsIcon model =
 viewBeltIcon : BeltLevel -> Html msg
 viewBeltIcon belt =
     let
-        (color, textColor) = 
+        ( color, textColor ) =
             case belt of
-                White -> ("bg-white", "text-gray-800")
-                Blue -> ("bg-blue-500", "text-gray-900")
-                Purple -> ("bg-purple-500", "text-gray-900")
-                Brown -> ("bg-yellow-800", "text-gray-900")
-                Black -> ("bg-black", "text-gray-900")
+                White ->
+                    ( "bg-white", "text-gray-800" )
+
+                Blue ->
+                    ( "bg-blue-500", "text-gray-900" )
+
+                Purple ->
+                    ( "bg-purple-500", "text-gray-900" )
+
+                Brown ->
+                    ( "bg-yellow-800", "text-gray-900" )
+
+                Black ->
+                    ( "bg-black", "text-gray-900" )
     in
     div [ class ("px-3 py-1 rounded " ++ color ++ " " ++ textColor ++ " font-bold text-sm") ]
         [ text (beltLevelToString belt) ]
@@ -654,38 +663,68 @@ viewBeltIcon belt =
 beltLevelToString : BeltLevel -> String
 beltLevelToString belt =
     case belt of
-        White -> "White Belt"
-        Blue -> "Blue Belt"
-        Purple -> "Purple Belt"
-        Brown -> "Brown Belt"
-        Black -> "Black Belt"
+        White ->
+            "White Belt"
+
+        Blue ->
+            "Blue Belt"
+
+        Purple ->
+            "Purple Belt"
+
+        Brown ->
+            "Brown Belt"
+
+        Black ->
+            "Black Belt"
 
 
 nextBelt : BeltLevel -> BeltLevel
 nextBelt belt =
     case belt of
-        White -> Blue
-        Blue -> Purple
-        Purple -> Brown
-        Brown -> Black
-        Black -> Black
+        White ->
+            Blue
+
+        Blue ->
+            Purple
+
+        Purple ->
+            Brown
+
+        Brown ->
+            Black
+
+        Black ->
+            Black
 
 
 beltProgressBarColor : BeltLevel -> String
 beltProgressBarColor belt =
     case belt of
-        White -> "bg-blue-500"
-        Blue -> "bg-purple-500"
-        Purple -> "bg-yellow-700"
-        Brown -> "bg-gray-800"
-        Black -> "bg-black"
+        White ->
+            "bg-blue-500"
+
+        Blue ->
+            "bg-purple-500"
+
+        Purple ->
+            "bg-yellow-700"
+
+        Brown ->
+            "bg-gray-800"
+
+        Black ->
+            "bg-black"
 
 
 formatTimer : Int -> String
 formatTimer seconds =
     let
-        mins = seconds // 60
-        secs = remainderBy 60 seconds
+        mins =
+            seconds // 60
+
+        secs =
+            remainderBy 60 seconds
     in
     String.padLeft 2 '0' (String.fromInt mins) ++ ":" ++ String.padLeft 2 '0' (String.fromInt secs)
 
@@ -693,10 +732,10 @@ formatTimer seconds =
 viewMasteryBreakdown : Dict String TechniqueMastery -> Html msg
 viewMasteryBreakdown techniques =
     let
-        counts = 
+        counts =
             techniques
                 |> Dict.values
-                |> List.foldl countMastery 
+                |> List.foldl countMastery
                     { learning = 0
                     , practicing = 0
                     , proficient = 0
@@ -712,6 +751,7 @@ viewMasteryBreakdown techniques =
         , masteryBadge "MASTERED" counts.mastered "bg-green-500/20 text-green-400 border-green-500/30"
         ]
 
+
 masteryBadge : String -> Int -> String -> Html msg
 masteryBadge label count colorClass =
     div [ class ("border rounded-lg p-2 text-center transition-all hover:scale-105 " ++ colorClass) ]
@@ -719,12 +759,30 @@ masteryBadge label count colorClass =
         , div [ class "text-xs font-medium opacity-80" ] [ text label ]
         ]
 
+
+shCard : String -> List (Html msg) -> Html msg
+shCard extra children =
+    div [ class ("sh-card rounded-2xl border border-slate-200/70 bg-white/90 dark:bg-slate-900/70 " ++ extra) ] children
+
+
 countMastery : TechniqueMastery -> { learning : Int, practicing : Int, proficient : Int, advanced : Int, mastered : Int } -> { learning : Int, practicing : Int, proficient : Int, advanced : Int, mastered : Int }
 countMastery technique counts =
     case technique.mastery of
-        NotStarted -> counts  -- Not started techniques don't count
-        Learning -> { counts | learning = counts.learning + 1 }
-        Practicing -> { counts | practicing = counts.practicing + 1 }
-        Proficient -> { counts | proficient = counts.proficient + 1 }
-        Advanced -> { counts | advanced = counts.advanced + 1 }
-        Mastered -> { counts | mastered = counts.mastered + 1 }
+        NotStarted ->
+            counts
+
+        -- Not started techniques don't count
+        Learning ->
+            { counts | learning = counts.learning + 1 }
+
+        Practicing ->
+            { counts | practicing = counts.practicing + 1 }
+
+        Proficient ->
+            { counts | proficient = counts.proficient + 1 }
+
+        Advanced ->
+            { counts | advanced = counts.advanced + 1 }
+
+        Mastered ->
+            { counts | mastered = counts.mastered + 1 }

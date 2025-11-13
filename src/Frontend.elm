@@ -71,6 +71,7 @@ init url key =
                 , language = I18n.EN
                 }
             , clientId = ""
+            , currentTime = Time.millisToPosix 0
             , mobileMenuOpen = False
             , searchQuery = ""
             , techniqueLibraryFilter = Nothing
@@ -113,6 +114,7 @@ init url key =
     , Cmd.batch
         [ Lamdera.sendToBackend GetInitialData
         , Lamdera.sendToBackend (TrackPageView route)
+        , Task.perform GotCurrentTime Time.now
         ]
     )
 
@@ -168,6 +170,11 @@ update msg model =
                         , t = I18n.translate language
                     }
               }
+            , Cmd.none
+            )
+
+        GotCurrentTime now ->
+            ( { model | currentTime = now }
             , Cmd.none
             )
 
@@ -693,6 +700,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Sub.none -- LocalStorage subscription not implemented yet
+        , Time.every (toFloat (60 * 60 * 1000)) GotCurrentTime
         , if model.animations.pageTransition then
             Time.every 16 AnimationTick
 
@@ -1588,7 +1596,7 @@ viewEventsPage model filter =
         eventsList =
             model.events
                 |> Dict.values
-                |> filterEvents filter
+                |> filterEvents model.currentTime filter
                 |> List.sortBy .date
 
         headerSubtitle =
@@ -1647,8 +1655,11 @@ viewEventListCard model event =
         typeIcon =
             eventTypeIcon event.type_
 
+        status =
+            eventStatusFor model.currentTime event
+
         statusClass =
-            eventStatusClass event.status
+            eventStatusClass status
 
         t =
             model.userConfig.t
@@ -1669,7 +1680,7 @@ viewEventListCard model event =
         , class "card list-card list-card--interactive p-6"
         ]
         [ div [ class "flex flex-col items-center text-center gap-2" ]
-            [ span [ class statusClass ] [ text (eventStatusText t event.status) ]
+            [ span [ class statusClass ] [ text (eventStatusText t status) ]
             , h3 [ class "list-card__title" ] [ text event.name ]
             , span [ class "list-card__meta" ] [ text (typeIcon ++ " " ++ eventTypeToString event.type_) ]
             , span [ class "list-card__meta" ] [ text event.date ]
@@ -1704,17 +1715,25 @@ pageIntro title subtitle =
         ]
 
 
-filterEvents : EventsFilter -> List Event -> List Event
-filterEvents filter events =
+filterEvents : Time.Posix -> EventsFilter -> List Event -> List Event
+filterEvents now filter events =
     case filter of
         AllEvents ->
             events
 
         UpcomingEvents ->
-            List.filter (\e -> e.status == EventUpcoming || e.status == EventLive) events
+            List.filter
+                (\event ->
+                    let
+                        status =
+                            eventStatusFor now event
+                    in
+                    status == EventUpcoming || status == EventLive
+                )
+                events
 
         PastEvents ->
-            List.filter (\e -> e.status == EventCompleted) events
+            List.filter (\event -> eventStatusFor now event == EventCompleted) events
 
 
 eventTypeIcon : EventType -> String
@@ -1765,6 +1784,100 @@ eventStatusText t status =
             t.eventStatusCancelled
 
 
+eventStatusFor : Time.Posix -> Event -> EventStatus
+eventStatusFor currentTime event =
+    if Time.posixToMillis currentTime == 0 then
+        event.status
+
+    else
+        case dateComparableFromString event.date of
+            Just eventValue ->
+                let
+                    todayValue =
+                        currentDateComparable currentTime
+                in
+                if eventValue > todayValue then
+                    EventUpcoming
+
+                else if eventValue == todayValue then
+                    EventLive
+
+                else
+                    EventCompleted
+
+            Nothing ->
+                event.status
+
+
+currentDateComparable : Time.Posix -> Int
+currentDateComparable posix =
+    let
+        zone =
+            Time.utc
+    in
+    dateComparable (Time.toYear zone posix) (monthToInt (Time.toMonth zone posix)) (Time.toDay zone posix)
+
+
+dateComparableFromString : String -> Maybe Int
+dateComparableFromString isoDate =
+    case String.split "-" isoDate of
+        yearStr :: monthStr :: dayStr :: _ ->
+            case ( String.toInt yearStr, String.toInt monthStr, String.toInt dayStr ) of
+                ( Just year, Just month, Just day ) ->
+                    Just (dateComparable year month day)
+
+                _ ->
+                    Nothing
+
+        _ ->
+            Nothing
+
+
+dateComparable : Int -> Int -> Int -> Int
+dateComparable year month day =
+    (year * 10000) + (month * 100) + day
+
+
+monthToInt : Time.Month -> Int
+monthToInt month =
+    case month of
+        Time.Jan ->
+            1
+
+        Time.Feb ->
+            2
+
+        Time.Mar ->
+            3
+
+        Time.Apr ->
+            4
+
+        Time.May ->
+            5
+
+        Time.Jun ->
+            6
+
+        Time.Jul ->
+            7
+
+        Time.Aug ->
+            8
+
+        Time.Sep ->
+            9
+
+        Time.Oct ->
+            10
+
+        Time.Nov ->
+            11
+
+        Time.Dec ->
+            12
+
+
 viewEventDetailPage : Model -> String -> Html Msg
 viewEventDetailPage model eventId =
     let
@@ -1777,11 +1890,11 @@ viewEventDetailPage model eventId =
                 [ h1 [ class "text-4xl font-bold mb-8 dark:text-white" ] [ text event.name ]
                 , div [ class "grid grid-cols-1 lg:grid-cols-3 gap-8" ]
                     [ div [ class "lg:col-span-2" ]
-                        [ viewEventInfo t event
+                        [ viewEventInfo model t event
                         , viewEventBrackets t event
                         ]
                     , div []
-                        [ viewEventDetails t event
+                        [ viewEventDetails model t event
                         , viewEventLinks t event
                         ]
                     ]
@@ -1792,8 +1905,12 @@ viewEventDetailPage model eventId =
                 [ p [ class "text-center text-gray-500" ] [ text t.eventNotFound ] ]
 
 
-viewEventInfo : I18n.Translations -> Event -> Html Msg
-viewEventInfo t event =
+viewEventInfo : Model -> I18n.Translations -> Event -> Html Msg
+viewEventInfo model t event =
+    let
+        status =
+            eventStatusFor model.currentTime event
+    in
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.eventInformation ]
         , p [ class "text-gray-600 dark:text-gray-300 mb-4" ] [ text event.description ]
@@ -1802,7 +1919,7 @@ viewEventInfo t event =
             , infoRow t.location (event.location.city ++ ", " ++ event.location.country)
             , infoRow t.venue event.location.address
             , infoRow t.organization event.organization
-            , infoRow t.statusLabel (eventStatusText t event.status)
+            , infoRow t.statusLabel (eventStatusText t status)
             ]
         ]
 
@@ -1883,13 +2000,17 @@ beltToString belt =
             "noire"
 
 
-viewEventDetails : I18n.Translations -> Event -> Html Msg
-viewEventDetails t event =
+viewEventDetails : Model -> I18n.Translations -> Event -> Html Msg
+viewEventDetails model t event =
+    let
+        status =
+            eventStatusFor model.currentTime event
+    in
     div [ class "bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg mb-6" ]
         [ h2 [ class "text-2xl font-bold mb-4 dark:text-white" ] [ text t.eventDetails ]
         , div [ class "space-y-3" ]
             [ detailRow t.typeLabel (eventTypeToString event.type_) (eventTypeIcon event.type_)
-            , detailRow t.statusLabel (eventStatusText t event.status) "📊"
+            , detailRow t.statusLabel (eventStatusText t status) "📊"
             , detailRow t.organization event.organization "🏢"
             ]
         ]
@@ -2696,20 +2817,47 @@ viewTechniqueCategorySelector language selection =
                 ]
                 [ text labelText ]
     in
-    section [ class "card space-y-5" ]
+    section [ class "card space-y-6" ]
         [ div [ class "flex flex-wrap items-center justify-between gap-3" ]
             [ label [ Attr.for selectId, class "text-base font-semibold text-slate-900 dark:text-white" ] [ text titleLabel ]
             , span [ class "text-xs text-gray-500 dark:text-gray-400" ] [ text helperLabel ]
             ]
-        , select
-            [ id selectId
-            , class "sh-select w-full"
-            , onInput (SetTechniqueLibraryFilter << valueToTechniqueSection)
-            , Attr.value currentValue
+        , div [ class "relative" ]
+            [ select
+                [ id selectId
+                , class "sh-select"
+                , onInput (SetTechniqueLibraryFilter << valueToTechniqueSection)
+                , Attr.value currentValue
+                ]
+                (List.map optionView options)
+            , span [ class "pointer-events-none absolute inset-y-0 right-4 flex items-center text-xl text-slate-400 dark:text-slate-500" ]
+                [ text "⌄" ]
             ]
-            (List.map optionView options)
+        , div [ class "flex flex-wrap gap-2" ]
+            (List.map (viewTechniqueFilterChip selection) options)
         , viewTechniqueNotes language (Data.guardTechniqueNotes ++ Data.sweepTechniqueNotes)
         ]
+
+
+viewTechniqueFilterChip :
+    Maybe TechniqueSection
+    -> ( Maybe TechniqueSection, String )
+    -> Html Msg
+viewTechniqueFilterChip currentSelection ( optionSelection, labelText ) =
+    let
+        isActive =
+            currentSelection == optionSelection
+    in
+    button
+        [ type_ "button"
+        , classList
+            [ ( "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition", True )
+            , ( "bg-purple-600 text-white border-purple-600 shadow-sm", isActive )
+            , ( "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-purple-200 dark:hover:border-purple-500", not isActive )
+            ]
+        , onClick (SetTechniqueLibraryFilter optionSelection)
+        ]
+        [ text labelText ]
 
 
 viewTechniqueGroup : I18n.Language -> Data.TechniqueGroup -> Html Msg
@@ -2892,18 +3040,16 @@ viewTechniqueComingSoon language techSection =
 viewTechniqueNotes : I18n.Language -> List Data.LocalizedString -> Html Msg
 viewTechniqueNotes language notes =
     let
-        title =
-            case language of
-                I18n.FR ->
-                    "Remarques rapides"
-
-                I18n.EN ->
-                    "Quick notes"
+        noteView note =
+            div [ class "flex items-start gap-3 rounded-2xl bg-white/70 dark:bg-slate-900/60 px-4 py-3 shadow-inner" ]
+                [ span [ class "text-lg text-purple-600 dark:text-purple-300" ] [ text "✦" ]
+                , p [ class "text-sm md:text-base text-gray-700 dark:text-gray-200 leading-relaxed" ]
+                    [ text (localizeText language note) ]
+                ]
     in
-    section [ class "card space-y-4" ]
-        [ h3 [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text title ]
-        , ul [ class "list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300" ]
-            (List.map (\note -> li [] [ text (localizeText language note) ]) notes)
+    div [ class "border-t border-gray-200 dark:border-gray-800 pt-5 space-y-4" ]
+        [ div [ class "space-y-3" ]
+            (List.map noteView notes)
         ]
 
 

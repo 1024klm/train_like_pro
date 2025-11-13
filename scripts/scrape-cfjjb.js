@@ -15,6 +15,7 @@ const path = require('path');
 
 const CFJJB_URL = 'https://cfjjb.com/competitions/calendrier-competitions';
 const OUTPUT_FILE = path.join(__dirname, '..', 'src', 'Data', 'CFJJBEvents.elm');
+const RAW_HTML_FILE = path.join(__dirname, 'cfjjb-raw.html');
 
 /**
  * Fetch HTML content from URL
@@ -42,45 +43,81 @@ function fetchHTML(url) {
  * This is a basic parser - we'll use regex for simplicity
  */
 function parseCompetitions(html) {
+  // Save raw HTML for debugging
+  try { fs.writeFileSync(RAW_HTML_FILE, html, 'utf8'); } catch (_) {}
+
+  // Structured parser based on observed markup: each event name is inside
+  // <p id="compet_XXX">Name</p>, then a date "Le ..." or "Du ... au ...",
+  // then a <p> with the city, and a status span containing "Validé"/"A confirmer".
   const competitions = [];
+  const nameRegex = /<p[^>]*id="compet_\d+"[^>]*>\s*([\s\S]*?)<\/p>/gi;
+  let match;
+  while ((match = nameRegex.exec(html)) !== null) {
+    const rawName = stripTags(match[1]).trim();
+    if (!rawName) continue;
 
-  // Extract month sections
-  const monthRegex = /<h3[^>]*>([^<]+)<\/h3>([\s\S]*?)(?=<h3|$)/g;
-  let monthMatch;
+    const context = html.slice(match.index, match.index + 4000);
+    const dateMatch = context.match(/Le\s+\d{1,2}\s+\w+\s+\d{4}|Du\s+\d{1,2}\s+\w+\s+au\s+\d{1,2}\s+\w+/i);
+    const statusMatch = context.match(/Validé|A confirmer/i);
 
-  while ((monthMatch = monthRegex.exec(html)) !== null) {
-    const monthName = monthMatch[1].trim();
-    const monthContent = monthMatch[2];
+    // Find first <p> after the date, assume it's the city
+    let city = '';
+    if (dateMatch) {
+      const afterDate = context.slice(context.indexOf(dateMatch[0]) + dateMatch[0].length);
+      const cityTag = afterDate.match(/<p[^>]*>\s*([^<]+?)\s*<\/p>/i);
+      if (cityTag) city = stripTags(cityTag[1]).trim();
+    }
 
-    // Extract competition entries within this month
-    // Looking for patterns like competition name, date, location
-    const competitionRegex = /<div[^>]*class="[^"]*competition[^"]*"[^>]*>([\s\S]*?)<\/div>/g;
-    let compMatch;
-
-    while ((compMatch = competitionRegex.exec(monthContent)) !== null) {
-      const compHTML = compMatch[1];
-
-      // Extract details (this is simplified - adjust based on actual HTML structure)
-      const nameMatch = compHTML.match(/<h4[^>]*>([^<]+)<\/h4>/);
-      const dateMatch = compHTML.match(/(\d{1,2})\s+(\w+)\s+(\d{4})/);
-      const locationMatch = compHTML.match(/<span[^>]*class="[^"]*location[^"]*"[^>]*>([^<]+)<\/span>/);
-      const statusMatch = compHTML.match(/Validé|A confirmer/);
-
-      if (nameMatch && dateMatch) {
-        const comp = {
-          name: nameMatch[1].trim(),
-          date: parseDate(dateMatch[0]),
-          location: locationMatch ? locationMatch[1].trim() : '',
-          status: statusMatch ? statusMatch[0] : 'A confirmer',
-          categories: extractCategories(nameMatch[1])
-        };
-
-        competitions.push(comp);
-      }
+    if (dateMatch && city) {
+      competitions.push({
+        name: rawName,
+        date: parseFlexibleDate(dateMatch[0]) || '',
+        location: city,
+        status: statusMatch ? statusMatch[0] : 'A confirmer',
+        categories: extractCategories(rawName)
+      });
     }
   }
 
-  return competitions;
+  return dedupeCompetitions(competitions);
+}
+
+function parseFlexibleDate(raw) {
+  // Handles "Le 4 octobre 2025" or "Du 29 novembre au 30 novembre"
+  const single = raw.match(/\b(\d{1,2})\s+(\w+)\s+(\d{4})\b/i);
+  if (single) return parseDate(single[0]);
+
+  const range = raw.match(/Du\s+(\d{1,2})\s+(\w+)\s+au\s+(\d{1,2})\s+(\w+)/i);
+  if (range) {
+    const day = range[1];
+    const month = range[2];
+    const yearMatch = raw.match(/(\d{4})/);
+    const year = yearMatch ? yearMatch[1] : new Date().getFullYear().toString();
+    return parseDate(`${day} ${month} ${year}`);
+  }
+  return '';
+}
+
+function stripTags(s) {
+  return s.replace(/<[^>]+>/g, '');
+}
+
+function slugify(str) {
+  return str
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+}
+
+function dedupeCompetitions(list) {
+  const seen = new Set();
+  return list.filter(c => {
+    const key = `${c.name}|${c.date}|${c.location}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /**
@@ -157,7 +194,7 @@ cfjjbEvents =
 `;
 
   const events = competitions.map((comp, index) => {
-    const id = `cfjjb-${index + 1}`;
+    const id = `cfjjb-${slugify(comp.name)}-${comp.date || (index + 1)}`;
     const location = parseLocation(comp.location);
     const eventType = comp.categories.includes('Kids') ? 'Camp' : 'Tournament';
     const status = comp.status === 'Validé' ? 'EventUpcoming' : 'EventUpcoming';
@@ -184,7 +221,7 @@ cfjjbEvents =
           , status = ${status}
           }
         )`;
-  }).join('\n');
+  }).join(',\n');
 
   const footer = `
 `;

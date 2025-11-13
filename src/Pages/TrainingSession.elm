@@ -201,9 +201,7 @@ viewTechniqueTracker techniqueId model =
             
           -- Quick Tags
         , div []
-            [ p [ class "text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" ]
-                [ text "Quick Notes:" ]
-            , div [ class "flex flex-wrap gap-2" ]
+            [ div [ class "flex flex-wrap gap-2" ]
                 [ quickTag "💪 Strong side"
                 , quickTag "🔄 Need more reps"
                 , quickTag "⏱️ Timing issue"

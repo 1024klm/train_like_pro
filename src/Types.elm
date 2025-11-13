@@ -1,19 +1,21 @@
 module Types exposing (..)
 
 import Browser exposing (UrlRequest)
-import Dict exposing (Dict)
-import Set exposing (Set)
 import Browser.Navigation exposing (Key)
+import Dict exposing (Dict)
 import I18n exposing (Language, Translations)
 import LocalStorage exposing (LocalStorage)
+import Set exposing (Set)
 import Theme exposing (UserPreference)
-import Url exposing (Url)
-import Url.Parser as Parser exposing (Parser, (</>), (<?>))
-import Url.Parser.Query as Query
 import Time
+import Url exposing (Url)
+import Url.Parser as Parser exposing ((</>), (<?>), Parser)
+import Url.Parser.Query as Query
+
 
 
 -- USER CONFIGURATION
+
 
 type alias UserConfig =
     { t : Translations
@@ -22,7 +24,9 @@ type alias UserConfig =
     }
 
 
+
 -- ROUTING
+
 
 type Route
     = Home
@@ -58,7 +62,9 @@ type EventsFilter
     | AllEvents
 
 
+
 -- HERO DATA
+
 
 type alias Hero =
     { id : String
@@ -113,14 +119,20 @@ type alias CompetitionRecord =
     , titles : List String
     }
 
+
+
 -- Filtering helpers
+
+
 type Gender
     = Male
     | Female
 
+
 type TitleFilter
     = TitleADCC
     | TitleWorlds
+
 
 type alias HeroStats =
     { winRate : Float
@@ -221,7 +233,9 @@ type VideoType
     | Highlight
 
 
+
 -- LOCATION DATA
+
 
 type alias Location =
     { city : String
@@ -238,7 +252,9 @@ type alias Coordinates =
     }
 
 
+
 -- EVENT DATA
+
 
 type alias Event =
     { id : String
@@ -299,7 +315,9 @@ type BeltLevel
     | Black
 
 
+
 -- TRAINING DATA
+
 
 type alias TrainingPlan =
     { id : String
@@ -412,7 +430,9 @@ type AchievementCategory
     | SocialAchievement
 
 
+
 -- USER DATA
+
 
 type alias UserProfile =
     { id : String
@@ -441,7 +461,9 @@ type alias UserStats =
     }
 
 
+
 -- GAMIFICATION DATA
+
 
 type alias UserProgress =
     { -- XP & Levels
@@ -449,18 +471,18 @@ type alias UserProgress =
     , currentLevel : Int -- 1-100
     , levelProgress : Float -- 0.0 to 1.0
     , beltProgress : Float -- 0.0 to 1.0
-    
-      -- Skills & Techniques
+
+    -- Skills & Techniques
     , skillTree : Dict String SkillProgress
     , techniqueMastery : Dict String TechniqueMastery
     , roadmapProgress : Dict String RoadmapProgress
-    
-      -- Achievements & Stats
+
+    -- Achievements & Stats
     , unlockedAchievements : List String
     , titles : List PlayerTitle
     , badges : List Badge
-    
-      -- Daily/Weekly
+
+    -- Daily/Weekly
     , dailyQuests : List Quest
     , weeklyGoals : WeeklyGoals
     , lastActive : Time.Posix
@@ -499,7 +521,9 @@ type alias TechniqueMastery =
     }
 
 
+
 -- Fighter Style Paths (Gordon Ryan, Mikey Galvao, etc.)
+
 
 type alias FighterStylePath =
     { id : String
@@ -623,7 +647,9 @@ type alias WeeklyGoals =
     }
 
 
+
 -- ROADMAP DATA
+
 
 type alias TechniqueRoadmap =
     { id : String
@@ -698,7 +724,9 @@ type alias RoadmapProgress =
     }
 
 
+
 -- FRONTEND MODEL
+
 
 type alias FrontendModel =
     { key : Key
@@ -707,32 +735,33 @@ type alias FrontendModel =
     , localStorage : LocalStorage
     , userConfig : UserConfig
     , clientId : String
-    
+    , currentTime : Time.Posix
+
     -- Navigation
     , mobileMenuOpen : Bool
     , searchQuery : String
     , techniqueLibraryFilter : Maybe TechniqueSection
     , activeFilters : Filters
-    
+
     -- Data
     , heroes : Dict String Hero
     , events : Dict String Event
     , trainingPlans : Dict String TrainingPlan
     , trainingSessions : List TrainingSession
-    
+
     -- User
     , userProfile : Maybe UserProfile
     , favorites : Favorites
     , userProgress : UserProgress -- Progression gamifiée
-    
+
     -- Roadmaps
     , roadmaps : Dict String TechniqueRoadmap
     , activeRoadmap : Maybe String
-    
+
     -- Training Session Active
     , activeSession : Maybe ActiveSession
     , sessionTimer : Int -- secondes
-    
+
     -- UI State
     , loadingStates : Dict String Bool
     , modals : ModalState
@@ -810,7 +839,9 @@ type NotificationType
     | Warning
 
 
+
 -- BACKEND MODEL
+
 
 type alias BackendModel =
     { sessions : Dict SessionId Session
@@ -830,8 +861,12 @@ type alias Session =
     }
 
 
-type alias SessionId = String
-type alias ClientId = String
+type alias SessionId =
+    String
+
+
+type alias ClientId =
+    String
 
 
 type alias Analytics =
@@ -842,15 +877,17 @@ type alias Analytics =
     }
 
 
+
 -- MESSAGES
+
 
 type FrontendMsg
     = UrlClicked UrlRequest
     | UrlChanged Url
     | NoOpFrontendMsg
     | ReceivedLocalStorage LocalStorage
-    
-    -- Navigation
+    | GotCurrentTime Time.Posix
+      -- Navigation
     | NavigateTo Route
     | ToggleMobileMenu
     | FocusMobileToggle
@@ -858,31 +895,26 @@ type FrontendMsg
     | UpdateSearchQuery String
     | ApplyFilter HeroFilter
     | ClearFilters
-    
-    -- User Actions
+      -- User Actions
     | ChangeLanguage Language
     | ChangeTheme UserPreference
     | ToggleFavorite FavoriteType String
     | Login String String
     | Logout
     | UpdateProfile UserProfile
-    
-    -- Heroes
+      -- Heroes
     | SelectHero String
     | LoadHeroVideos String
     | PlayVideo Video
-
-    -- Events
+      -- Events
     | SelectEvent String
     | RegisterForEvent String
-    
-    -- Training
+      -- Training
     | StartTrainingPlan String
     | SaveTrainingSession TrainingSession
     | UpdateSessionProgress String Float
     | RateSession String Int
-    
-    -- Gamification
+      -- Gamification
     | StartSession
     | EndSession
     | LogTechnique TechniqueLog
@@ -898,8 +930,7 @@ type FrontendMsg
     | AnimateXP Int Position
     | AnimateLevelUp
     | UpdateSessionTimer Time.Posix
-    
-    -- UI
+      -- UI
     | OpenModal ModalType
     | CloseModal
     | ShowNotification NotificationType String
