@@ -27,6 +27,7 @@ import Process
 import Router
 import Router.Helpers exposing (onPreventDefaultClick)
 import Set exposing (Set)
+import String
 import Task
 import Theme
 import Time
@@ -98,6 +99,7 @@ init url key =
                 , heroDetailModal = Nothing
                 , shareModal = Nothing
                 , filterModal = False
+                , techniqueSelectionModal = False
                 }
             , notifications = []
             , animations =
@@ -108,6 +110,8 @@ init url key =
                 , levelUpAnimation = False
                 }
             , claimedPlanItems = Set.empty
+            , techniquePreview = Nothing
+            , trainingGoal = Nothing
             }
     in
     ( initialModel
@@ -311,9 +315,7 @@ update msg model =
                             { modals | filterModal = True }
 
                         TechniqueSelectionModal ->
-                            { modals | sessionModal = True }
-
-                -- Using sessionModal for now
+                            { modals | techniqueSelectionModal = True }
             in
             ( { model | modals = newModals }, Cmd.none )
 
@@ -324,6 +326,7 @@ update msg model =
                     , heroDetailModal = Nothing
                     , shareModal = Nothing
                     , filterModal = False
+                    , techniqueSelectionModal = False
                     }
               }
             , Cmd.none
@@ -385,7 +388,7 @@ update msg model =
             let
                 newSession =
                     { startTime = Time.millisToPosix 0 -- Will be set properly by backend
-                    , currentTechnique = Nothing
+                    , currentTechnique = model.trainingGoal
                     , techniques = []
                     , totalXP = 0
                     , notes = ""
@@ -475,12 +478,36 @@ update msg model =
         SelectNode techniqueId ->
             case model.activeSession of
                 Just session ->
-                    ( { model | activeSession = Just { session | currentTechnique = Just techniqueId } }
+                    let
+                        currentModals =
+                            model.modals
+
+                        updatedModals =
+                            { currentModals | techniqueSelectionModal = False }
+                    in
+                    ( { model
+                        | activeSession = Just { session | currentTechnique = Just techniqueId }
+                        , modals = updatedModals
+                      }
                     , Cmd.none
                     )
 
                 Nothing ->
                     ( model, Cmd.none )
+
+        PreviewTechnique techniqueId ->
+            ( { model | techniquePreview = Just techniqueId }, Cmd.none )
+
+        ClearTechniquePreview ->
+            ( { model | techniquePreview = Nothing }, Cmd.none )
+
+        SetTrainingGoal techniqueId ->
+            ( { model
+                | trainingGoal = Just techniqueId
+                , techniquePreview = Just techniqueId
+              }
+            , Cmd.none
+            )
 
         QuickSuccess bonusXP ->
             case model.activeSession of
@@ -637,7 +664,7 @@ toggleSet item set =
 
 scrollToTop : Cmd Msg
 scrollToTop =
-    Task.perform (\_ -> NoOpFrontendMsg) (Task.succeed ())
+    Task.perform (\_ -> NoOpFrontendMsg) (Dom.setViewport 0 0)
 
 
 
@@ -1185,193 +1212,279 @@ viewFighterStylePaths model =
         t =
             model.userConfig.t
 
-        language =
-            model.userConfig.language
+        favoriteHeroes =
+            model.favorites.heroes
+                |> Set.toList
+                |> List.filterMap (\heroId -> Dict.get heroId model.heroes)
+                |> List.sortBy .name
 
-        fighterPaths =
-            [ { slug = "gordon-ryan"
-              , name = "Gordon Ryan"
-              , title =
-                    if language == I18n.FR then
-                        "Champion"
+        subtitleText =
+            if List.isEmpty favoriteHeroes then
+                t.chooseChampionPrompt
 
-                    else
-                        "Champion"
-              , specialty =
-                    if language == I18n.FR then
-                        "Attaques de jambes & pression dorsale"
-
-                    else
-                        "Leg locks & back pressure"
-              , isActive = True
-              , weeks = 28
-              }
-            , { slug = "mikey-galvao"
-              , name = "Mikey Galvao"
-              , title =
-                    if language == I18n.FR then
-                        "Prodige"
-
-                    else
-                        "Prodigy"
-              , specialty =
-                    if language == I18n.FR then
-                        "Entrées inversées dynamiques"
-
-                    else
-                        "Dynamic inverted entries"
-              , isActive = False
-              , weeks = 24
-              }
-            , { slug = "craig-jones"
-              , name = "Craig Jones"
-              , title =
-                    if language == I18n.FR then
-                        "Technicien"
-
-                    else
-                        "Technician"
-              , specialty =
-                    if language == I18n.FR then
-                        "Guillotine vers attaques de jambes"
-
-                    else
-                        "Front headlock to legs"
-              , isActive = False
-              , weeks = 20
-              }
-            , { slug = "marcelo-garcia"
-              , name = "Marcelo Garcia"
-              , title =
-                    if language == I18n.FR then
-                        "Légende"
-
-                    else
-                        "Legend"
-              , specialty =
-                    if language == I18n.FR then
-                        "Tempo papillon maîtrisé"
-
-                    else
-                        "Butterfly tempo work"
-              , isActive = False
-              , weeks = 32
-              }
-            , { slug = "roger-gracie"
-              , name = "Roger Gracie"
-              , title =
-                    if language == I18n.FR then
-                        "Fondamentaux"
-
-                    else
-                        "Fundamentals"
-              , specialty =
-                    if language == I18n.FR then
-                        "Plan de passage en pression"
-
-                    else
-                        "Pressure passing blueprint"
-              , isActive = False
-              , weeks = 16
-              }
-            , { slug = "leandro-lo"
-              , name = "Leandro Lo"
-              , title = "Flow"
-              , specialty =
-                    if language == I18n.FR then
-                        "Chaînes de grips & torreando"
-
-                    else
-                        "Grip chains & torreando"
-              , isActive = False
-              , weeks = 24
-              }
-            ]
+            else
+                t.learnFromLegends
     in
     section [ class "section-stack" ]
         [ div [ class "section-header" ]
             [ div [ class "section-header__copy" ]
                 [ span [ class "chip chip--outline" ] [ text t.chooseYourPath ]
                 , h2 [ class "section-title" ] [ text t.featuredHeroes ]
-                , p [ class "section-subtitle" ] [ text t.learnFromLegends ]
+                , p [ class "section-subtitle" ] [ text subtitleText ]
                 ]
-            , button
-                [ onPreventDefaultClick (NavigateTo (HeroesRoute Nothing))
-                , class "btn btn-secondary"
-                ]
-                [ text t.viewAllFighters ]
             ]
-        , div [ class "path-grid" ]
-            (List.map (fighterPathCard language t) fighterPaths)
+        , if List.isEmpty favoriteHeroes then
+            viewFeaturedHeroesPlaceholder model
+
+          else
+            div [ class "path-grid" ]
+                (List.map (viewSelectedHeroCard model) favoriteHeroes)
         ]
 
 
-type alias FighterPathContent =
-    { slug : String
-    , name : String
-    , title : String
-    , specialty : String
-    , isActive : Bool
-    , weeks : Int
-    }
-
-
-fighterPathCard : I18n.Language -> I18n.Translations -> FighterPathContent -> Html Msg
-fighterPathCard language t content =
+viewFeaturedHeroesPlaceholder : Model -> Html Msg
+viewFeaturedHeroesPlaceholder model =
     let
+        t =
+            model.userConfig.t
+    in
+    div [ class "card border-2 border-dashed border-slate-200 bg-white/90 text-center dark:border-slate-800 dark:bg-slate-900/60" ]
+        [ div [ class "flex flex-col items-center gap-4 p-10" ]
+            [ span [ class "text-4xl" ] [ text "🥋" ]
+            , h3 [ class "text-2xl font-semibold text-slate-900 dark:text-white" ] [ text t.chooseChampionPrompt ]
+            , p [ class "text-sm text-slate-500 dark:text-slate-400 max-w-xl" ] [ text t.learnFromLegends ]
+            , button
+                [ onPreventDefaultClick (NavigateTo (HeroesRoute Nothing))
+                , class "inline-flex items-center gap-2 rounded-full bg-purple-600 px-6 py-3 text-white font-semibold shadow-lg ring-1 ring-purple-400/50 transition hover:-translate-y-0.5 hover:bg-purple-500"
+                ]
+                [ text t.chooseChampionButton ]
+            ]
+        ]
+
+
+viewSelectedHeroCard : Model -> Hero -> Html Msg
+viewSelectedHeroCard model hero =
+    let
+        language =
+            model.userConfig.language
+
         route =
-            StylePath content.slug
+            HeroDetail hero.id
 
         href_ =
             Router.toPath route
 
-        badgeText =
-            if content.isActive then
-                Just t.pathActive
+        legend =
+            heroHomeLegend language hero
 
-            else
-                Nothing
+        tagline =
+            heroHomeTagline hero
 
-        ctaLabel =
-            case language of
-                I18n.FR ->
-                    if content.isActive then
-                        t.pathContinue
+        recordLabel =
+            heroHomeRecordLabel language hero.record
 
-                    else
-                        t.pathExplore
-
-                I18n.EN ->
-                    if content.isActive then
-                        t.pathContinue
-
-                    else
-                        t.pathExplore
-
-        weeksLabel =
-            I18n.formatWeeks language content.weeks
+        highlightLabel =
+            heroHomeHighlight hero
     in
     a
         [ href href_
         , onPreventDefaultClick (NavigateTo route)
         , class "card path-card"
         ]
-        [ case badgeText of
-            Just label ->
-                span [ class "path-card__badge" ] [ text label ]
+        [ div [ class "path-card__body flex items-start gap-4" ]
+            [ img
+                [ src hero.imageUrl
+                , alt hero.name
+                , class "h-16 w-16 rounded-2xl object-cover ring-2 ring-purple-100 dark:ring-purple-900/60"
+                ]
+                []
+            , div [ class "space-y-2" ]
+                ([ span [ class "path-card__legend" ] [ text legend ]
+                 , h4 [ class "path-card__title" ] [ text hero.name ]
+                 ]
+                    ++ (case tagline of
+                            Just line ->
+                                [ p [ class "text-sm text-slate-500 dark:text-slate-400" ] [ text line ] ]
 
-            Nothing ->
-                text ""
-        , div [ class "path-card__body" ]
-            [ span [ class "path-card__legend" ] [ text content.title ]
-            , h4 [ class "path-card__title" ] [ text content.name ]
-            , p [ class "path-card__description" ] [ text content.specialty ]
+                            Nothing ->
+                                []
+                       )
+                    ++ (case heroHomeSummary hero of
+                            Just summary ->
+                                [ p [ class "path-card__description" ] [ text summary ] ]
+
+                            Nothing ->
+                                []
+                       )
+                )
             ]
         , div [ class "path-card__footer" ]
-            [ span [ class "path-card__meta" ] [ text weeksLabel ]
-            , span [ class "path-card__cta" ] [ text ctaLabel ]
+            [ span [ class "path-card__meta" ] [ text recordLabel ]
+            , case highlightLabel of
+                Just focus ->
+                    span [ class "path-card__cta" ] [ text focus ]
+
+                Nothing ->
+                    text ""
             ]
         ]
+
+
+heroHomeLegend : I18n.Language -> Hero -> String
+heroHomeLegend language hero =
+    [ heroWeightLabel hero.weight
+    , featuredFightingStyleLabel language hero.style
+    ]
+        |> List.filter (\label -> label /= "")
+        |> String.join " • "
+
+
+heroHomeRecordLabel : I18n.Language -> CompetitionRecord -> String
+heroHomeRecordLabel language record =
+    if record.wins == 0 && record.losses == 0 && record.draws == 0 then
+        case language of
+            I18n.FR ->
+                "Record : non unifié"
+
+            I18n.EN ->
+                "Record: not tracked"
+
+    else
+        String.fromInt record.wins ++ " - " ++ String.fromInt record.losses
+
+
+heroHomeTagline : Hero -> Maybe String
+heroHomeTagline hero =
+    [ maybeNonEmpty hero.nickname, maybeNonEmpty hero.team ]
+        |> List.filterMap identity
+        |> (\parts ->
+                case parts of
+                    [] ->
+                        Nothing
+
+                    _ ->
+                        Just (String.join " · " parts)
+           )
+
+
+heroHomeSummary : Hero -> Maybe String
+heroHomeSummary hero =
+    hero.bio
+        |> maybeNonEmpty
+        |> Maybe.map (truncateText 140)
+
+
+heroHomeHighlight : Hero -> Maybe String
+heroHomeHighlight hero =
+    case maybeNonEmpty hero.stats.favoriteSubmission of
+        Just submission ->
+            Just submission
+
+        Nothing ->
+            maybeNonEmpty hero.stats.favoritePosition
+
+
+heroWeightLabel : WeightClass -> String
+heroWeightLabel weight =
+    case weight of
+        Rooster ->
+            "Rooster"
+
+        LightFeather ->
+            "Light Feather"
+
+        Feather ->
+            "Feather"
+
+        Light ->
+            "Light"
+
+        Middle ->
+            "Middle"
+
+        MediumHeavy ->
+            "Medium Heavy"
+
+        Heavy ->
+            "Heavy"
+
+        SuperHeavy ->
+            "Super Heavy"
+
+        UltraHeavy ->
+            "Ultra Heavy"
+
+
+featuredFightingStyleLabel : I18n.Language -> FightingStyle -> String
+featuredFightingStyleLabel language style =
+    case ( language, style ) of
+        ( I18n.FR, Guard ) ->
+            "Jeu de garde"
+
+        ( I18n.FR, Passing ) ->
+            "Passing"
+
+        ( I18n.FR, LegLocks ) ->
+            "Attaques de jambes"
+
+        ( I18n.FR, Wrestling ) ->
+            "Lutte"
+
+        ( I18n.FR, Balanced ) ->
+            "Polyvalent"
+
+        ( I18n.FR, Submission ) ->
+            "Soumissions"
+
+        ( I18n.FR, Pressure ) ->
+            "Jeu en pression"
+
+        ( I18n.EN, Guard ) ->
+            "Guard"
+
+        ( I18n.EN, Passing ) ->
+            "Passing"
+
+        ( I18n.EN, LegLocks ) ->
+            "Leg Locks"
+
+        ( I18n.EN, Wrestling ) ->
+            "Wrestling"
+
+        ( I18n.EN, Balanced ) ->
+            "Balanced"
+
+        ( I18n.EN, Submission ) ->
+            "Submissions"
+
+        ( I18n.EN, Pressure ) ->
+            "Pressure"
+
+
+truncateText : Int -> String -> String
+truncateText maxLength textValue =
+    let
+        trimmed =
+            String.trim textValue
+    in
+    if String.length trimmed <= maxLength then
+        trimmed
+
+    else
+        String.left maxLength trimmed ++ "…"
+
+
+maybeNonEmpty : String -> Maybe String
+maybeNonEmpty str =
+    let
+        trimmed =
+            String.trim str
+    in
+    if trimmed == "" then
+        Nothing
+
+    else
+        Just trimmed
 
 
 techniqueCheckItem : Model -> String -> String -> Bool -> Int -> Html Msg
@@ -2602,7 +2715,7 @@ viewTechniqueLibraryPage model =
             if sectionVisible sectionFilter FinishingSection then
                 [ section [ class "card space-y-6" ]
                     [ viewTechniqueSectionHeading language FinishingSection
-                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) finishingGroups)
+                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup model language) finishingGroups)
                     , viewTechniqueSummary language finishingTechniqueSummary
                     ]
                 ]
@@ -2614,7 +2727,7 @@ viewTechniqueLibraryPage model =
             if sectionVisible sectionFilter GuardSection then
                 [ section [ class "card space-y-6" ]
                     [ viewTechniqueSectionHeading language GuardSection
-                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) guardGroups)
+                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup model language) guardGroups)
                     ]
                 ]
 
@@ -2632,7 +2745,7 @@ viewTechniqueLibraryPage model =
             if sectionVisible sectionFilter SweepSection then
                 [ section [ class "card space-y-6" ]
                     [ viewTechniqueSectionHeading language SweepSection
-                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup language) sweepGroups)
+                    , div [ class "space-y-6" ] (List.map (viewTechniqueGroup model language) sweepGroups)
                     , viewTechniqueSummary language sweepTechniqueSummary
                     ]
                 ]
@@ -2652,6 +2765,7 @@ viewTechniqueLibraryPage model =
             [ viewTechniqueStats language finishingTotal guardTotal sweepTotal
             , viewTechniqueCategorySelector language sectionFilter
             ]
+         , viewTechniquePreviewPanel model language
          ]
             ++ techniqueSections
         )
@@ -2839,6 +2953,63 @@ viewTechniqueCategorySelector language selection =
         ]
 
 
+viewTechniquePreviewPanel : Model -> I18n.Language -> Html Msg
+viewTechniquePreviewPanel model language =
+    case techniquePreviewEntry model of
+        Nothing ->
+            text ""
+
+        Just entry ->
+            let
+                name =
+                    localizeText language entry.name
+
+                description =
+                    localizeText language entry.description
+
+                details =
+                    entry.details |> List.map (localizeText language)
+
+                ( goalLabel, clearLabel, alreadyLabel ) =
+                    case language of
+                        I18n.FR ->
+                            ( "Définir comme objectif", "Fermer", "Déjà sélectionné" )
+
+                        I18n.EN ->
+                            ( "Set as training goal", "Close", "Already selected" )
+
+                isGoal =
+                    model.trainingGoal == Just entry.id
+            in
+            div [ class "sh-card rounded-2xl border border-slate-200/70 bg-white/90 p-6 space-y-4 dark:border-slate-800 dark:bg-slate-900/70" ]
+                [ div [ class "flex items-start justify-between gap-4" ]
+                    [ div []
+                        [ h3 [ class "text-2xl font-semibold text-slate-900 dark:text-white" ] [ text name ]
+                        , p [ class "text-sm text-slate-500 dark:text-slate-400" ] [ text description ]
+                        ]
+                    , button
+                        [ onClick ClearTechniquePreview
+                        , class "sh-btn bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                        ]
+                        [ text clearLabel ]
+                    ]
+                , ul [ class "space-y-2 text-sm text-slate-600 dark:text-slate-400" ]
+                    (List.map (\detail -> li [] [ text detail ]) details)
+                , div [ class "flex flex-wrap gap-3" ]
+                    [ button
+                        [ onClick (SetTrainingGoal entry.id)
+                        , class "sh-btn bg-slate-900 text-white hover:bg-slate-800"
+                        ]
+                        [ text goalLabel ]
+                    , if isGoal then
+                        span [ class "text-sm font-semibold text-purple-600 dark:text-purple-300" ] [ text alreadyLabel ]
+
+                      else
+                        text ""
+                    ]
+                ]
+
+
 viewTechniqueFilterChip :
     Maybe TechniqueSection
     -> ( Maybe TechniqueSection, String )
@@ -2860,8 +3031,8 @@ viewTechniqueFilterChip currentSelection ( optionSelection, labelText ) =
         [ text labelText ]
 
 
-viewTechniqueGroup : I18n.Language -> Data.TechniqueGroup -> Html Msg
-viewTechniqueGroup language group =
+viewTechniqueGroup : Model -> I18n.Language -> Data.TechniqueGroup -> Html Msg
+viewTechniqueGroup model language group =
     div [ class "space-y-3" ]
         [ div [ class "flex items-center gap-3" ]
             [ span [ class "text-3xl" ] [ text group.icon ]
@@ -2871,14 +3042,49 @@ viewTechniqueGroup language group =
                 ]
             ]
         , div [ class "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" ]
-            (List.map (viewTechniqueEntry language) group.entries)
+            (List.map (viewTechniqueEntry model language) group.entries)
         ]
 
 
-viewTechniqueEntry : I18n.Language -> Data.TechniqueEntry -> Html Msg
-viewTechniqueEntry language entry =
-    div [ class "surface-card p-4 space-y-2" ]
-        [ h4 [ class "text-base font-semibold text-slate-900 dark:text-white" ] [ text (localizeText language entry.name) ]
+viewTechniqueEntry : Model -> I18n.Language -> Data.TechniqueEntry -> Html Msg
+viewTechniqueEntry model language entry =
+    let
+        isSelected =
+            model.techniquePreview == Just entry.id
+
+        isGoal =
+            model.trainingGoal == Just entry.id
+
+        goalLabel =
+            case language of
+                I18n.FR ->
+                    "Objectif"
+
+                I18n.EN ->
+                    "Goal"
+
+        baseClasses =
+            "surface-card p-4 space-y-2 border transition cursor-pointer"
+
+        selectedClass =
+            if isSelected then
+                " ring-2 ring-purple-500 border-purple-200"
+
+            else
+                ""
+    in
+    div
+        [ onClick (PreviewTechnique entry.id)
+        , class (baseClasses ++ selectedClass)
+        ]
+        [ div [ class "flex items-center justify-between" ]
+            [ h4 [ class "text-base font-semibold text-slate-900 dark:text-white" ] [ text (localizeText language entry.name) ]
+            , if isGoal then
+                span [ class "rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700" ] [ text goalLabel ]
+
+              else
+                text ""
+            ]
         , p [ class "text-sm text-gray-500 dark:text-gray-400 leading-relaxed" ] [ text (localizeText language entry.description) ]
         , ul [ class "list-disc list-inside text-xs text-gray-500 dark:text-gray-400 space-y-1" ]
             (List.map (\detail -> li [] [ text (localizeText language detail) ]) entry.details)
@@ -3035,6 +3241,26 @@ viewTechniqueComingSoon language techSection =
                 ]
             ]
         ]
+
+
+viewTechniqueModalPreviewPanel : Model -> I18n.Language -> Html Msg
+viewTechniqueModalPreviewPanel model language =
+    case techniquePreviewEntry model of
+        Nothing ->
+            let
+                placeholderText =
+                    case language of
+                        I18n.FR ->
+                            "Choisis une technique pour afficher un aperçu détaillé."
+
+                        I18n.EN ->
+                            "Pick a technique to see its detailed preview."
+            in
+            div [ class "sh-card flex h-full items-center justify-center rounded-2xl border border-dashed border-slate-300/70 bg-slate-50/70 p-6 text-center text-sm text-slate-500 dark:border-slate-700/60 dark:bg-slate-900/40 dark:text-slate-400" ]
+                [ text placeholderText ]
+
+        Just _ ->
+            viewTechniquePreviewPanel model language
 
 
 viewTechniqueNotes : I18n.Language -> List Data.LocalizedString -> Html Msg
@@ -3624,6 +3850,11 @@ viewModals model =
 
           else
             text ""
+        , if model.modals.techniqueSelectionModal then
+            viewTechniqueSelectionModal model
+
+          else
+            text ""
         , case model.modals.heroDetailModal of
             Just heroId ->
                 viewHeroQuickView model heroId
@@ -3658,6 +3889,216 @@ viewSessionModal model =
                 [ text t.close ]
             ]
         ]
+
+
+viewTechniqueSelectionModal : Model -> Html Msg
+viewTechniqueSelectionModal model =
+    let
+        language =
+            model.userConfig.language
+
+        masteryOptions =
+            model.userProgress.techniqueMastery
+                |> Dict.values
+                |> List.sortBy .name
+                |> List.map (\tech -> ( tech.techniqueId, tech.name ))
+
+        techniqueOptions =
+            if List.isEmpty masteryOptions then
+                defaultTechniqueChoices
+
+            else
+                masteryOptions
+
+        ( title_, subtitle, emptyLabel ) =
+            case language of
+                I18n.FR ->
+                    ( "Choisis ta technique", "Sélectionne la prochaine technique à travailler.", "Aucune technique disponible pour le moment." )
+
+                I18n.EN ->
+                    ( "Pick your technique", "Select what you want to drill next.", "No techniques available yet." )
+
+        techniqueListContent =
+            if List.isEmpty techniqueOptions then
+                [ div [ class "py-10 text-center text-sm text-slate-500 dark:text-slate-400" ]
+                    [ text emptyLabel ]
+                ]
+
+            else
+                List.map
+                    (viewTechniqueChoice language model.techniquePreview model.trainingGoal)
+                    techniqueOptions
+    in
+    div [ class "fixed inset-0 z-modal flex items-center justify-center bg-black/70 backdrop-blur-sm" ]
+        [ div
+            [ class "mx-4 w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+            , attribute "role" "dialog"
+            , attribute "aria-modal" "true"
+            , onModalEscapeKeyDown CloseModal
+            , tabindex 0
+            ]
+            [ div [ class "flex items-start justify-between gap-4" ]
+                [ div []
+                    [ h2 [ class "text-2xl font-semibold text-slate-900 dark:text-white" ] [ text title_ ]
+                    , p [ class "text-sm text-slate-500 dark:text-slate-400" ] [ text subtitle ]
+                    ]
+                , button
+                    [ onClick CloseModal
+                    , class "sh-btn bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                    ]
+                    [ text model.userConfig.t.close ]
+                ]
+            , div [ class "mt-6 flex flex-col gap-6 lg:flex-row" ]
+                [ div [ class "max-h-[60vh] space-y-3 overflow-y-auto pr-1 lg:flex-1" ] techniqueListContent
+                , div [ class "lg:w-96" ] [ viewTechniqueModalPreviewPanel model language ]
+                ]
+            ]
+        ]
+
+
+viewTechniqueChoice :
+    I18n.Language
+    -> Maybe String
+    -> Maybe String
+    -> ( String, String )
+    -> Html Msg
+viewTechniqueChoice language currentPreview currentGoal ( techniqueId, label ) =
+    let
+        entry =
+            findTechniqueEntry techniqueId
+
+        displayName =
+            entry
+                |> Maybe.map (\tech -> localizeText language tech.name)
+                |> Maybe.withDefault label
+
+        descriptionText =
+            entry
+                |> Maybe.map (\tech -> localizeText language tech.description)
+                |> Maybe.withDefault ""
+
+        isSelected =
+            currentPreview == Just techniqueId
+
+        isGoal =
+            currentGoal == Just techniqueId
+
+        labels =
+            techniqueChoiceLabels language
+
+        baseClasses =
+            [ "rounded-2xl border p-4 text-left transition"
+            , "bg-white/95 dark:bg-slate-900/80"
+            , "border-slate-200 dark:border-slate-700"
+            ]
+
+        highlightClasses =
+            if isSelected then
+                "border-purple-400/60 ring-2 ring-purple-200/80 dark:border-purple-500/60 dark:ring-purple-500/30"
+
+            else
+                ""
+
+        classes =
+            case highlightClasses of
+                "" ->
+                    baseClasses
+
+                _ ->
+                    baseClasses ++ [ highlightClasses ]
+
+        goalBadge =
+            if isGoal then
+                span [ class "rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700 dark:bg-purple-500/20 dark:text-purple-200" ] [ text labels.goalBadge ]
+
+            else
+                text ""
+    in
+    div [ class (String.join " " classes) ]
+        [ div [ class "flex items-start justify-between gap-3" ]
+            [ div []
+                [ span [ class "text-sm font-semibold text-slate-900 dark:text-white" ] [ text displayName ]
+                , span [ class "text-xs uppercase tracking-[0.35em] text-slate-400" ] [ text techniqueId ]
+                ]
+            , goalBadge
+            ]
+        , if descriptionText == "" then
+            text ""
+
+          else
+            p [ class "mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed" ] [ text descriptionText ]
+        , div [ class "mt-4 flex flex-wrap gap-2" ]
+            [ button
+                [ onClick (PreviewTechnique techniqueId)
+                , class "sh-btn flex-1 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+                ]
+                [ text labels.preview ]
+            , button
+                [ onClick (SetTrainingGoal techniqueId)
+                , class "sh-btn flex-1 bg-purple-600 text-white hover:bg-purple-500"
+                ]
+                [ text labels.setGoal ]
+            , button
+                [ onClick (SelectNode techniqueId)
+                , class "sh-btn flex-1 bg-slate-900 text-white hover:bg-slate-800"
+                ]
+                [ text labels.selectNow ]
+            ]
+        ]
+
+
+techniqueChoiceLabels :
+    I18n.Language
+    -> { preview : String, setGoal : String, selectNow : String, goalBadge : String }
+techniqueChoiceLabels language =
+    case language of
+        I18n.FR ->
+            { preview = "Aperçu"
+            , setGoal = "Objectif"
+            , selectNow = "Utiliser"
+            , goalBadge = "Objectif"
+            }
+
+        I18n.EN ->
+            { preview = "Preview"
+            , setGoal = "Set goal"
+            , selectNow = "Use now"
+            , goalBadge = "Goal"
+            }
+
+
+defaultTechniqueChoices : List ( String, String )
+defaultTechniqueChoices =
+    [ ( "butterfly-guard", "Butterfly Guard" )
+    , ( "spider-guard", "Spider Guard" )
+    , ( "triangle-choke", "Triangle Choke" )
+    , ( "armbar", "Armbar" )
+    , ( "kimura", "Kimura" )
+    , ( "torreando-pass", "Torreando Pass" )
+    ]
+
+
+allTechniqueEntries : List Data.TechniqueEntry
+allTechniqueEntries =
+    let
+        groups =
+            Data.finishingTechniqueGroups
+                ++ Data.guardTechniqueGroups
+                ++ Data.sweepTechniqueGroups
+    in
+    List.concatMap .entries groups
+
+
+findTechniqueEntry : String -> Maybe Data.TechniqueEntry
+findTechniqueEntry techniqueId =
+    allTechniqueEntries
+        |> List.filter (\entry -> entry.id == techniqueId)
+        |> List.head
+
+
+techniquePreviewEntry : Model -> Maybe Data.TechniqueEntry
+techniquePreviewEntry model =
+    model.techniquePreview |> Maybe.andThen findTechniqueEntry
 
 
 viewHeroQuickView : Model -> String -> Html Msg

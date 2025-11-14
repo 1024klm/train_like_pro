@@ -1,5 +1,6 @@
 module Pages.Dashboard exposing (view, viewDashboard)
 
+import Data
 import Dict exposing (Dict)
 import GameMechanics.XP as XP
 import Html exposing (..)
@@ -133,11 +134,21 @@ viewTodaysFocus model =
 
             Nothing ->
                 viewStartSessionPrompt model
+        , viewTrainingGoalSummary model
         ]
 
 
 viewActiveSessionCard : FrontendModel -> ActiveSession -> Html FrontendMsg
 viewActiveSessionCard model session =
+    let
+        language =
+            model.userConfig.language
+
+        formatTechnique techniqueId =
+            findDashboardTechnique techniqueId
+                |> Maybe.map (\entry -> localizeTechnique language entry.name)
+                |> Maybe.withDefault techniqueId
+    in
     div [ class "space-y-4" ]
         [ div [ class "flex flex-col gap-4 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4 dark:border-emerald-900/40 dark:bg-emerald-900/30 lg:flex-row lg:items-center lg:justify-between" ]
             [ div [ class "flex items-center gap-3" ]
@@ -155,12 +166,16 @@ viewActiveSessionCard model session =
             ]
         , case session.currentTechnique of
             Just techniqueId ->
+                let
+                    techniqueLabel =
+                        formatTechnique techniqueId
+                in
                 div [ class "rounded-2xl border border-slate-200 bg-slate-50/60 p-4 dark:border-slate-800 dark:bg-slate-900/60" ]
                     [ div [ class "flex items-center justify-between" ]
                         [ h3 [ class "text-sm font-semibold text-slate-600 uppercase tracking-[0.3em]" ] [ text model.userConfig.t.currentDrill ]
                         , span [ class "rounded-full bg-slate-900/5 px-3 py-1 text-xs font-semibold text-slate-500" ] [ text "Focus" ]
                         ]
-                    , p [ class "mt-2 text-2xl font-bold text-slate-900 dark:text-white" ] [ text techniqueId ]
+                    , p [ class "mt-2 text-2xl font-bold text-slate-900 dark:text-white" ] [ text techniqueLabel ]
                     , div [ class "mt-4 flex gap-3" ]
                         [ button
                             [ onClick (IncrementReps techniqueId)
@@ -212,17 +227,74 @@ viewStartSessionPrompt model =
         ]
 
 
+viewTrainingGoalSummary : FrontendModel -> Html FrontendMsg
+viewTrainingGoalSummary model =
+    let
+        language =
+            model.userConfig.language
+    in
+    case model.trainingGoal |> Maybe.andThen findDashboardTechnique of
+        Nothing ->
+            text ""
+
+        Just entry ->
+            let
+                label =
+                    case language of
+                        I18n.FR ->
+                            "Objectif sélectionné"
+
+                        I18n.EN ->
+                            "Selected goal"
+            in
+            div [ class "rounded-2xl border border-slate-200 bg-slate-50/80 p-4 text-left dark:border-slate-700 dark:bg-slate-900/40" ]
+                [ p [ class "text-xs font-semibold uppercase tracking-[0.35em] text-slate-500" ] [ text label ]
+                , p [ class "text-lg font-semibold text-slate-900 dark:text-white" ] [ text (localizeTechnique language entry.name) ]
+                ]
+
+
 
 -- QUICK STATS
 
 
 viewQuickStats : FrontendModel -> Html FrontendMsg
 viewQuickStats model =
+    let
+        streakValue =
+            I18n.formatStreak model.userConfig.language model.userProgress.currentStreak
+
+        weeklyLabel =
+            case model.userConfig.language of
+                I18n.FR ->
+                    "XP semaine"
+
+                I18n.EN ->
+                    "Weekly XP"
+
+        weeklyXP =
+            String.fromInt model.userProgress.weeklyGoals.currentXP ++ " XP"
+
+        masteredTechniques =
+            countMasteredTechniques model.userProgress.techniqueMastery
+
+        totalTechniques =
+            Dict.size model.userProgress.techniqueMastery
+
+        questsCompleted =
+            completedQuests model.userProgress.dailyQuests
+
+        questStat =
+            if List.isEmpty model.userProgress.dailyQuests then
+                "—"
+
+            else
+                String.fromInt questsCompleted ++ "/" ++ String.fromInt (List.length model.userProgress.dailyQuests)
+    in
     div [ class "grid grid-cols-2 gap-4 lg:grid-cols-4" ]
-        [ quickStatCard model.userConfig.t.trainingStreak (I18n.formatStreak model.userConfig.language model.userProgress.currentStreak) "🔥"
-        , quickStatCard model.userConfig.t.xpToday "245 XP" "⚡"
-        , quickStatCard model.userConfig.t.techniques (String.fromInt (Dict.size model.userProgress.techniqueMastery)) "🥋"
-        , quickStatCard model.userConfig.t.rank "#127" "🏆"
+        [ quickStatCard model.userConfig.t.trainingStreak streakValue "🔥"
+        , quickStatCard weeklyLabel weeklyXP "⚡"
+        , quickStatCard model.userConfig.t.techniques (String.fromInt masteredTechniques ++ "/" ++ String.fromInt totalTechniques) "🥋"
+        , quickStatCard model.userConfig.t.dailyQuests questStat "🏁"
         ]
 
 
@@ -763,6 +835,49 @@ masteryBadge label count colorClass =
 shCard : String -> List (Html msg) -> Html msg
 shCard extra children =
     div [ class ("sh-card rounded-2xl border border-slate-200/70 bg-white/90 dark:bg-slate-900/70 " ++ extra) ] children
+
+
+countMasteredTechniques : Dict String TechniqueMastery -> Int
+countMasteredTechniques masteryDict =
+    masteryDict
+        |> Dict.values
+        |> List.filter (\t -> t.mastery == Mastered)
+        |> List.length
+
+
+completedQuests : List Quest -> Int
+completedQuests quests =
+    quests
+        |> List.filter .completed
+        |> List.length
+
+
+dashboardTechniqueEntries : List Data.TechniqueEntry
+dashboardTechniqueEntries =
+    let
+        groups =
+            Data.finishingTechniqueGroups
+                ++ Data.guardTechniqueGroups
+                ++ Data.sweepTechniqueGroups
+    in
+    List.concatMap .entries groups
+
+
+findDashboardTechnique : String -> Maybe Data.TechniqueEntry
+findDashboardTechnique techniqueId =
+    dashboardTechniqueEntries
+        |> List.filter (\entry -> entry.id == techniqueId)
+        |> List.head
+
+
+localizeTechnique : I18n.Language -> Data.LocalizedString -> String
+localizeTechnique language value =
+    case language of
+        I18n.FR ->
+            value.fr
+
+        I18n.EN ->
+            value.en
 
 
 countMastery : TechniqueMastery -> { learning : Int, practicing : Int, proficient : Int, advanced : Int, mastered : Int } -> { learning : Int, practicing : Int, proficient : Int, advanced : Int, mastered : Int }

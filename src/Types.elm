@@ -768,6 +768,8 @@ type alias FrontendModel =
     , notifications : List Notification
     , animations : AnimationState
     , claimedPlanItems : Set String
+    , techniquePreview : Maybe String
+    , trainingGoal : Maybe String
     }
 
 
@@ -796,6 +798,7 @@ type alias ModalState =
     , heroDetailModal : Maybe String
     , shareModal : Maybe String
     , filterModal : Bool
+    , techniqueSelectionModal : Bool
     }
 
 
@@ -937,6 +940,9 @@ type FrontendMsg
     | DismissNotification String
     | ScrollToSection String
     | SetTechniqueLibraryFilter (Maybe TechniqueSection)
+    | PreviewTechnique String
+    | ClearTechniquePreview
+    | SetTrainingGoal String
     | AnimationTick Time.Posix
     | ClaimPlanXP String Int
 

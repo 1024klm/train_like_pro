@@ -710,19 +710,27 @@ heroHeaderActions hero model isFavorite =
     let
         t =
             model.userConfig.t
+
+        ( selectLabel, selectIcon, selectClasses ) =
+            if isFavorite then
+                ( t.championSelected
+                , "✓"
+                , "inline-flex items-center gap-2 rounded-full bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                )
+
+            else
+                ( t.selectChampion
+                , "＋"
+                , "inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-purple-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                )
     in
     div [ class "flex flex-wrap gap-3" ]
         [ button
             [ onClick (ToggleFavorite HeroFavorite hero.id)
-            , class "inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-purple-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+            , class selectClasses
             ]
-            [ text
-                (if isFavorite then
-                    "❤️ " ++ t.favorited
-
-                 else
-                    "🤍 " ++ t.addToFavorites
-                )
+            [ span [ class "text-base" ] [ text selectIcon ]
+            , span [] [ text selectLabel ]
             ]
         , button
             [ onClick (NavigateTo (HeroesRoute Nothing))
@@ -747,7 +755,6 @@ viewHeroContent hero model =
                 [ viewHeroBio t language hero
                 , viewHeroRecord t hero
                 , viewHeroTechniques t hero
-                , viewHeroVideos t hero
                 ]
             , div [ class "space-y-6" ]
                 [ viewHeroStats t hero
@@ -869,53 +876,6 @@ viewTechnique technique =
           else
             ul [ class "mt-3 space-y-1 text-sm" ] detailItems
         ]
-
-
-viewHeroVideos : I18n.Translations -> Hero -> Html FrontendMsg
-viewHeroVideos t hero =
-    div [ class "rounded-2xl border border-gray-200/80 bg-white/95 p-6 shadow-xl dark:border-gray-800 dark:bg-gray-900/70" ]
-        [ h2 [ class "text-2xl font-bold text-gray-900 dark:text-white" ] [ text t.videos ]
-        , Keyed.node "div"
-            [ class "grid grid-cols-1 gap-4 md:grid-cols-2" ]
-            (hero.videos |> List.sortBy .date |> List.map (\v -> ( v.id, viewVideoCard v )))
-        ]
-
-
-viewVideoCard : Video -> Html FrontendMsg
-viewVideoCard video =
-    a
-        [ href video.url
-        , target "_blank"
-        , rel "noreferrer noopener"
-        , class "group flex items-center gap-4 rounded-2xl border border-gray-100/80 bg-white/80 p-4 shadow-inner transition hover:-translate-y-0.5 hover:border-purple-300 dark:border-gray-800 dark:bg-gray-900/60"
-        ]
-        [ videoThumbnailBlock video
-        , div [ class "flex-1" ]
-            [ h3 [ class "font-semibold text-gray-900 dark:text-white" ] [ text video.title ]
-            , p [ class "text-sm text-gray-500 dark:text-gray-400" ] [ text video.date ]
-            ]
-        ]
-
-
-videoThumbnailBlock : Video -> Html FrontendMsg
-videoThumbnailBlock video =
-    let
-        thumbnail =
-            String.trim video.thumbnail
-    in
-    div [ class "h-20 w-28 overflow-hidden rounded-xl bg-gray-200 text-center dark:bg-gray-800" ]
-        (if String.isEmpty thumbnail then
-            [ div [ class "flex h-full items-center justify-center text-sm font-semibold text-purple-700 dark:text-purple-200" ] [ text "BJJ" ] ]
-
-         else
-            [ img
-                [ src thumbnail
-                , alt video.title
-                , class "h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                ]
-                []
-            ]
-        )
 
 
 viewHeroStats : I18n.Translations -> Hero -> Html FrontendMsg

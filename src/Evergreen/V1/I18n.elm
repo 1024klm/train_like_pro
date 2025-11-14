@@ -127,6 +127,8 @@ type alias Translations =
     , seconds : String
     , featuredHeroes : String
     , learnFromLegends : String
+    , chooseChampionPrompt : String
+    , chooseChampionButton : String
     , trainLikeChampion : String
     , biography : String
     , competitionRecord : String
@@ -137,6 +139,8 @@ type alias Translations =
     , videos : String
     , addToFavorites : String
     , favorited : String
+    , selectChampion : String
+    , championSelected : String
     , upcomingEvents : String
     , pastEvents : String
     , allEvents : String

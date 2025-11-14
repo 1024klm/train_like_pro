@@ -168,6 +168,8 @@ type alias Translations =
     -- Hero Page
     , featuredHeroes : String
     , learnFromLegends : String
+    , chooseChampionPrompt : String
+    , chooseChampionButton : String
     , trainLikeChampion : String
     , biography : String
     , competitionRecord : String
@@ -178,6 +180,8 @@ type alias Translations =
     , videos : String
     , addToFavorites : String
     , favorited : String
+    , selectChampion : String
+    , championSelected : String
     , heroNotFound : String
     , socialMedia : String
     , winRate : String
@@ -475,6 +479,8 @@ en =
     -- Hero Page
     , featuredHeroes = "Featured Champions"
     , learnFromLegends = "Learn from the legends who shaped the sport"
+    , chooseChampionPrompt = "Pick your champion and study their style."
+    , chooseChampionButton = "Choose your champion"
     , trainLikeChampion = "Train Like a Champion"
     , biography = "Biography"
     , competitionRecord = "Competition Record"
@@ -485,6 +491,8 @@ en =
     , videos = "Videos"
     , addToFavorites = "Add to Favorites"
     , favorited = "Favorited"
+    , selectChampion = "Select this champion"
+    , championSelected = "Champion selected"
     , heroNotFound = "Hero not found"
     , socialMedia = "Social Media"
     , winRate = "Win Rate"
@@ -780,6 +788,8 @@ fr =
     -- Hero Page
     , featuredHeroes = "Champions à l'honneur"
     , learnFromLegends = "Apprends des légendes qui ont façonné le sport"
+    , chooseChampionPrompt = "Choisis ton champion et apprends son style."
+    , chooseChampionButton = "Choisir ton champion"
     , trainLikeChampion = "Entraîne-toi comme un champion"
     , biography = "Biographie"
     , competitionRecord = "Palmarès"
@@ -790,6 +800,8 @@ fr =
     , videos = "Vidéos"
     , addToFavorites = "Ajouter aux favoris"
     , favorited = "Dans tes favoris"
+    , selectChampion = "Choisir ce champion"
+    , championSelected = "Champion sélectionné"
     , heroNotFound = "Champion introuvable"
     , socialMedia = "Réseaux sociaux"
     , winRate = "Taux de victoire"
