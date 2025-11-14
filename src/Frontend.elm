@@ -112,6 +112,7 @@ init url key =
             , claimedPlanItems = Set.empty
             , techniquePreview = Nothing
             , trainingGoal = Nothing
+            , followChampionPlan = True
             , selectedChampion = Nothing
             , plannedTechniques = []
             , trainingActions = Data.defaultTrainingActions
@@ -388,40 +389,39 @@ update msg model =
             )
 
         StartSession ->
-            case ( model.selectedChampion, model.plannedTechniques ) of
-                ( Nothing, _ ) ->
-                    ( model
-                    , send (ShowNotification Warning "Choisis un champion avant de démarrer ta session.")
-                    )
+            if model.followChampionPlan && model.selectedChampion == Nothing then
+                ( model
+                , send (ShowNotification Warning "Choisis un champion avant de démarrer ta session.")
+                )
 
-                ( Just _, [] ) ->
-                    ( model
-                    , send (ShowNotification Warning "Sélectionne jusqu'à 3 techniques à travailler aujourd'hui.")
-                    )
+            else if List.isEmpty model.plannedTechniques then
+                ( model
+                , send (ShowNotification Warning "Sélectionne jusqu'à 3 techniques à travailler aujourd'hui.")
+                )
 
-                ( Just _, planned ) ->
-                    let
-                        primaryGoal =
-                            List.head planned
+            else
+                let
+                    primaryGoal =
+                        List.head model.plannedTechniques
 
-                        newSession =
-                            { startTime = Time.millisToPosix 0 -- backend will update with real time
-                            , currentTechnique = primaryGoal
-                            , techniques = []
-                            , totalXP = 0
-                            , notes = ""
-                            }
-                    in
-                    ( { model
-                        | activeSession = Just newSession
-                        , sessionTimer = 0
-                        , trainingGoal = primaryGoal
-                      }
-                    , Cmd.batch
-                        [ Router.navigateTo model.key TrainingView
-                        , Task.perform UpdateSessionTimer Time.now
-                        ]
-                    )
+                    newSession =
+                        { startTime = Time.millisToPosix 0 -- backend will update with real time
+                        , currentTechnique = primaryGoal
+                        , techniques = []
+                        , totalXP = 0
+                        , notes = ""
+                        }
+                in
+                ( { model
+                    | activeSession = Just newSession
+                    , sessionTimer = 0
+                    , trainingGoal = primaryGoal
+                  }
+                , Cmd.batch
+                    [ Router.navigateTo model.key TrainingView
+                    , Task.perform UpdateSessionTimer Time.now
+                    ]
+                )
 
         EndSession ->
             case model.activeSession of
@@ -536,41 +536,56 @@ update msg model =
             )
 
         TogglePlannedTechnique techniqueId ->
-            case model.selectedChampion of
-                Nothing ->
-                    ( model
-                    , send (ShowNotification Info "Choisis un champion avant de sélectionner des techniques.")
-                    )
+            if model.followChampionPlan && model.selectedChampion == Nothing then
+                ( model
+                , send (ShowNotification Info "Choisis un champion avant de sélectionner des techniques.")
+                )
 
-                Just _ ->
-                    if List.member techniqueId model.plannedTechniques then
-                        let
-                            updated =
-                                List.filter (\tech -> tech /= techniqueId) model.plannedTechniques
-                        in
-                        ( { model
-                            | plannedTechniques = updated
-                            , trainingGoal = List.head updated
-                          }
-                        , Cmd.none
-                        )
+            else if List.member techniqueId model.plannedTechniques then
+                let
+                    updated =
+                        List.filter (\tech -> tech /= techniqueId) model.plannedTechniques
+                in
+                ( { model
+                    | plannedTechniques = updated
+                    , trainingGoal = List.head updated
+                  }
+                , Cmd.none
+                )
 
-                    else if List.length model.plannedTechniques >= 3 then
-                        ( model
-                        , send (ShowNotification Warning "Maximum 3 techniques par session.")
-                        )
+            else if List.length model.plannedTechniques >= 3 then
+                ( model
+                , send (ShowNotification Warning "Maximum 3 techniques par session.")
+                )
+
+            else
+                let
+                    updated =
+                        model.plannedTechniques ++ [ techniqueId ]
+                in
+                ( { model
+                    | plannedTechniques = updated
+                    , trainingGoal = List.head updated
+                  }
+                , Cmd.none
+                )
+
+        ToggleFollowChampion followMode ->
+            let
+                ( nextPlanned, nextGoal, notify ) =
+                    if followMode then
+                        ( [], Nothing, send (ShowNotification Info "Mode champion activé : sélectionne ton athlète." ) )
 
                     else
-                        let
-                            updated =
-                                model.plannedTechniques ++ [ techniqueId ]
-                        in
-                        ( { model
-                            | plannedTechniques = updated
-                            , trainingGoal = List.head updated
-                          }
-                        , Cmd.none
-                        )
+                        ( model.plannedTechniques, model.trainingGoal, Cmd.none )
+            in
+            ( { model
+                | followChampionPlan = followMode
+                , plannedTechniques = nextPlanned
+                , trainingGoal = nextGoal
+              }
+            , notify
+            )
 
         CycleTrainingActionStatus actionId ->
             let
@@ -1438,13 +1453,29 @@ viewSelectedHeroCard model hero =
 
         highlightLabel =
             heroHomeHighlight hero
+
+        trainingStepLabels =
+            case language of
+                I18n.FR ->
+                    { step = "Étape 1"
+                    , title = "Choisis ton champion"
+                    , description = "Récupère automatiquement ses techniques signature pour construire ton plan."
+                    , cta = "Planifier ma session"
+                    }
+
+                _ ->
+                    { step = "Step 1"
+                    , title = "Choose your champion"
+                    , description = "Automatically pull their signature techniques to craft your plan."
+                    , cta = "Plan my session"
+                    }
     in
-    a
-        [ href href_
-        , onPreventDefaultClick (NavigateTo route)
-        , class "card path-card"
-        ]
-        [ div [ class "path-card__body flex items-start gap-4" ]
+    div [ class "card path-card space-y-4" ]
+        [ a
+            [ href href_
+            , onPreventDefaultClick (NavigateTo route)
+            , class "path-card__body flex items-start gap-4"
+            ]
             [ img
                 [ src hero.imageUrl
                 , alt hero.name
@@ -1471,7 +1502,7 @@ viewSelectedHeroCard model hero =
                        )
                 )
             ]
-        , div [ class "path-card__footer" ]
+        , div [ class "path-card__footer flex flex-wrap items-center gap-3" ]
             [ span [ class "path-card__meta" ] [ text recordLabel ]
             , case highlightLabel of
                 Just focus ->
@@ -1479,6 +1510,30 @@ viewSelectedHeroCard model hero =
 
                 Nothing ->
                     text ""
+            ]
+        , div [ class "path-card__cta-block rounded-2xl bg-slate-50 p-4 text-left dark:bg-slate-900/60" ]
+            [ div [ class "flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-300" ]
+                [ span [] [ text trainingStepLabels.step ]
+                , span [] [ text trainingStepLabels.title ]
+                ]
+            , p [ class "text-sm text-slate-600 dark:text-slate-400" ] [ text trainingStepLabels.description ]
+            , button
+                [ class "inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500"
+                , onMouseDown (SelectTrainingChampion hero.id)
+                , on "keydown"
+                    (Decode.map
+                        (\key ->
+                            if key == "Enter" || key == " " then
+                                SelectTrainingChampion hero.id
+
+                            else
+                                NoOpFrontendMsg
+                        )
+                        (Decode.field "key" Decode.string)
+                    )
+                , onClick (NavigateTo TrainingView)
+                ]
+                [ text trainingStepLabels.cta ]
             ]
         ]
 

@@ -741,6 +741,7 @@ type alias FrontendModel =
     , userProfile : Maybe UserProfile
     , favorites : Favorites
     , userProgress : UserProgress
+    , followChampionPlan : Bool
     , roadmaps : Dict.Dict String TechniqueRoadmap
     , activeRoadmap : Maybe String
     , activeSession : Maybe ActiveSession
@@ -853,6 +854,7 @@ type FrontendMsg
     | ShowNotification NotificationType String
     | DismissNotification String
     | ScrollToSection String
+    | ToggleFollowChampion Bool
     | AnimationTick Time.Posix
 
 

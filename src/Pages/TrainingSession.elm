@@ -2,7 +2,7 @@ module Pages.TrainingSession exposing (view, viewTrainingSession)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onCheck, onClick, onInput)
 import Types exposing (..)
 import GameMechanics.XP as XP
 import Time
@@ -55,16 +55,24 @@ viewTrainingHero model =
             List.length model.plannedTechniques
 
         hasChampion =
-            Maybe.withDefault False (Maybe.map (\_ -> True) model.selectedChampion)
+            if model.followChampionPlan then
+                Maybe.withDefault False (Maybe.map (\_ -> True) model.selectedChampion)
+
+            else
+                True
 
         canStart =
             hasChampion && plannedCount > 0
 
         championName =
-            model.selectedChampion
-                |> Maybe.andThen (\id -> Dict.get id model.heroes)
-                |> Maybe.map .name
-                |> Maybe.withDefault "Aucun champion sélectionné"
+            if model.followChampionPlan then
+                model.selectedChampion
+                    |> Maybe.andThen (\id -> Dict.get id model.heroes)
+                    |> Maybe.map .name
+                    |> Maybe.withDefault "Aucun champion sélectionné"
+
+            else
+                "Mode freestyle"
 
         planText =
             if plannedCount == 0 then
@@ -121,13 +129,20 @@ viewChampionSelectorCard model =
 
         selectedValue =
             Maybe.withDefault "" model.selectedChampion
+
+        helperText =
+            if model.followChampionPlan then
+                "Récupère automatiquement ses techniques signature pour construire ton plan."
+
+            else
+                "Optionnel : sélectionne un champion à suivre ou passe en mode freestyle."
     in
     div [ class "bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6 flex flex-col gap-4" ]
         [ div []
             [ span [ class "text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400" ] [ text "Étape 1" ]
             , h3 [ class "text-xl font-semibold text-gray-900 dark:text-white" ] [ text "Choisis ton champion" ]
             , p [ class "text-sm text-gray-600 dark:text-gray-400" ]
-                [ text "Récupère automatiquement ses techniques signature pour construire ton plan." ]
+                [ text helperText ]
             ]
         , select
             [ class "px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -172,11 +187,18 @@ viewChampionQuickPick selectedValue hero =
 
 viewChampionSnapshot : FrontendModel -> Html FrontendMsg
 viewChampionSnapshot model =
-    case model.selectedChampion |> Maybe.andThen (\id -> Dict.get id model.heroes) of
-        Nothing ->
+    let
+        maybeHero =
+            model.selectedChampion |> Maybe.andThen (\id -> Dict.get id model.heroes)
+    in
+    case ( model.followChampionPlan, maybeHero ) of
+        ( False, _ ) ->
+            viewEmptyCard "Mode freestyle" "Tu peux ignorer cette étape et composer ton plan manuellement." "🌀"
+
+        ( True, Nothing ) ->
             viewEmptyCard "Profil champion" "Choisis un champion pour visualiser son style, son équipe et ses techniques favorites." "🧑‍🎓"
 
-        Just hero ->
+        ( _, Just hero ) ->
             div [ class "bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6" ]
                 [ span [ class "text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400" ] [ text "Étape 2" ]
                 , h3 [ class "text-xl font-semibold text-gray-900 dark:text-white mb-4" ] [ text "Focus champion" ]
@@ -223,6 +245,13 @@ viewPlanSummaryCard model =
                 |> Maybe.map .name
                 |> Maybe.withDefault "À définir"
 
+        championLabel =
+            if model.followChampionPlan then
+                championName
+
+            else
+                "Mode freestyle"
+
         completedXp =
             model.trainingActions
                 |> List.filter (\action -> action.status == ActionCompleted)
@@ -236,7 +265,7 @@ viewPlanSummaryCard model =
         [ span [ class "text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400" ] [ text "Étape 3" ]
         , h3 [ class "text-xl font-semibold text-gray-900 dark:text-white mb-4" ] [ text "Blueprint de la session" ]
         , div [ class "space-y-3 text-sm" ]
-            [ viewPlanSummaryRow "Champion focus" championName
+            [ viewPlanSummaryRow "Champion focus" championLabel
             , viewPlanSummaryRow "Techniques retenues" (String.fromInt plannedCount ++ "/3")
             , viewPlanSummaryRow "XP actions validées" ("+" ++ String.fromInt completedXp ++ " XP")
             ]
@@ -268,8 +297,48 @@ viewTechniquePlanner model =
         maybeHero =
             model.selectedChampion |> Maybe.andThen (\id -> Dict.get id model.heroes)
 
+        aggregatedTechniques =
+            model.heroes
+                |> Dict.values
+                |> List.concatMap .techniques
+
+        uniquePool =
+            aggregatedTechniques
+                |> List.foldl (\tech acc -> Dict.insert tech.id tech acc) Dict.empty
+                |> Dict.values
+
         availableTechniques =
-            maybeHero |> Maybe.map .techniques |> Maybe.withDefault []
+            if model.followChampionPlan then
+                maybeHero |> Maybe.map .techniques |> Maybe.withDefault []
+
+            else
+                uniquePool
+
+        modeHelperText =
+            if model.followChampionPlan then
+                "Les techniques proposées suivent directement les systèmes du champion sélectionné."
+
+            else
+                "Compose ton propre menu : puise dans les techniques vedettes de toute la bibliothèque."
+
+        plannerContent =
+            if model.followChampionPlan then
+                case maybeHero of
+                    Nothing ->
+                        viewEmptyCard "Sélection requise" "Choisis d'abord un champion pour afficher ses techniques signature." "📚"
+
+                    Just _ ->
+                        if List.isEmpty availableTechniques then
+                            viewEmptyCard "Aucune technique" "Ce champion n'a pas encore de techniques associées." "🧩"
+
+                        else
+                            viewTechniqueSelection model availableTechniques
+
+            else if List.isEmpty availableTechniques then
+                viewEmptyCard "Bibliothèque indisponible" "Aucune technique disponible pour le moment." "📘"
+
+            else
+                viewTechniqueSelection model availableTechniques
     in
     div [ class "bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-6" ]
         [ div [ class "flex flex-col gap-1 mb-4" ]
@@ -278,21 +347,30 @@ viewTechniquePlanner model =
             , p [ class "text-sm text-gray-600 dark:text-gray-400" ]
                 [ text "Choisis jusqu'à 3 techniques clés. Elles seront ajoutées à Today Goal et suivies pendant ta session." ]
             ]
-        , case maybeHero of
-            Nothing ->
-                viewEmptyCard "Sélection requise" "Choisis d'abord un champion pour afficher ses techniques signature." "📚"
+        , label [ class "flex items-start gap-3 mb-6 rounded-2xl border border-gray-200 dark:border-gray-700 p-4" ]
+            [ input
+                [ type_ "checkbox"
+                , checked model.followChampionPlan
+                , onCheck ToggleFollowChampion
+                , class "mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                ]
+                []
+            , div []
+                [ span [ class "text-sm font-semibold text-gray-900 dark:text-white" ] [ text "Suivre un champion" ]
+                , p [ class "text-xs text-gray-600 dark:text-gray-400 mt-1" ] [ text modeHelperText ]
+                ]
+            ]
+        , plannerContent
+        ]
 
-            Just _ ->
-                if List.isEmpty availableTechniques then
-                    viewEmptyCard "Aucune technique" "Ce champion n'a pas encore de techniques associées." "🧩"
 
-                else
-                    div [ class "space-y-6" ]
-                        [ div [ class "grid gap-4 md:grid-cols-2" ]
-                            (List.map (viewTechniqueCard model.plannedTechniques) availableTechniques)
-                        , p [ class "text-xs text-gray-500 dark:text-gray-400" ]
-                            [ text ("Sélection : " ++ String.fromInt (List.length model.plannedTechniques) ++ "/3 techniques actives.") ]
-                        ]
+viewTechniqueSelection : FrontendModel -> List Technique -> Html FrontendMsg
+viewTechniqueSelection model techniques =
+    div [ class "space-y-6" ]
+        [ div [ class "grid gap-4 md:grid-cols-2" ]
+            (List.map (viewTechniqueCard model.plannedTechniques) techniques)
+        , p [ class "text-xs text-gray-500 dark:text-gray-400" ]
+            [ text ("Sélection : " ++ String.fromInt (List.length model.plannedTechniques) ++ "/3 techniques actives.") ]
         ]
 
 
@@ -622,10 +700,8 @@ techniqueOption icon name =
 
 viewQuickActions : Html FrontendMsg
 viewQuickActions =
-    div [ class "grid grid-cols-2 gap-4 mb-6" ]
-        [ quickActionButton "✅" "Réussite" (QuickSuccess 10) "bg-green-500 hover:bg-green-600"
-        , quickActionButton "💡" "Insight" (ShowNotification Info "Note ajoutée à la session") "bg-purple-500 hover:bg-purple-600"
-        ]
+    div [ class "grid grid-cols-1 gap-4 mb-6" ]
+        [ quickActionButton "✅" "Réussite" (QuickSuccess 10) "bg-green-500 hover:bg-green-600" ]
 
 
 quickActionButton : String -> String -> FrontendMsg -> String -> Html FrontendMsg

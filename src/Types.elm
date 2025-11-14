@@ -786,6 +786,7 @@ type alias FrontendModel =
     , claimedPlanItems : Set String
     , techniquePreview : Maybe String
     , trainingGoal : Maybe String
+    , followChampionPlan : Bool
     , selectedChampion : Maybe String
     , plannedTechniques : List String
     , trainingActions : List TrainingAction
@@ -962,6 +963,7 @@ type FrontendMsg
     | PreviewTechnique String
     | ClearTechniquePreview
     | SetTrainingGoal String
+    | ToggleFollowChampion Bool
     | AnimationTick Time.Posix
     | ClaimPlanXP String Int
     | SelectTrainingChampion String
