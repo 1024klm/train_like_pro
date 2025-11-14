@@ -386,6 +386,22 @@ type alias TechniqueLog =
     }
 
 
+type alias TrainingAction =
+    { id : String
+    , title : String
+    , description : String
+    , xp : Int
+    , icon : String
+    , status : ActionStatus
+    }
+
+
+type ActionStatus
+    = ActionBacklog
+    | ActionInProgress
+    | ActionCompleted
+
+
 type MoodRating
     = Frustrated
     | Neutral
@@ -770,6 +786,9 @@ type alias FrontendModel =
     , claimedPlanItems : Set String
     , techniquePreview : Maybe String
     , trainingGoal : Maybe String
+    , selectedChampion : Maybe String
+    , plannedTechniques : List String
+    , trainingActions : List TrainingAction
     }
 
 
@@ -945,6 +964,9 @@ type FrontendMsg
     | SetTrainingGoal String
     | AnimationTick Time.Posix
     | ClaimPlanXP String Int
+    | SelectTrainingChampion String
+    | TogglePlannedTechnique String
+    | CycleTrainingActionStatus String
 
 
 type FavoriteType

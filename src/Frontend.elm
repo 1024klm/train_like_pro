@@ -112,6 +112,9 @@ init url key =
             , claimedPlanItems = Set.empty
             , techniquePreview = Nothing
             , trainingGoal = Nothing
+            , selectedChampion = Nothing
+            , plannedTechniques = []
+            , trainingActions = Data.defaultTrainingActions
             }
     in
     ( initialModel
@@ -385,21 +388,40 @@ update msg model =
             )
 
         StartSession ->
-            let
-                newSession =
-                    { startTime = Time.millisToPosix 0 -- Will be set properly by backend
-                    , currentTechnique = model.trainingGoal
-                    , techniques = []
-                    , totalXP = 0
-                    , notes = ""
-                    }
-            in
-            ( { model | activeSession = Just newSession, sessionTimer = 0 }
-            , Cmd.batch
-                [ Router.navigateTo model.key TrainingView
-                , Task.perform UpdateSessionTimer Time.now
-                ]
-            )
+            case ( model.selectedChampion, model.plannedTechniques ) of
+                ( Nothing, _ ) ->
+                    ( model
+                    , send (ShowNotification Warning "Choisis un champion avant de démarrer ta session.")
+                    )
+
+                ( Just _, [] ) ->
+                    ( model
+                    , send (ShowNotification Warning "Sélectionne jusqu'à 3 techniques à travailler aujourd'hui.")
+                    )
+
+                ( Just _, planned ) ->
+                    let
+                        primaryGoal =
+                            List.head planned
+
+                        newSession =
+                            { startTime = Time.millisToPosix 0 -- backend will update with real time
+                            , currentTechnique = primaryGoal
+                            , techniques = []
+                            , totalXP = 0
+                            , notes = ""
+                            }
+                    in
+                    ( { model
+                        | activeSession = Just newSession
+                        , sessionTimer = 0
+                        , trainingGoal = primaryGoal
+                      }
+                    , Cmd.batch
+                        [ Router.navigateTo model.key TrainingView
+                        , Task.perform UpdateSessionTimer Time.now
+                        ]
+                    )
 
         EndSession ->
             case model.activeSession of
@@ -474,6 +496,137 @@ update msg model =
 
                 Nothing ->
                     ( model, Cmd.none )
+
+        SelectTrainingChampion heroId ->
+            let
+                normalizedSelection =
+                    let
+                        trimmed =
+                            String.trim heroId
+                    in
+                    if String.isEmpty trimmed then
+                        Nothing
+
+                    else
+                        Just trimmed
+
+                updatedActions =
+                    List.map
+                        (\action ->
+                            if action.id == "plan-session" then
+                                case normalizedSelection of
+                                    Just _ ->
+                                        { action | status = ActionInProgress }
+
+                                    Nothing ->
+                                        { action | status = ActionBacklog }
+
+                            else
+                                action
+                        )
+                        model.trainingActions
+            in
+            ( { model
+                | selectedChampion = normalizedSelection
+                , plannedTechniques = []
+                , trainingGoal = Nothing
+                , trainingActions = updatedActions
+              }
+            , Cmd.none
+            )
+
+        TogglePlannedTechnique techniqueId ->
+            case model.selectedChampion of
+                Nothing ->
+                    ( model
+                    , send (ShowNotification Info "Choisis un champion avant de sélectionner des techniques.")
+                    )
+
+                Just _ ->
+                    if List.member techniqueId model.plannedTechniques then
+                        let
+                            updated =
+                                List.filter (\tech -> tech /= techniqueId) model.plannedTechniques
+                        in
+                        ( { model
+                            | plannedTechniques = updated
+                            , trainingGoal = List.head updated
+                          }
+                        , Cmd.none
+                        )
+
+                    else if List.length model.plannedTechniques >= 3 then
+                        ( model
+                        , send (ShowNotification Warning "Maximum 3 techniques par session.")
+                        )
+
+                    else
+                        let
+                            updated =
+                                model.plannedTechniques ++ [ techniqueId ]
+                        in
+                        ( { model
+                            | plannedTechniques = updated
+                            , trainingGoal = List.head updated
+                          }
+                        , Cmd.none
+                        )
+
+        CycleTrainingActionStatus actionId ->
+            let
+                advance status =
+                    case status of
+                        ActionBacklog ->
+                            ActionInProgress
+
+                        ActionInProgress ->
+                            ActionCompleted
+
+                        ActionCompleted ->
+                            ActionBacklog
+
+                ( updatedActions, xpReward ) =
+                    List.foldr
+                        (\action ( acc, reward ) ->
+                            if action.id == actionId then
+                                let
+                                    nextStatus =
+                                        advance action.status
+
+                                    rewardCandidate =
+                                        if action.status /= ActionCompleted && nextStatus == ActionCompleted then
+                                            Just action.xp
+
+                                        else
+                                            Nothing
+
+                                    newReward =
+                                        case reward of
+                                            Nothing ->
+                                                rewardCandidate
+
+                                            Just _ ->
+                                                reward
+                                in
+                                ( { action | status = nextStatus } :: acc, newReward )
+
+                            else
+                                ( action :: acc, reward )
+                        )
+                        ( [], Nothing )
+                        model.trainingActions
+
+                notificationCmd =
+                    case xpReward of
+                        Just xp ->
+                            send (ShowNotification Success ("+" ++ String.fromInt xp ++ " XP ajoutés à ton suivi."))
+
+                        Nothing ->
+                            Cmd.none
+            in
+            ( { model | trainingActions = updatedActions }
+            , notificationCmd
+            )
 
         SelectNode techniqueId ->
             case model.activeSession of

@@ -2524,3 +2524,43 @@ defaultUserProgress =
     , currentStreak = 0
     , longestStreak = 0
     }
+
+
+defaultTrainingActions : List Types.TrainingAction
+defaultTrainingActions =
+    [ { id = "plan-session"
+      , title = "Planifie ta session"
+      , description = "Choisis un champion et définis tes techniques prioritaires."
+      , xp = 50
+      , icon = "🧠"
+      , status = Types.ActionBacklog
+      }
+    , { id = "drill-technique"
+      , title = "Drill technique"
+      , description = "Réalise 3 séries de répétitions contrôlées."
+      , xp = 75
+      , icon = "🎯"
+      , status = Types.ActionBacklog
+      }
+    , { id = "sparring-focus"
+      , title = "Sparring situationnel"
+      , description = "Teste la technique contre résistance légère."
+      , xp = 100
+      , icon = "🤼"
+      , status = Types.ActionBacklog
+      }
+    , { id = "note-feedback"
+      , title = "Note insights"
+      , description = "Capture l'apprentissage clé dans ton journal."
+      , xp = 40
+      , icon = "📝"
+      , status = Types.ActionBacklog
+      }
+    , { id = "recover"
+      , title = "Récup active"
+      , description = "5 minutes de respiration / mobilité pour intégrer."
+      , xp = 30
+      , icon = "💤"
+      , status = Types.ActionBacklog
+      }
+    ]
