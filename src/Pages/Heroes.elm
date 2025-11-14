@@ -715,13 +715,13 @@ heroHeaderActions hero model isFavorite =
             if isFavorite then
                 ( t.championSelected
                 , "✓"
-                , "inline-flex items-center gap-2 rounded-full bg-purple-600 px-5 py-2 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                , "sh-btn gap-2 px-5 bg-purple-600 text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:px-6"
                 )
 
             else
                 ( t.selectChampion
                 , "＋"
-                , "inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-purple-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
+                , "sh-btn gap-2 px-5 bg-white text-purple-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:px-6"
                 )
     in
     div [ class "flex flex-wrap gap-3" ]
@@ -734,9 +734,11 @@ heroHeaderActions hero model isFavorite =
             ]
         , button
             [ onClick (NavigateTo (HeroesRoute Nothing))
-            , class "inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+            , class "sh-btn gap-2 px-5 bg-white/10 text-white border border-white/30 hover:bg-white/20 transition md:px-6"
             ]
-            [ text ("← " ++ t.heroes) ]
+            [ span [ class "text-base" ] [ text "←" ]
+            , span [] [ text t.heroes ]
+            ]
         ]
 
 
