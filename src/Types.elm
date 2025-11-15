@@ -784,6 +784,7 @@ type alias FrontendModel =
 
     -- User
     , userProfile : Maybe UserProfile
+    , signUpForm : SignUpForm
     , favorites : Favorites
     , userProgress : UserProgress -- Progression gamifiée
 
@@ -807,6 +808,16 @@ type alias FrontendModel =
     , selectedChampion : Maybe String
     , plannedTechniques : List String
     , trainingActions : List TrainingAction
+    }
+
+
+type alias SignUpForm =
+    { fullName : String
+    , email : String
+    , password : String
+    , confirmPassword : String
+    , error : Maybe String
+    , isSubmitting : Bool
     }
 
 
@@ -986,6 +997,11 @@ type FrontendMsg
     | SelectTrainingChampion String
     | TogglePlannedTechnique String
     | CycleTrainingActionStatus String
+    | UpdateSignUpName String
+    | UpdateSignUpEmail String
+    | UpdateSignUpPassword String
+    | UpdateSignUpConfirm String
+    | SubmitSignUpForm
 
 
 type FavoriteType

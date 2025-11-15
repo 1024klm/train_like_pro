@@ -43,6 +43,17 @@ type alias Msg =
     FrontendMsg
 
 
+emptySignUpForm : SignUpForm
+emptySignUpForm =
+    { fullName = ""
+    , email = ""
+    , password = ""
+    , confirmPassword = ""
+    , error = Nothing
+    , isSubmitting = False
+    }
+
+
 app =
     Lamdera.frontend
         { init = init
@@ -87,6 +98,7 @@ init url key =
             , trainingPlans = Dict.empty
             , trainingSessions = []
             , userProfile = Nothing
+            , signUpForm = emptySignUpForm
             , favorites = Data.emptyFavorites
             , userProgress = Data.defaultUserProgress
             , roadmaps = Dict.empty
@@ -643,6 +655,111 @@ update msg model =
             , notificationCmd
             )
 
+        UpdateSignUpName name ->
+            let
+                form =
+                    model.signUpForm
+            in
+            ( { model | signUpForm = { form | fullName = name, error = Nothing } }
+            , Cmd.none
+            )
+
+        UpdateSignUpEmail email ->
+            let
+                form =
+                    model.signUpForm
+            in
+            ( { model | signUpForm = { form | email = email, error = Nothing } }
+            , Cmd.none
+            )
+
+        UpdateSignUpPassword password ->
+            let
+                form =
+                    model.signUpForm
+            in
+            ( { model | signUpForm = { form | password = password, error = Nothing } }
+            , Cmd.none
+            )
+
+        UpdateSignUpConfirm confirmPassword ->
+            let
+                form =
+                    model.signUpForm
+            in
+            ( { model | signUpForm = { form | confirmPassword = confirmPassword, error = Nothing } }
+            , Cmd.none
+            )
+
+        SubmitSignUpForm ->
+            if model.signUpForm.isSubmitting then
+                ( model, Cmd.none )
+
+            else
+                let
+                    form =
+                        model.signUpForm
+
+                    trimmedName =
+                        String.trim form.fullName
+
+                    trimmedEmail =
+                        String.trim form.email
+
+                    trimmedPassword =
+                        String.trim form.password
+
+                    trimmedConfirm =
+                        String.trim form.confirmPassword
+
+                    missingFields =
+                        List.any String.isEmpty [ trimmedName, trimmedEmail, trimmedPassword, trimmedConfirm ]
+                in
+                if missingFields then
+                    ( { model
+                        | signUpForm =
+                            { form
+                                | error = Just (signUpValidationError model.userConfig.language)
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                else if trimmedPassword /= trimmedConfirm then
+                    ( { model
+                        | signUpForm =
+                            { form
+                                | error = Just (signUpPasswordMismatchError model.userConfig.language)
+                            }
+                      }
+                    , Cmd.none
+                    )
+
+                else
+                    let
+                        profileId =
+                            generateProfileId trimmedName trimmedEmail model.currentTime
+
+                        baseProfile =
+                            Data.defaultUserProfile profileId
+
+                        newProfile =
+                            { baseProfile
+                                | username = trimmedName
+                                , email = trimmedEmail
+                                , startedTraining = I18n.formatFullDate model.userConfig.language model.currentTime
+                            }
+                    in
+                    ( { model
+                        | signUpForm =
+                            { form
+                                | error = Nothing
+                                , isSubmitting = True
+                            }
+                      }
+                    , Lamdera.sendToBackend (SaveUserProfile newProfile)
+                    )
+
         SelectNode techniqueId ->
             case model.activeSession of
                 Just session ->
@@ -844,6 +961,70 @@ send message =
     Task.perform (\_ -> message) (Task.succeed ())
 
 
+generateProfileId : String -> String -> Time.Posix -> String
+generateProfileId name email now =
+    let
+        emailSlug =
+            email
+                |> String.toLower
+                |> String.trim
+                |> String.split "@"
+                |> List.head
+                |> Maybe.withDefault ""
+
+        nameSlug =
+            name
+                |> String.toLower
+                |> String.words
+                |> String.join "-"
+
+        baseSlug =
+            if String.isEmpty emailSlug then
+                nameSlug
+
+            else
+                emailSlug
+
+        timestamp =
+            String.fromInt (Time.posixToMillis now)
+    in
+    if String.isEmpty baseSlug then
+        "user-" ++ timestamp
+
+    else
+        "user-" ++ baseSlug ++ "-" ++ timestamp
+
+
+signUpValidationError : I18n.Language -> String
+signUpValidationError language =
+    case language of
+        I18n.FR ->
+            "Merci de remplir tous les champs pour créer ton profil."
+
+        I18n.EN ->
+            "Please fill in all fields to create your profile."
+
+
+signUpPasswordMismatchError : I18n.Language -> String
+signUpPasswordMismatchError language =
+    case language of
+        I18n.FR ->
+            "Les mots de passe ne correspondent pas."
+
+        I18n.EN ->
+            "Passwords do not match."
+
+
+profileCreatedMessage : I18n.Language -> String -> String
+profileCreatedMessage language username =
+    case language of
+        I18n.FR ->
+            "Profil créé ! Bienvenue, " ++ username ++ " 👋"
+
+        I18n.EN ->
+            "Profile created! Welcome, " ++ username ++ " 👋"
+
+
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd Msg )
 updateFromBackend msg model =
     case msg of
@@ -888,6 +1069,18 @@ updateFromBackend msg model =
         NotificationReceived notification ->
             ( { model | notifications = notification :: model.notifications }
             , Cmd.none
+            )
+
+        UserProfileSaved profile ->
+            ( { model
+                | userProfile = Just profile
+                , signUpForm = emptySignUpForm
+              }
+            , Cmd.batch
+                [ Router.navigateTo model.key Profile
+                , send
+                    (ShowNotification Success (profileCreatedMessage model.userConfig.language profile.username))
+                ]
             )
 
         _ ->
@@ -2719,6 +2912,9 @@ viewSignUpPage model =
     let
         t =
             model.userConfig.t
+
+        form =
+            model.signUpForm
     in
     div [ class "min-h-screen flex items-center justify-center p-4", style "margin-top" "-72px" ]
         [ div [ class "max-w-md w-full" ]
@@ -2741,6 +2937,8 @@ viewSignUpPage model =
                             [ type_ "text"
                             , class "form-input w-full"
                             , placeholder t.fullNamePlaceholder
+                            , value form.fullName
+                            , onInput UpdateSignUpName
                             ]
                             []
                         ]
@@ -2751,6 +2949,8 @@ viewSignUpPage model =
                             [ type_ "email"
                             , class "form-input w-full"
                             , placeholder t.emailPlaceholder
+                            , value form.email
+                            , onInput UpdateSignUpEmail
                             ]
                             []
                         ]
@@ -2761,6 +2961,8 @@ viewSignUpPage model =
                             [ type_ "password"
                             , class "form-input w-full"
                             , placeholder t.passwordPlaceholder
+                            , value form.password
+                            , onInput UpdateSignUpPassword
                             ]
                             []
                         ]
@@ -2771,12 +2973,21 @@ viewSignUpPage model =
                             [ type_ "password"
                             , class "form-input w-full"
                             , placeholder t.confirmPasswordPlaceholder
+                            , value form.confirmPassword
+                            , onInput UpdateSignUpConfirm
                             ]
                             []
                         ]
+                    , case form.error of
+                        Just err ->
+                            div [ class "text-sm text-red-500 text-center" ] [ text err ]
+
+                        Nothing ->
+                            text ""
                     , button
-                        [ onClick (ShowNotification Info t.signUpFeature)
+                        [ onClick SubmitSignUpForm
                         , class "w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-3 px-6 rounded-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+                        , disabled form.isSubmitting
                         , type_ "button"
                         ]
                         [ text t.createAccount ]
