@@ -4,8 +4,10 @@ import Browser exposing (UrlRequest)
 import Browser.Navigation exposing (Key)
 import Dict exposing (Dict)
 import I18n exposing (Language, Translations)
+import List
 import LocalStorage exposing (LocalStorage)
 import Set exposing (Set)
+import String
 import Theme exposing (UserPreference)
 import Time
 import Url exposing (Url)
@@ -118,6 +120,21 @@ type alias CompetitionRecord =
     , advantages : Int
     , titles : List String
     }
+
+
+heroHasDetailedProfile : Hero -> Bool
+heroHasDetailedProfile hero =
+    let
+        recordTracked =
+            (hero.record.wins + hero.record.losses + hero.record.draws) > 0
+
+        hasTechniques =
+            not (List.isEmpty hero.techniques)
+
+        hasMeaningfulBio =
+            (String.trim hero.bio) /= ""
+    in
+    recordTracked && hasTechniques && hasMeaningfulBio
 
 
 

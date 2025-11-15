@@ -849,12 +849,15 @@ updateFromBackend msg model =
     case msg of
         InitialDataReceived data ->
             let
-                seededHeroes =
+                incomingHeroes =
                     if Dict.isEmpty data.heroes then
                         Data.initHeroes
 
                     else
                         data.heroes
+
+                seededHeroes =
+                    Dict.filter (\_ hero -> heroHasDetailedProfile hero) incomingHeroes
 
                 seededEvents =
                     if Dict.isEmpty data.events then
@@ -1771,7 +1774,7 @@ viewTodaysPlan model =
         , div [ class "plan-list" ]
             [ techniqueCheckItem model "Heel Hook" "Gordon Ryan" False 50
             , techniqueCheckItem model "Back take from leg entanglement" "Gordon Ryan" False 75
-            , techniqueCheckItem model "RNC finish details" "Gordon Ryan" True 100
+            , techniqueCheckItem model "RNC finish details" "Gordon Ryan" False 100
             ]
         , div [ class "plan-card__footer" ]
             [ span [ class "plan-card__progress" ] [ text sessionProgress ]

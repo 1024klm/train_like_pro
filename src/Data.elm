@@ -204,12 +204,12 @@ initHeroes =
                 }
             }
           )
+        , ( "craig-jones"
+          , craigJonesHero
+          )
         ]
     )
-        |> List.filter
-            (\(_, hero) ->
-                not (List.isEmpty hero.techniques)
-            )
+        |> List.filter (\(_, hero) -> Types.heroHasDetailedProfile hero)
         |> Dict.fromList
 
 
@@ -1695,6 +1695,103 @@ gordonVideos =
       , type_ = Types.Match
       , date = "2022-09-18"
       , thumbnail = "/images/thumbnails/gordon-adcc-2022.jpg"
+      }
+    ]
+
+craigJonesHero : Types.Hero
+craigJonesHero =
+    { id = "craig-jones"
+    , name = "Craig Jones"
+    , nickname = "Aussie Subs"
+    , nationality = "Australia"
+    , team = "B-Team Jiu Jitsu"
+    , gender = Types.Male
+    , weight = Types.MediumHeavy
+    , style = Types.LegLocks
+    , achievements =
+        [ { id = "ajc-runner-up"
+          , name = "2x ADCC Silver Medalist"
+          , description = "ADCC 2019 and 2022 silver medals"
+          , icon = "🥈"
+          , unlockedAt = Just "2022-09-18"
+          , category = Types.MilestoneAchievement
+          , points = 950
+          }
+        ]
+    , imageUrl = "/images/heroes/craig-jones.jpg"
+    , coverImageUrl = "/images/heroes/craig-jones-cover.jpg"
+    , bio = "Leg-lock savant, ADCC medalist, and B-Team co-founder known for Z-guard control and relentless back entries."
+    , record =
+        { wins = 86
+        , losses = 17
+        , draws = 5
+        , submissions = 58
+        , points = 41
+        , advantages = 12
+        , titles = [ "ADCC silver medalist", "EBI Champion", "Polaris Champion" ]
+        }
+    , techniques = craigJonesTechniques
+    , socialMedia =
+        { instagram = Just "@craigjonesbjj"
+        , youtube = Just "B-Team Jiu Jitsu"
+        , twitter = Just "@craigjonesbjj"
+        , website = Just "www.bteamjj.com"
+        }
+    , videos = craigJonesVideos
+    , stats =
+        { winRate = 82.3
+        , submissionRate = 67.4
+        , averageMatchTime = 7.1
+        , favoritePosition = "Z-guard / half-butterfly"
+        , favoriteSubmission = "Outside heel hook / rear naked choke"
+        }
+    }
+
+
+craigJonesTechniques : List Types.Technique
+craigJonesTechniques =
+    [ { id = "craig-z-guard"
+      , name = "Z-Guard Clamp"
+      , category = Types.GuardTechnique
+      , difficulty = Types.DifficultyAdvanced
+      , description = "Clamp-style Z-guard focused on knee isolation and off-balancing."
+      , keyDetails = [ "Clamp knee line", "Reverse de la Riva switch", "Off-balance to backside 50/50" ]
+      , videoUrl = Just "https://example.com/craig-z-guard"
+      , xpValue = 180
+      , prerequisites = []
+      , masteryLevel = Types.NotStarted
+      , relatedFighters = [ "craig-jones" ]
+      }
+    , { id = "craig-ruck-harness"
+      , name = "RNC Finish Details"
+      , category = Types.SubmissionTechnique
+      , difficulty = Types.DifficultyAdvanced
+      , description = "Craig's rib crunch and wrist turn mechanics to finish rear naked chokes against stubborn defenses."
+      , keyDetails = [ "Palm-up grab", "Shoulder line crunch", "Wrist turn to expose carotids" ]
+      , videoUrl = Just "https://example.com/craig-rnc-finish"
+      , xpValue = 160
+      , prerequisites = []
+      , masteryLevel = Types.NotStarted
+      , relatedFighters = [ "craig-jones" ]
+      }
+    ]
+
+
+craigJonesVideos : List Types.Video
+craigJonesVideos =
+    [ { id = "craig-adcc-2019"
+      , title = "Craig Jones ADCC 2019 Highlights"
+      , url = "https://example.com/craig-adcc-2019"
+      , type_ = Types.Highlight
+      , date = "2019-09-29"
+      , thumbnail = "/images/thumbnails/craig-adcc-2019.jpg"
+      }
+    , { id = "craig-backtakes"
+      , title = "Craig Jones Back-Take Blueprint"
+      , url = "https://example.com/craig-backtakes"
+      , type_ = Types.Instructional
+      , date = "2021-02-14"
+      , thumbnail = "/images/thumbnails/craig-backtakes.jpg"
       }
     ]
 

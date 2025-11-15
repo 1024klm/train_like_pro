@@ -72,8 +72,11 @@ updateFromFrontend sessionId clientId msg model =
     case msg of
         GetInitialData ->
             let
+                cleanedHeroes =
+                    Dict.filter (\_ hero -> heroHasDetailedProfile hero) model.heroes
+
                 seededHeroes =
-                    Dict.union Data.initHeroes model.heroes
+                    Dict.union Data.initHeroes cleanedHeroes
 
                 seededEvents =
                     if Dict.isEmpty model.events then

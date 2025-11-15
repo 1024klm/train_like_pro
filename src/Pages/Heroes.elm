@@ -2,7 +2,7 @@ module Pages.Heroes exposing (viewDetail, viewList)
 
 import Dict exposing (Dict)
 import Html exposing (Html, a, button, div, h1, h2, h3, h4, img, input, label, li, option, p, select, span, text, ul)
-import Html.Attributes exposing (alt, class, classList, href, placeholder, rel, src, style, target, type_, value)
+import Html.Attributes exposing (alt, attribute, class, classList, href, placeholder, rel, src, style, target, type_, value)
 import Html.Events exposing (onClick, onInput, stopPropagationOn)
 import Html.Keyed as Keyed
 import I18n
@@ -24,6 +24,7 @@ viewList model filter =
         heroesList =
             model.heroes
                 |> Dict.values
+                |> List.filter heroHasDetailedProfile
                 |> List.filter (matchesSearch model.searchQuery)
                 |> filterHeroes filter
                 |> List.sortBy .name
@@ -629,9 +630,6 @@ viewHeroHeader hero model =
         language =
             model.userConfig.language
 
-        isFavorite =
-            Set.member hero.id model.favorites.heroes
-
         headerStats =
             [ heroHeaderStat t.winRate (String.fromFloat hero.stats.winRate ++ "%")
             , heroHeaderStat t.submissionRate (String.fromFloat hero.stats.submissionRate ++ "%")
@@ -673,7 +671,7 @@ viewHeroHeader hero model =
                     , p [ class "text-base text-white/80" ] [ text hero.bio ]
                     ]
                 , div [ class "grid gap-4 md:grid-cols-3" ] headerStats
-                , heroHeaderActions hero model isFavorite
+                , heroHeaderActions hero model
                 ]
             ]
         ]
@@ -705,32 +703,38 @@ heroHeaderBadges language hero =
             )
 
 
-heroHeaderActions : Hero -> FrontendModel -> Bool -> Html FrontendMsg
-heroHeaderActions hero model isFavorite =
+heroHeaderActions : Hero -> FrontendModel -> Html FrontendMsg
+heroHeaderActions hero model =
     let
         t =
             model.userConfig.t
 
-        ( selectLabel, selectIcon, selectClasses ) =
-            if isFavorite then
-                ( t.championSelected
-                , "✓"
-                , "sh-btn gap-2 px-5 bg-purple-600 text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:px-6"
-                )
+        isSelected =
+            model.selectedChampion == Just hero.id
+
+        selection =
+            if isSelected then
+                { label = t.championSelected
+                , icon = "✓"
+                , classes = "sh-btn gap-2 px-5 bg-purple-600 text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:px-6"
+                , msg = SelectTrainingChampion ""
+                }
 
             else
-                ( t.selectChampion
-                , "＋"
-                , "sh-btn gap-2 px-5 bg-white text-purple-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:px-6"
-                )
+                { label = t.selectChampion
+                , icon = "＋"
+                , classes = "sh-btn gap-2 px-5 bg-white text-purple-700 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:px-6"
+                , msg = SelectTrainingChampion hero.id
+                }
     in
     div [ class "flex flex-wrap gap-3" ]
         [ button
-            [ onClick (ToggleFavorite HeroFavorite hero.id)
-            , class selectClasses
+            [ onClick selection.msg
+            , class selection.classes
+            , attribute "aria-pressed" (if isSelected then "true" else "false")
             ]
-            [ span [ class "text-base" ] [ text selectIcon ]
-            , span [] [ text selectLabel ]
+            [ span [ class "text-base" ] [ text selection.icon ]
+            , span [] [ text selection.label ]
             ]
         , button
             [ onClick (NavigateTo (HeroesRoute Nothing))
